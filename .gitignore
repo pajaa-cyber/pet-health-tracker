@@ -36,5 +36,12 @@ yarn-error.*
 # local env files
 .env*.local
 
+# Firebase native config (per-environment; downloaded from Firebase console
+# to the project root, then copied into place by `expo prebuild`)
+/google-services.json
+/GoogleService-Info.plist
+android/app/google-services.json
+ios/GoogleService-Info.plist
+
 # typescript
 *.tsbuildinfo
