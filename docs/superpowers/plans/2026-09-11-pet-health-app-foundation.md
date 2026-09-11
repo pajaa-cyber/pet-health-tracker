@@ -245,9 +245,11 @@ git commit -m "feat: add Household and HouseholdMember types"
 
 **Interfaces:**
 - Consumes: `Household`, `HouseholdMember` from `src/types/household.ts` (Task 3); the `Firestore` type from `@react-native-firebase/firestore`
-- Produces: `createHousehold(db: Firestore, userId: string, displayName: string, householdName: string): Promise<Household>`, `joinHousehold(db: Firestore, userId: string, displayName: string, inviteCode: string): Promise<Household>`, `getHousehold(db: Firestore, householdId: string): Promise<Household | null>` — all imported by `HouseholdSetupScreen.tsx` (Task 7).
+- Produces: `createHousehold(db: Firestore, userId: string, displayName: string, householdName: string): Promise<Household>`, `joinHousehold(db: Firestore, userId: string, displayName: string, inviteCode: string): Promise<void>`, `getHousehold(db: Firestore, householdId: string): Promise<Household | null>` — all imported by `HouseholdSetupScreen.tsx` (Task 7). Note `joinHousehold` returns `void`, not the joined `Household` — see the architecture note below for why.
 
-**Testing-approach note (revision — see plan-wide ruling below Task 2's commit):** `@react-native-firebase/firestore` is a native-bridge module and cannot execute inside Jest/Node (there is no running native host to bridge to), so this task's tests mock the modular Firestore functions and assert `householdService.ts` calls them with the correct arguments and returns the correct shape, rather than hitting a real Firestore emulator. Task 5 separately verifies the actual `firestore.rules` security behavior against the real emulator using the Firebase **web** SDK (which is pure JS and runs fine in Jest) — that is the layer that proves access control actually works end-to-end. This task proves `householdService.ts`'s own logic (invite-code generation, member-list construction, correct Firestore call shape) is correct.
+**Testing-approach note:** `@react-native-firebase/firestore` is a native-bridge module and cannot execute inside Jest/Node (there is no running native host to bridge to), so this task's tests mock the modular Firestore functions and assert `householdService.ts` calls them with the correct arguments and returns the correct shape, rather than hitting a real Firestore emulator. Task 5 separately verifies the actual `firestore.rules` security behavior against the real emulator using the Firebase **web** SDK (which is pure JS and runs fine in Jest) — that is the layer that proves access control actually works end-to-end. This task proves `householdService.ts`'s own logic is correct.
+
+**Architecture note — invite-code lookup via a separate collection, not a query (revision):** the original design had `joinHousehold` run `query(collection(db,'households'), where('inviteCode','==',code), limit(1))`. This cannot work against real Firestore security rules: Firestore evaluates a `list`/query request against every document it could *structurally* match, not just the one that actually matches — since `isMember(resource.data)` isn't provably true for every household (only the one the code belongs to), Firestore rejects the query outright for any user who isn't already a member of some matching household. Fix: a separate top-level `inviteCodes/{code} -> { householdId }` collection, readable by any signed-in user (Task 5 adds its rules) — this is a single-document `get()`, which Firestore evaluates against real data, not worst-case. `joinHousehold` also switches from a client-computed `[...oldMembers, newMember]` array to Firestore's server-side `arrayUnion(newMember)`, so the joining client never needs read access to the household document at all (only to `inviteCodes`).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -255,23 +257,26 @@ git commit -m "feat: add Household and HouseholdMember types"
 // __tests__/householdService.test.ts
 import type { Firestore } from '@react-native-firebase/firestore';
 
-const mockDocRef = { id: 'generated-id' };
+const mockCreatedDocRef = { id: 'generated-id' };
+const mockInviteDocRef = { id: 'invite-ref' };
+const mockHouseholdDocRef = { id: 'h1' };
 const mockCollectionRef = {};
-const mockGetDocs = jest.fn();
 const mockSetDoc = jest.fn();
 const mockUpdateDoc = jest.fn();
 const mockGetDoc = jest.fn();
+const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
 
 jest.mock('@react-native-firebase/firestore', () => ({
   collection: jest.fn(() => mockCollectionRef),
-  doc: jest.fn(() => mockDocRef),
+  doc: jest.fn((_refOrDb: unknown, path?: string) => {
+    if (path === 'inviteCodes') return mockInviteDocRef;
+    if (path === 'households') return mockHouseholdDocRef;
+    return mockCreatedDocRef; // doc(collectionRef) auto-id case, used by createHousehold
+  }),
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
-  getDocs: (...args: unknown[]) => mockGetDocs(...args),
   updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
-  query: jest.fn((ref) => ref),
-  where: jest.fn(),
-  limit: jest.fn(),
+  arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
 }));
 
 import { createHousehold, joinHousehold, getHousehold } from '../src/household/householdService';
@@ -283,7 +288,7 @@ beforeEach(() => {
 });
 
 describe('householdService', () => {
-  it('creates a household with the creator as its first member', async () => {
+  it('creates a household and a matching invite-code lookup entry', async () => {
     mockSetDoc.mockResolvedValue(undefined);
 
     const household = await createHousehold(fakeDb, 'user-1', 'Ana', "Ana's Household");
@@ -293,33 +298,27 @@ describe('householdService', () => {
       expect.objectContaining({ userId: 'user-1', displayName: 'Ana' }),
     ]);
     expect(household.inviteCode).toHaveLength(6);
-    expect(mockSetDoc).toHaveBeenCalledWith(mockDocRef, household);
+    expect(mockSetDoc).toHaveBeenCalledWith(mockCreatedDocRef, household);
+    expect(mockSetDoc).toHaveBeenCalledWith(mockInviteDocRef, { householdId: 'generated-id' });
   });
 
-  it('lets a second user join via invite code', async () => {
-    const existingHousehold = {
-      id: 'h1',
-      name: "Ana's Household",
-      members: [{ userId: 'user-1', displayName: 'Ana', joinedAt: 0 }],
-      inviteCode: 'ABC123',
-      createdAt: 0,
-    };
-    mockGetDocs.mockResolvedValue({
-      empty: false,
-      docs: [{ ref: mockDocRef, data: () => existingHousehold }],
-    });
+  it('lets a second user join via invite code, using arrayUnion instead of reading the household first', async () => {
+    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1' }) });
     mockUpdateDoc.mockResolvedValue(undefined);
 
-    const joined = await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
+    await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
 
-    expect(joined.id).toBe('h1');
-    expect(joined.members).toHaveLength(2);
-    expect(joined.members.map((m) => m.userId)).toEqual(['user-1', 'user-2']);
-    expect(mockUpdateDoc).toHaveBeenCalledWith(mockDocRef, { members: joined.members });
+    expect(mockGetDoc).toHaveBeenCalledWith(mockInviteDocRef);
+    expect(mockArrayUnion).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-2', displayName: 'Marko' })
+    );
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockHouseholdDocRef, {
+      members: { __arrayUnion: [expect.objectContaining({ userId: 'user-2' })] },
+    });
   });
 
   it('throws when the invite code does not match any household', async () => {
-    mockGetDocs.mockResolvedValue({ empty: true, docs: [] });
+    mockGetDoc.mockResolvedValue({ exists: () => false });
 
     await expect(
       joinHousehold(fakeDb, 'user-2', 'Marko', 'ZZZZZZ')
@@ -344,7 +343,7 @@ Expected: FAIL with "Cannot find module '../src/household/householdService'"
 
 ```typescript
 // src/household/householdService.ts
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, query, where, limit, type Firestore } from '@react-native-firebase/firestore';
+import { collection, doc, setDoc, getDoc, updateDoc, arrayUnion, type Firestore } from '@react-native-firebase/firestore';
 import { Household, HouseholdMember } from '../types/household';
 
 function generateInviteCode(): string {
@@ -364,14 +363,16 @@ export async function createHousehold(
 ): Promise<Household> {
   const member: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
   const docRef = doc(collection(db, 'households'));
+  const inviteCode = generateInviteCode();
   const household: Household = {
     id: docRef.id,
     name: householdName,
     members: [member],
-    inviteCode: generateInviteCode(),
+    inviteCode,
     createdAt: Date.now(),
   };
   await setDoc(docRef, household);
+  await setDoc(doc(db, 'inviteCodes', inviteCode), { householdId: docRef.id });
   return household;
 }
 
@@ -380,21 +381,19 @@ export async function joinHousehold(
   userId: string,
   displayName: string,
   inviteCode: string
-): Promise<Household> {
-  const q = query(collection(db, 'households'), where('inviteCode', '==', inviteCode), limit(1));
-  const snapshot = await getDocs(q);
+): Promise<void> {
+  const inviteSnap = await getDoc(doc(db, 'inviteCodes', inviteCode));
 
-  if (snapshot.empty) {
+  if (!inviteSnap.exists()) {
     throw new Error('Invite code not found');
   }
 
-  const docRef = snapshot.docs[0].ref;
-  const household = snapshot.docs[0].data() as Household;
+  const { householdId } = inviteSnap.data() as { householdId: string };
   const newMember: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
-  const updatedMembers = [...household.members, newMember];
 
-  await updateDoc(docRef, { members: updatedMembers });
-  return { ...household, members: updatedMembers };
+  await updateDoc(doc(db, 'households', householdId), {
+    members: arrayUnion(newMember),
+  });
 }
 
 export async function getHousehold(
@@ -406,7 +405,7 @@ export async function getHousehold(
 }
 ```
 
-If the installed `@react-native-firebase/firestore` version names any of `collection`/`doc`/`setDoc`/`getDoc`/`getDocs`/`updateDoc`/`query`/`where`/`limit`/`Firestore` differently, check its type declarations under `node_modules/@react-native-firebase/firestore` for the actual export names before finalizing — the business logic and function signatures above are the requirement; only the exact import names are conditional on what's actually installed (Task 2's `config.ts` already imports `getFirestore`/`initializeFirestore` successfully from this same package, confirming this modular surface exists).
+If the installed `@react-native-firebase/firestore` version names any of `collection`/`doc`/`setDoc`/`getDoc`/`updateDoc`/`arrayUnion`/`Firestore` differently, check its type declarations under `node_modules/@react-native-firebase/firestore` for the actual export names before finalizing — the business logic and function signatures above are the requirement; only the exact import names are conditional on what's actually installed (Task 2's `config.ts` already imports `getFirestore`/`initializeFirestore` successfully from this same package, and Task 4's original version of this file already imported `collection`/`doc`/`setDoc`/`getDoc`/`updateDoc` successfully, confirming this modular surface exists — only `arrayUnion` is new here).
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -483,7 +482,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import * as fs from 'fs';
 
 let testEnv: RulesTestEnvironment;
@@ -551,13 +550,51 @@ describe('household security rules', () => {
       })
     );
   });
+
+  it('allows a non-member to join by adding themselves via arrayUnion', async () => {
+    await seedHousehold();
+    const joinerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      updateDoc(doc(joinerDb, 'households', 'h1'), {
+        members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+      })
+    );
+  });
+
+  it('denies a non-member from replacing the members array to evict an existing member', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
+        members: [{ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }],
+      })
+    );
+  });
+
+  it('allows any authenticated user to read an invite-code lookup entry', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1' });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(getDoc(doc(someUserDb, 'inviteCodes', 'ABC123')));
+  });
+
+  it('denies creating an invite-code entry with extra fields', async () => {
+    const creatorDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(creatorDb, 'inviteCodes', 'ZZZ999'), {
+        householdId: 'h2',
+        extra: 'not allowed',
+      })
+    );
+  });
 });
 ```
 
 - [ ] **Step 4: Run the test to verify it fails**
 
 Run: `firebase emulators:exec --only firestore "npx jest __tests__/firestore.rules.test.ts"`
-Expected: FAIL (permissive placeholder rules allow the "denies" assertions to fail, since `assertFails` expects rejection but placeholder allows everything)
+Expected: FAIL (permissive placeholder rules allow the "denies"/hijack-prevention assertions to fail, since `assertFails` expects rejection but the placeholder allows everything; `inviteCodes` doesn't exist as a concept in the placeholder at all, but the permissive `match /{document=**}` catch-all still allows read/write to any path)
 
 - [ ] **Step 5: Write the real rules**
 
@@ -572,12 +609,42 @@ service cloud.firestore {
         householdData.members.filter(m => m.userId == request.auth.uid).size() > 0;
     }
 
+    // A non-member may update the document only to join it: the write must
+    // add exactly one member (the requester) while every existing member
+    // entry is still present unchanged. hasAll is what actually blocks a
+    // hijack attempt — without it, a non-member could submit a whole new
+    // members array that drops an existing member while still passing the
+    // size(+1)-and-self-present checks alone (this was found and fixed
+    // during review — see the plan's revision log).
+    function isJoining(householdData) {
+      return request.auth != null &&
+        request.resource.data.members.size() == householdData.members.size() + 1 &&
+        request.resource.data.members.hasAll(householdData.members) &&
+        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1;
+    }
+
     match /households/{householdId} {
       allow read: if isMember(resource.data);
       allow create: if request.auth != null &&
         request.resource.data.members.filter(m => m.userId == request.auth.uid).size() > 0;
-      allow update: if isMember(resource.data);
+      allow update: if isMember(resource.data) || isJoining(resource.data);
       allow delete: if false;
+    }
+
+    // Maps a shareable invite code to its household ID. Readable by any
+    // signed-in user — that's the point: it's how joinHousehold (Task 4)
+    // finds a household without needing read access to the household
+    // document itself, which a non-member never has. A direct query
+    // against `households` filtered by inviteCode would be rejected by
+    // Firestore for a non-member (list/query rules must hold for every
+    // potentially-matching document, not just the one that actually
+    // matches), so this lookup collection exists specifically to make
+    // joining possible at all.
+    match /inviteCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.resource.data.keys().hasOnly(['householdId']);
+      allow update, delete: if false;
     }
   }
 }
@@ -586,7 +653,7 @@ service cloud.firestore {
 - [ ] **Step 6: Run the test to verify it passes**
 
 Run: `firebase emulators:exec --only firestore "npx jest __tests__/firestore.rules.test.ts"`
-Expected: PASS (4 tests)
+Expected: PASS (8 tests)
 
 - [ ] **Step 7: Commit**
 
@@ -951,3 +1018,40 @@ even if the exact type export name isn't known in advance. Task 7's
 `HouseholdSetupScreen` was updated to pass `firestore` as an instance
 (`createHousehold(firestore, ...)`), not call it as a function
 (`firestore()`), matching Task 2's actual export shape.
+
+**2026-09-11, after Task 5's first review + one fix round:** two further
+problems were found in the join flow, the second only surfaced while
+investigating the first:
+
+1. `allow update: if isMember(resource.data)` denied every join, since the
+   joining user isn't a member yet at the write that's supposed to make
+   them one. First fix attempt added `isJoining()` checking only
+   `members.size() == old + 1` and self-presence — this addressed the
+   join-denial but a scoped re-review found it introduced a hijack: a
+   non-member could submit a crafted `members` array that evicted an
+   existing member while still passing the size-and-self-presence checks.
+2. Independently, `joinHousehold`'s invite-code lookup
+   (`query(collection(db,'households'), where('inviteCode','==',code))`)
+   cannot work against real Firestore rules at all: Firestore rejects a
+   `list`/query request unless the security rule is provably true for
+   every document the query could structurally match, not just the one
+   that actually matches — `isMember` isn't provably true for arbitrary
+   households, so this query is rejected outright for any non-member.
+
+Fix applied: introduced a separate `inviteCodes/{code} -> { householdId }`
+collection, readable by any signed-in user (a single-document `get()`,
+which Firestore evaluates against real data rather than worst-case).
+`joinHousehold` now resolves the code via that collection instead of
+querying `households` directly, then updates the household using
+Firestore's server-side `arrayUnion(newMember)` instead of a
+client-computed array — the joining client never needs read access to the
+household document at all. `isJoining()` gained a `.hasAll(householdData.members)`
+check so a write can only ever ADD the requester, never drop or replace an
+existing member, closing the hijack independent of whether the client
+used `arrayUnion` or a raw array (rules must defend against any client
+request, not just the SDK-generated ones). `joinHousehold`'s return type
+changed from `Promise<Household>` to `Promise<void>` since it no longer
+reads the household as part of joining (Task 7's screen doesn't use the
+return value, so this required no downstream change). Task 5's test file
+gained tests for the arrayUnion join path, the blocked hijack attempt, and
+the new `inviteCodes` collection's read/create rules.
