@@ -1,22 +1,25 @@
 import type { Firestore } from '@react-native-firebase/firestore';
 
-const mockDocRef = { id: 'generated-id' };
+const mockCreatedDocRef = { id: 'generated-id' };
+const mockInviteDocRef = { id: 'invite-ref' };
+const mockHouseholdDocRef = { id: 'h1' };
 const mockCollectionRef = {};
-const mockGetDocs = jest.fn();
 const mockSetDoc = jest.fn();
 const mockUpdateDoc = jest.fn();
 const mockGetDoc = jest.fn();
+const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
 
 jest.mock('@react-native-firebase/firestore', () => ({
   collection: jest.fn(() => mockCollectionRef),
-  doc: jest.fn(() => mockDocRef),
+  doc: jest.fn((_refOrDb: unknown, path?: string) => {
+    if (path === 'inviteCodes') return mockInviteDocRef;
+    if (path === 'households') return mockHouseholdDocRef;
+    return mockCreatedDocRef; // doc(collectionRef) auto-id case, used by createHousehold
+  }),
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
-  getDocs: (...args: unknown[]) => mockGetDocs(...args),
   updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
-  query: jest.fn((ref) => ref),
-  where: jest.fn(),
-  limit: jest.fn(),
+  arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
 }));
 
 import { createHousehold, joinHousehold, getHousehold } from '../src/household/householdService';
@@ -28,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('householdService', () => {
-  it('creates a household with the creator as its first member', async () => {
+  it('creates a household and a matching invite-code lookup entry', async () => {
     mockSetDoc.mockResolvedValue(undefined);
 
     const household = await createHousehold(fakeDb, 'user-1', 'Ana', "Ana's Household");
@@ -38,33 +41,27 @@ describe('householdService', () => {
       expect.objectContaining({ userId: 'user-1', displayName: 'Ana' }),
     ]);
     expect(household.inviteCode).toHaveLength(6);
-    expect(mockSetDoc).toHaveBeenCalledWith(mockDocRef, household);
+    expect(mockSetDoc).toHaveBeenCalledWith(mockCreatedDocRef, household);
+    expect(mockSetDoc).toHaveBeenCalledWith(mockInviteDocRef, { householdId: 'generated-id' });
   });
 
-  it('lets a second user join via invite code', async () => {
-    const existingHousehold = {
-      id: 'h1',
-      name: "Ana's Household",
-      members: [{ userId: 'user-1', displayName: 'Ana', joinedAt: 0 }],
-      inviteCode: 'ABC123',
-      createdAt: 0,
-    };
-    mockGetDocs.mockResolvedValue({
-      empty: false,
-      docs: [{ ref: mockDocRef, data: () => existingHousehold }],
-    });
+  it('lets a second user join via invite code, using arrayUnion instead of reading the household first', async () => {
+    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1' }) });
     mockUpdateDoc.mockResolvedValue(undefined);
 
-    const joined = await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
+    await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
 
-    expect(joined.id).toBe('h1');
-    expect(joined.members).toHaveLength(2);
-    expect(joined.members.map((m) => m.userId)).toEqual(['user-1', 'user-2']);
-    expect(mockUpdateDoc).toHaveBeenCalledWith(mockDocRef, { members: joined.members });
+    expect(mockGetDoc).toHaveBeenCalledWith(mockInviteDocRef);
+    expect(mockArrayUnion).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-2', displayName: 'Marko' })
+    );
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockHouseholdDocRef, {
+      members: { __arrayUnion: [expect.objectContaining({ userId: 'user-2' })] },
+    });
   });
 
   it('throws when the invite code does not match any household', async () => {
-    mockGetDocs.mockResolvedValue({ empty: true, docs: [] });
+    mockGetDoc.mockResolvedValue({ exists: () => false });
 
     await expect(
       joinHousehold(fakeDb, 'user-2', 'Marko', 'ZZZZZZ')

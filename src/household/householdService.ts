@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, query, where, limit, type Firestore } from '@react-native-firebase/firestore';
+import { collection, doc, setDoc, getDoc, updateDoc, arrayUnion, type Firestore } from '@react-native-firebase/firestore';
 import { Household, HouseholdMember } from '../types/household';
 
 function generateInviteCode(): string {
@@ -18,14 +18,16 @@ export async function createHousehold(
 ): Promise<Household> {
   const member: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
   const docRef = doc(collection(db, 'households'));
+  const inviteCode = generateInviteCode();
   const household: Household = {
     id: docRef.id,
     name: householdName,
     members: [member],
-    inviteCode: generateInviteCode(),
+    inviteCode,
     createdAt: Date.now(),
   };
   await setDoc(docRef, household);
+  await setDoc(doc(db, 'inviteCodes', inviteCode), { householdId: docRef.id });
   return household;
 }
 
@@ -34,21 +36,19 @@ export async function joinHousehold(
   userId: string,
   displayName: string,
   inviteCode: string
-): Promise<Household> {
-  const q = query(collection(db, 'households'), where('inviteCode', '==', inviteCode), limit(1));
-  const snapshot = await getDocs(q);
+): Promise<void> {
+  const inviteSnap = await getDoc(doc(db, 'inviteCodes', inviteCode));
 
-  if (snapshot.empty) {
+  if (!inviteSnap.exists()) {
     throw new Error('Invite code not found');
   }
 
-  const docRef = snapshot.docs[0].ref;
-  const household = snapshot.docs[0].data() as Household;
+  const { householdId } = inviteSnap.data() as { householdId: string };
   const newMember: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
-  const updatedMembers = [...household.members, newMember];
 
-  await updateDoc(docRef, { members: updatedMembers });
-  return { ...household, members: updatedMembers };
+  await updateDoc(doc(db, 'households', householdId), {
+    members: arrayUnion(newMember),
+  });
 }
 
 export async function getHousehold(

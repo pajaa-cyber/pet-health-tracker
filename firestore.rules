@@ -7,9 +7,17 @@ service cloud.firestore {
         householdData.members.filter(m => m.userId == request.auth.uid).size() > 0;
     }
 
+    // A non-member may update the document only to join it: the write must
+    // add exactly one member (the requester) while every existing member
+    // entry is still present unchanged. hasAll is what actually blocks a
+    // hijack attempt — without it, a non-member could submit a whole new
+    // members array that drops an existing member while still passing the
+    // size(+1)-and-self-present checks alone (this was found and fixed
+    // during review — see the plan's revision log).
     function isJoining(householdData) {
       return request.auth != null &&
         request.resource.data.members.size() == householdData.members.size() + 1 &&
+        request.resource.data.members.hasAll(householdData.members) &&
         request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1;
     }
 
@@ -19,6 +27,22 @@ service cloud.firestore {
         request.resource.data.members.filter(m => m.userId == request.auth.uid).size() > 0;
       allow update: if isMember(resource.data) || isJoining(resource.data);
       allow delete: if false;
+    }
+
+    // Maps a shareable invite code to its household ID. Readable by any
+    // signed-in user — that's the point: it's how joinHousehold (Task 4)
+    // finds a household without needing read access to the household
+    // document itself, which a non-member never has. A direct query
+    // against `households` filtered by inviteCode would be rejected by
+    // Firestore for a non-member (list/query rules must hold for every
+    // potentially-matching document, not just the one that actually
+    // matches), so this lookup collection exists specifically to make
+    // joining possible at all.
+    match /inviteCodes/{code} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null &&
+        request.resource.data.keys().hasOnly(['householdId']);
+      allow update, delete: if false;
     }
   }
 }
