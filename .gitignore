@@ -45,3 +45,6 @@ ios/GoogleService-Info.plist
 
 # typescript
 *.tsbuildinfo
+
+# Firebase CLI local project alias (no project configured in this environment)
+.firebaserc

@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isMember(householdData) {
+      return request.auth != null &&
+        householdData.members.filter(m => m.userId == request.auth.uid).size() > 0;
+    }
+
+    match /households/{householdId} {
+      allow read: if isMember(resource.data);
+      allow create: if request.auth != null &&
+        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() > 0;
+      allow update: if isMember(resource.data);
+      allow delete: if false;
+    }
+  }
+}
