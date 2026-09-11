@@ -72,4 +72,21 @@ describe('household security rules', () => {
       })
     );
   });
+
+  it('allows a non-member to join by adding themselves via update', async () => {
+    await seedHousehold();
+    const joinerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      setDoc(doc(joinerDb, 'households', 'h1'), {
+        id: 'h1',
+        name: 'Test Household',
+        members: [
+          { userId: 'user-1', displayName: 'Ana', joinedAt: 0 },
+          { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
+        ],
+        inviteCode: 'ABC123',
+        createdAt: 0,
+      })
+    );
+  });
 });

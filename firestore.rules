@@ -7,11 +7,17 @@ service cloud.firestore {
         householdData.members.filter(m => m.userId == request.auth.uid).size() > 0;
     }
 
+    function isJoining(householdData) {
+      return request.auth != null &&
+        request.resource.data.members.size() == householdData.members.size() + 1 &&
+        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1;
+    }
+
     match /households/{householdId} {
       allow read: if isMember(resource.data);
       allow create: if request.auth != null &&
         request.resource.data.members.filter(m => m.userId == request.auth.uid).size() > 0;
-      allow update: if isMember(resource.data);
+      allow update: if isMember(resource.data) || isJoining(resource.data);
       allow delete: if false;
     }
   }
