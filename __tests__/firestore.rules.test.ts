@@ -121,6 +121,21 @@ describe('household security rules', () => {
     );
   });
 
+  // Regression test for the isMember/isJoining short-circuit: an existing
+  // member's own update must never require joinCodeUsed. allow update is
+  // `isMember(resource.data) || isJoining(resource.data)` — this confirms
+  // the isMember branch alone is sufficient and isJoining (which would
+  // reject a missing joinCodeUsed) is never forced to evaluate.
+  it('allows an existing member to update the household with no joinCodeUsed field', async () => {
+    await seedHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1'), {
+        name: 'Renamed Household',
+      })
+    );
+  });
+
   it('denies a non-member from replacing the members array to evict an existing member', async () => {
     await seedHousehold();
     const attackerDb = testEnv.authenticatedContext('user-2').firestore();
