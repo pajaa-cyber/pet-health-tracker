@@ -1,11 +1,12 @@
 // Placeholder — replaced in Task 15.
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Button } from 'react-native';
 
-export function PetHomeScreen({ route }: any) {
+export function PetHomeScreen({ route, navigation }: any) {
   return (
     <View style={{ padding: 24 }}>
       <Text>Pet home for {route.params?.petId} — record screens added in later tasks.</Text>
+      <Button title="Vaccines" onPress={() => navigation.navigate('VaccineList', { petId: route.params?.petId })} />
     </View>
   );
 }
