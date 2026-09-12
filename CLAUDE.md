@@ -37,3 +37,30 @@ RNFB reads Firebase config from native files, not JS env vars or `.env`. See `.e
 
 - `__tests__/household.types.test.ts`, `__tests__/householdService.test.ts` — real Jest, run and pass normally; the latter mocks Firestore rather than using a real one (see Architecture above)
 - `__tests__/firestore.rules.test.ts` — requires the Firebase Local Emulator Suite (`firebase emulators:exec --only firestore "..."`) and a JRE; running plain `npx jest` against it will fail on connection refused, not a code defect
+
+## Pet records data model (Plan 2 — "Pet Records Core")
+
+`households/{householdId}/pets/{petId}` holds each pet; `vaccines/`,
+`medications/`, `vetVisits/`, `weightLogs/`, `expenses/` are subcollections
+of each pet. Unlike the household join flow, no untrusted-write path exists
+for any of these — only confirmed household members ever touch them — so
+their `firestore.rules` blocks are a single `isHouseholdMember(householdId)`
+check (a `get()` on the ancestor household doc) plus a `create`-time
+`hasOnly([...])` field allowlist. Do not add `hasAll`/`diff()`-style hijack
+protection to these blocks; that machinery exists only in `isJoining()` to
+defend the household-join boundary and doesn't apply here.
+
+`users/{userId} -> {householdId}` is a single-document pointer (mirroring
+the `inviteCodes` pattern) letting the app find which household a signed-in
+user belongs to without a query — `HouseholdContext.tsx`'s `useHousehold()`
+resolves it via two chained `onSnapshot` listeners. It's create-once
+(immutable) by rule, so a user already in a household can't overwrite it —
+switching/leaving households isn't supported yet (parked as a future task).
+
+Medication schedules use a simple custom struct (`{timesPerDay, intervalDays}`),
+not RFC5545 RRULE — deliberate MVP scope, see the Pet Records Core plan's
+task text for rationale. Expense amounts are stored as integer
+`amountCents`, never a float, to avoid rounding drift in running totals;
+the only place dollar/cents conversion happens is the expense screens.
+`WeightTrendChart.tsx` is a hand-rolled bar chart (plain `View`s) rather
+than a charting library, to avoid a new native dependency during MVP.
