@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Pet Health Tracker: a React Native (Expo) + Firebase mobile app for tracking a pet's vaccines, medications, vet visits, weight, and expenses, with real-time sharing across household members. Full rationale and MVP scope: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`. Current implementation plan (in progress): `docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md` — read its "Revision log" section before touching `src/household/` or `firestore.rules`, since the join-household design changed twice after the original draft turned out not to work against real Firestore.
+Pet Health Tracker: a React Native (Expo) + Firebase mobile app for tracking a pet's vaccines, medications, vet visits, weight, and expenses, with real-time sharing across household members. Full rationale and MVP scope: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`.
+
+**Status:** Plan 1 ("Foundation & Auth", `docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md`) and Plan 2 ("Pet Records Core", `docs/superpowers/plans/2026-09-12-pet-records-core.md`) are both **complete and merged into `master`**. Plan 3 ("Reminders & Notifications") is not written yet. See `NEXTSTEPS.md` for exact resume state, known gaps, and the single highest-priority follow-up (real Firestore-emulator verification — see Testing below).
+
+Read Plan 1's "Revision log" section before touching `src/household/` or `firestore.rules` — the join-household design changed twice after the original draft turned out not to work against real Firestore, and a subsequent whole-branch review found and fixed an invalid rules-syntax bug (see the Data model note below). Both plans' documents contain some superseded/stale code snippets flagged inline with "STALE — DO NOT COPY" warnings; always copy from the current source files, never from plan text.
 
 ## Commands
 
@@ -64,3 +68,26 @@ task text for rationale. Expense amounts are stored as integer
 the only place dollar/cents conversion happens is the expense screens.
 `WeightTrendChart.tsx` is a hand-rolled bar chart (plain `View`s) rather
 than a charting library, to avoid a new native dependency during MVP.
+
+## Known gaps (see `NEXTSTEPS.md` for full detail)
+
+- **Highest priority:** no rules construct in this codebase (`isMember`/
+  `isJoining`/`isHouseholdMember`, the `diff()`/`affectedKeys()` field
+  scoping, the `storage.rules` cross-service `firestore.get()` form) has
+  ever been run through a real Firestore rules compiler — every
+  verification has been hand-traced. One real construct (`.filter()` with
+  a lambda) turned out to be invalid syntax and was only caught in Plan 2's
+  final review. Run `firebase emulators:exec --only firestore,storage
+  "npx jest __tests__/firestore.rules.test.ts"` on a machine with Java
+  before trusting this app with real data.
+- Vet-visit documents can be uploaded (`VetVisitDocumentsScreen.tsx`) but
+  no screen reads `documentUrls` back — attachments are currently
+  write-only.
+- No date-picker UI anywhere — every date field defaults to `Date.now()`
+  at entry time, so `Vaccine.nextDueDate` can never be set to a real
+  future date. This blocks Plan 3's reminder computation, which needs a
+  real stored due date.
+- A user whose household document becomes unreadable (e.g. a future
+  "remove member" feature) has no in-app recovery path — both
+  `createHousehold`/`joinHousehold` fail once their `users/{uid}` pointer
+  already exists.

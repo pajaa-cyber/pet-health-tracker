@@ -1,8 +1,9 @@
-# Where we left off (2026-09-12, mid-Plan-2)
+# Where we left off (2026-09-12, Plans 1 & 2 complete and merged)
 
 Read this before doing anything else in this project. It's a handoff for
-resuming an in-progress build, not permanent documentation (see `CLAUDE.md`
-for that — it now also documents Plan 2's data model/architecture).
+resuming work, not permanent documentation (see `CLAUDE.md` for that —
+it now documents the full data model/architecture, including the known
+gaps below).
 
 ## What this is
 
@@ -10,123 +11,116 @@ Pet Health Tracker (React Native/Expo + Firebase), beating 11pets on price/
 reliability/simplicity. Context:
 
 - Design spec: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`
-- Plan 1 ("Foundation & Auth"): `docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md`
-  — **COMPLETE**, all 7 tasks implemented and reviewed (household create/
-  join went through 3 security remediation rounds, all resolved).
-- Plan 2 ("Pet Records Core"): `docs/superpowers/plans/2026-09-12-pet-records-core.md`
-  — **IN PROGRESS, 13 of 15 tasks complete**, see exact status below.
-- Plan 3 ("Reminders & Notifications") — not written yet.
+- Plan 1 ("Foundation & Auth"): `docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md` — **COMPLETE, merged.**
+- Plan 2 ("Pet Records Core"): `docs/superpowers/plans/2026-09-12-pet-records-core.md` — **COMPLETE, merged.**
+- Plan 3 ("Reminders & Notifications") — **not written yet.**
+
+Both plan documents contain some superseded code snippets from early
+drafts, flagged inline with "⚠️ STALE — DO NOT COPY THIS SNIPPET" warnings
+(added after the `.filter()` bug below was found) — always copy from the
+current source files, never from plan text, when referencing prior work.
 
 ## Where the work is happening
 
-Isolated git worktree, NOT the main checkout:
-`C:\Users\PC\OneDrive\Desktop\app\.worktrees\pet-app-foundation`
-branch `pet-app-foundation`. The main checkout at
-`C:\Users\PC\OneDrive\Desktop\app` should stay on `master` — do not develop there.
+There is **no separate worktree anymore** — the `pet-app-foundation`
+branch was merged into `master` and both the branch and its worktree
+were deleted after the merge. Everything now lives directly in the main
+checkout: `C:\Users\PC\OneDrive\Desktop\app`, on `master`.
 
-Executing via `superpowers:subagent-driven-development`. Its ledger — the
-authoritative record of every task's outcome and every ruling — is at:
-`.superpowers/sdd/2026-09-12-pet-records-core/progress.md`
-(relative to the worktree above). **Read the whole ledger before resuming.**
+The SDD ledgers that recorded every task's outcome and every ruling made
+during both plans' execution were git-ignored scratch space inside the
+now-deleted worktree — they no longer exist on disk. The durable record
+of everything that happened is the git commit history on `master`
+(commit messages are descriptive; `git log --oneline` tells the story)
+plus this file and `CLAUDE.md`, which were updated with the substance of
+what mattered before that scratch space was removed.
 
-## Plan 2 task status (13 of 15 complete, all reviewed clean)
+## What actually happened (the short version)
 
-| Task | What | Status |
-|---|---|---|
-| 1 | `users/{uid}` household pointer + `useHousehold()` context | ✅ Done, reviewed clean (1 fix round: added onSnapshot error handlers) |
-| 2 | Pet type + petService + `isHouseholdMember()` rules helper | ✅ Done, reviewed clean |
-| 3 | Pet list/add screens + RootNavigator 3-way branch | ✅ Done, reviewed clean |
-| 4 | Vaccine type + service + rules | ✅ Done, reviewed clean |
-| 5 | Vaccine list/add screens | ✅ Done, reviewed clean |
-| 6 | Medication type (custom schedule) + service + rules | ✅ Done, reviewed clean |
-| 7 | Medication list/add screens + mark-dose-given | ✅ Done, reviewed clean |
-| 8 | WeightLog type + service + rules | ✅ Done, reviewed clean |
-| 9 | Weight log screen + hand-rolled trend chart | ✅ Done, reviewed clean |
-| 10 | Expense type + service + rules | ✅ Done, reviewed clean |
-| 11 | Expense list/add screens (running total, category filter) | ✅ Done, reviewed clean |
-| 12 | VetVisit type (notes-only) + service + rules | ✅ Done, reviewed clean |
-| 13 | Vet visit list/add screens | ✅ Done, reviewed clean |
-| 14 | Vet visit document attachments (Cloud Storage) | ❌ Not started — see below |
-| 15 | Pet home dashboard (replaces incremental placeholder) | ❌ Not started |
+All 22 tasks across both plans (7 in Plan 1, 15 in Plan 2) were
+implemented and individually reviewed clean. The household join flow
+(Plan 1) went through 3 security remediation rounds during its own
+development. Plan 2 added pets, vaccines, medications, weight logs,
+expenses, and vet visits (with Cloud Storage document attachments), each
+with its own type/service/rules/screens, culminating in a pet-home
+dashboard.
 
-Current HEAD on `pet-app-foundation`: commit `ecbe0b6` ("feat: add vet
-visit list/add screens (notes-only)"). Working tree is clean.
+**Plan 2's final whole-branch review found a genuinely critical defect:**
+the entire access-control model in `firestore.rules` and `storage.rules`
+relied on `list.filter(m => m.userId == request.auth.uid)` — a construct
+the Firestore Rules language does not support at all (no lambda/
+anonymous-function syntax exists in that language). This had been the
+foundation of every membership check since Plan 1 and survived three
+prior "adversarial" security reviews, because none of them had a real
+Firestore emulator available to actually deploy/run the rules — every
+review hand-traced the LOGIC while implicitly assuming the SYNTAX was
+valid. Left as-is, this would have either failed the ruleset at deploy
+time or locked every user out of the entire app.
 
-## Exact next action
+**Fix:** denormalized a `memberIds: string[]` array onto the household
+document (kept in lockstep with the existing `members: HouseholdMember[]`
+by `householdService.ts`'s atomic batches), and replaced every membership
+check with `request.auth.uid in memberIds` — the `in` operator on a
+string list is solid, unambiguous Firestore Rules syntax. The fix was
+independently re-reviewed, which hand-traced both classic hijack attack
+shapes against the new logic and confirmed no regressions, and also
+caught a fourth `.filter()` site the original review had missed. See
+`CLAUDE.md`'s "Data model" section for the resulting architecture.
 
-**Task 14 is the plan's flagged highest-uncertainty task** — first thing in
-this codebase to touch Cloud Storage, using a newer Firebase feature
-(Storage rules calling `firestore.get()`/`firestore.exists()` to check
-household membership). Its brief is already generated at
-`.superpowers/sdd/2026-09-12-pet-records-core/task-14-brief.md` (BASE
-commit for its review package is `ecbe0b6`).
+The fix wave also added missing `onSnapshot` error handlers to all six
+record-type subscription functions, error handling on the
+mark-dose-given action, and made the medication dose log show *who* gave
+a dose (not just when).
 
-To resume:
-1. Read the whole ledger (`progress.md` above) if picking this up in a new
-   session — don't re-dispatch any of Tasks 1-13, they're done and reviewed.
-2. Dispatch Task 14's implementer using the existing brief
-   (`task-14-brief.md`) — read the plan's Task 14 section first for full
-   context (installs `@react-native-firebase/storage` + `expo-image-picker`,
-   writes `storage.rules`, a `VetVisitDocumentsScreen.tsx`). Give this task
-   review the same rigor Plan 1's `firestore.rules` work got — the plan
-   text itself says not to rubber-stamp the cross-service rules syntax.
-3. Then Task 15 (pet home dashboard, straightforward — replaces the
-   incrementally-built placeholder with the final version, all code already
-   in the plan doc).
-4. Then the final whole-branch review (dispatch on the most capable
-   available model per the SDD skill's Model Selection section), one fix
-   wave if needed, then `superpowers:finishing-a-development-branch`.
+## The single highest-priority next action
 
-## Parked/deferred items to carry into the final whole-branch review
+**Run the Firestore rules test suite against a real emulator.** Nothing
+in either plan has ever done this — every rules construct in this
+codebase (`isMember`/`isJoining`/`isHouseholdMember`, the `diff()`/
+`affectedKeys()` field-scoping, the `storage.rules` cross-service
+`firestore.get()` form, and now `memberIds`/`in`) has only ever been
+hand-traced. One real construct already turned out to be invalid syntax
+and was caught only by luck of a sufficiently careful final review — the
+remaining constructs deserve the same scrutiny a real compiler/emulator
+run gives for free.
 
-From the ledger's task-by-task notes — none are blocking, all should be
-triaged at the final review:
-- Task 7: `MedicationListScreen`'s mark-dose-given handler doesn't surface
-  errors via state (unlike the Add* screens' pattern) — consistent with
-  existing precedent, not a regression.
-- Task 11: no visual selected-state on filter/category buttons; no
-  positive-amount validation on expense entry — both consistent with the
-  scaffold's existing minimalism.
-- Standing, larger: `firestore.rules.test.ts` has NEVER been run against a
-  real Firestore emulator through all of Plan 1 and Plan 2 so far (no JRE
-  in this sandbox) — every rules-logic claim rests on hand-tracing plus a
-  mocked suite. This is the single biggest outstanding risk before trusting
-  this app with real data — run
-  `firebase emulators:exec --only firestore "npx jest __tests__/firestore.rules.test.ts"`
-  on a machine with Java before production use.
-- `isMember` branch (existing household members) still has no field-level
-  write scoping (can rewrite the whole household doc in one update) —
-  flagged early in Plan 1's ledger as parked/non-blocking, still true.
-- `generateInviteCode()` uses `Math.random()`, not a CSPRNG — noted, not
-  currently exploitable.
+```bash
+npm install -g firebase-tools   # if not already installed
+firebase emulators:exec --only firestore,storage "npx jest __tests__/firestore.rules.test.ts"
+```
 
-## Known environment constraints (this sandbox specifically)
+Requires a JRE (Java) — none was available in the sandbox these two plans
+were built in. If any test fails, treat it as a real bug in `firestore.rules`/
+`storage.rules`, not a test artifact, and fix it with the same care the
+`.filter()` bug got.
+
+## Other known, deliberately-parked gaps (not silently dropped — real work, not yet scheduled)
+
+1. **Vet-visit documents can be uploaded but never viewed.** `VetVisitDocumentsScreen.tsx` uploads to Cloud Storage and calls `addVetVisitDocument`, but no screen subscribes to a visit and renders its `documentUrls` back. This is a gap against the spec's "vet visits — timeline with notes and attached documents." Needs a proper follow-up task (subscribe + render an image list), not a quick patch.
+2. **No date-picker UI anywhere.** Every date field (`birthDate`, `dateGiven`, `nextDueDate`, vet visit `date`, expense `date`, weight-log `date`) is hardcoded to `Date.now()` at entry time. `Vaccine.nextDueDate` can therefore never be set to a real future date — a gap against the spec's "vaccines — list with due dates," and it blocks Plan 3's reminder computation, which explicitly needs a real stored due date to work from. Needs a real date-picker component (a new dependency, e.g. `@react-native-community/datetimepicker`) across several screens.
+3. **No in-app recovery if a household becomes unreadable.** If a household document's read ever fails (e.g. after a future "remove member" feature), both `createHousehold` and `joinHousehold` fail permanently for that user, because their `users/{uid}` pointer write is evaluated as a denied `update` once it already exists. Needs UX design for account recovery, not a patch.
+4. Minor, all real but low-severity: `storage.rules`' content-type check is enforced against a value the upload screen never explicitly sets (should pass `{contentType: 'image/jpeg'}` to `putFile`); no client-side image compression before upload against the new 10MB cap; the `households` `allow create` rule no longer requires a `members` array to exist (only `memberIds`) — self-inflicted-only, not exploitable against others, but lost an implicit shape guarantee.
+5. `MedicationListScreen`'s dose-log/`ExpenseListScreen`'s filter buttons have no visual selected-state; expense amounts have no positive-value validation; `generateInviteCode()` uses `Math.random()`, not a CSPRNG (not currently exploitable) — all pre-existing, low-severity, cosmetic-or-defensive-only items noted for whenever a polish pass happens.
+
+## Known environment constraints (whatever sandbox built this so far)
 
 - No Android SDK/`adb`/Java — every rules-test and device-run step across
-  both plans has been substituted with compile-only/hand-trace verification.
-- No iOS prebuild on Windows.
+  both plans was substituted with compile-only/hand-trace verification.
+  This is the actual reason the emulator run above has never happened.
+- No iOS prebuild on Windows (`expo prebuild` refuses iOS on this OS).
 - Real Firebase project not yet created — root `google-services.json`/
-  `GoogleService-Info.plist` are placeholders.
-- This session's Bash tool had a broken shell (no `git`/`node`/`npx` on
-  PATH) — PowerShell plus Git for Windows's `bash.exe` directly
-  (`"C:\Program Files\Git\bin\bash.exe" <script>`) was used instead for the
-  SDD skill's helper scripts (`task-brief`, `review-package`,
-  `sdd-workspace`). Re-check whether a fresh session's Bash tool works
-  before assuming this workaround is still needed.
+  `GoogleService-Info.plist` are placeholders (safe fake values, no real
+  secrets) that only unblock `expo prebuild`. See `.env.example`.
+- If a session's Bash tool has no `git`/`node`/`npx` on PATH (this
+  happened during both plans' builds), use PowerShell, or invoke Git for
+  Windows's `bash.exe` directly for anything that specifically needs a
+  POSIX shell.
 
-## Process notes for whoever resumes (don't repeat these mistakes)
+## If resuming with an SDD-style process again (e.g. for Plan 3)
 
-- Don't pass `isolation: "worktree"` to the Agent tool when dispatching
-  implementers/reviewers — the worktree for this work already exists
-  (`.worktrees/pet-app-foundation`); that option spins up a separate,
-  disconnected worktree.
-- Every task in Plan 2 reuses the `isHouseholdMember(householdId)` rules
-  helper (established in Task 2) — never redefine it, never add
-  `hasAll`/`diff()` hijack-protection to pet-subcollection rules blocks
-  (that machinery is specific to the household-join trust boundary and
-  doesn't apply where every writer is already a confirmed member).
-- `MainNavigator.tsx` and `PetHomeScreen.tsx` have been incrementally
-  extended by Tasks 3, 5, 7, 9, 11, 13 (one Stack.Screen pair / one Button
-  each) — Task 15 fully replaces `PetHomeScreen.tsx` at the end. Dispatch
-  strictly in plan order; never parallelize implementers touching these
-  files.
+The two prior plans were executed via `superpowers:subagent-driven-development`
+inside a dedicated git worktree (created via `superpowers:using-git-worktrees`),
+merged back to `master` via `superpowers:finishing-a-development-branch`
+once complete. That's a reasonable pattern to repeat for Plan 3 — set up
+a fresh worktree/branch off current `master`, don't develop Plan 3
+directly on `master`.
