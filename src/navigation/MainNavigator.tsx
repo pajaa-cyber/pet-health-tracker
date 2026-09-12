@@ -5,6 +5,8 @@ import { AddPetScreen } from './AddPetScreen';
 import { PetHomeScreen } from './PetHomeScreen';
 import { VaccineListScreen } from './VaccineListScreen';
 import { AddVaccineScreen } from './AddVaccineScreen';
+import { MedicationListScreen } from './MedicationListScreen';
+import { AddMedicationScreen } from './AddMedicationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -16,6 +18,8 @@ export function MainNavigator() {
       <Stack.Screen name="PetHome" component={PetHomeScreen} />
       <Stack.Screen name="VaccineList" component={VaccineListScreen} />
       <Stack.Screen name="AddVaccine" component={AddVaccineScreen} />
+      <Stack.Screen name="MedicationList" component={MedicationListScreen} />
+      <Stack.Screen name="AddMedication" component={AddMedicationScreen} />
     </Stack.Navigator>
   );
 }

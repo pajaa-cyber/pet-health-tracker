@@ -7,6 +7,7 @@ export function PetHomeScreen({ route, navigation }: any) {
     <View style={{ padding: 24 }}>
       <Text>Pet home for {route.params?.petId} — record screens added in later tasks.</Text>
       <Button title="Vaccines" onPress={() => navigation.navigate('VaccineList', { petId: route.params?.petId })} />
+      <Button title="Medications" onPress={() => navigation.navigate('MedicationList', { petId: route.params?.petId })} />
     </View>
   );
 }
