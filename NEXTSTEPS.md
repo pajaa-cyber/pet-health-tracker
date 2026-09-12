@@ -74,43 +74,46 @@ a dose (not just when).
 
 ## The single highest-priority next action
 
-**Run the Firestore rules test suite against a real emulator.** Nothing
-in either plan has ever done this — every rules construct in this
-codebase (`isMember`/`isJoining`/`isHouseholdMember`, the `diff()`/
-`affectedKeys()` field-scoping, the `storage.rules` cross-service
-`firestore.get()` form, and now `memberIds`/`in`) has only ever been
-hand-traced. One real construct already turned out to be invalid syntax
-and was caught only by luck of a sufficiently careful final review — the
-remaining constructs deserve the same scrutiny a real compiler/emulator
-run gives for free.
+**DONE (2026-09-12).** The Firestore rules test suite was run against a
+real local Firestore/Storage emulator (Java/JRE installed via
+`winget install Microsoft.OpenJDK.21` — none had been available in the
+sandbox these two plans were built in):
 
 ```bash
-npm install -g firebase-tools   # if not already installed
 firebase emulators:exec --only firestore,storage "npx jest __tests__/firestore.rules.test.ts"
 ```
 
-Requires a JRE (Java) — none was available in the sandbox these two plans
-were built in. If any test fails, treat it as a real bug in `firestore.rules`/
-`storage.rules`, not a test artifact, and fix it with the same care the
-`.filter()` bug got.
+Result: **35/35 tests passed.** Every rules construct in this codebase
+(`isMember`/`isJoining`/`isHouseholdMember`, the `diff()`/
+`affectedKeys()` field-scoping, the `storage.rules` cross-service
+`firestore.get()` form, and `memberIds`/`in`) has now actually been
+compiled and run by a real Firestore rules engine, not just hand-traced —
+no further bugs found. (The `PERMISSION_DENIED` lines in the console
+output during the run are expected noise: the SDK logs a warning every
+time the test suite deliberately attempts an action the rules should
+reject, to confirm it's correctly denied.)
 
 ## Other known, deliberately-parked gaps (not silently dropped — real work, not yet scheduled)
 
-1. **Vet-visit documents can be uploaded but never viewed.** `VetVisitDocumentsScreen.tsx` uploads to Cloud Storage and calls `addVetVisitDocument`, but no screen subscribes to a visit and renders its `documentUrls` back. This is a gap against the spec's "vet visits — timeline with notes and attached documents." Needs a proper follow-up task (subscribe + render an image list), not a quick patch.
-2. **No date-picker UI anywhere.** Every date field (`birthDate`, `dateGiven`, `nextDueDate`, vet visit `date`, expense `date`, weight-log `date`) is hardcoded to `Date.now()` at entry time. `Vaccine.nextDueDate` can therefore never be set to a real future date — a gap against the spec's "vaccines — list with due dates," and it blocks Plan 3's reminder computation, which explicitly needs a real stored due date to work from. Needs a real date-picker component (a new dependency, e.g. `@react-native-community/datetimepicker`) across several screens.
+1. **FIXED (2026-09-12).** `VetVisitDocumentsScreen.tsx` now subscribes to the pet's vet visits (reusing the existing `subscribeToVetVisits` listener, same pattern as every other screen — no new service function needed), finds the current visit by `visitId`, and renders its `documentUrls` as a 2-column image grid below the upload button. No `firestore.rules`/`storage.rules` changes were needed — both already granted read access to household members. Type-check and the full unit-test suite (22/22) pass; this hasn't been visually verified on a device/emulator yet since none is set up in this environment (see "Known environment constraints" below) — do that before considering it fully done.
+2. **FIXED (2026-09-12).** Added `@react-native-community/datetimepicker` (expo-installed, config plugin auto-added to `app.json`, `android/` regenerated via `npx expo prebuild --platform android` to autolink it — required creating placeholder `google-services.json`/`GoogleService-Info.plist` at the project root first, since this environment didn't have them yet despite `.env.example` describing them as already present; see "Known environment constraints" below, now updated). A new shared `src/components/DateField.tsx` wraps it (tap-to-open native picker, plus a "Clear" action for the two optional fields) and is wired into all six previously-hardcoded date fields: `AddPetScreen` (birthDate), `AddVaccineScreen` (dateGiven, nextDueDate), `AddMedicationScreen` (startDate, endDate), `AddVetVisitScreen` (date), `AddExpenseScreen` (date), `WeightLogScreen` (date). `Vaccine.nextDueDate` can now be set to a real future date, unblocking Plan 3's reminder computation. `tsc --noEmit` and the full Jest suite (22/22) pass. **Not yet visually verified on a device/emulator** — still no Android SDK/device connected in this environment; do that before trusting the picker's on-screen behavior.
 3. **No in-app recovery if a household becomes unreadable.** If a household document's read ever fails (e.g. after a future "remove member" feature), both `createHousehold` and `joinHousehold` fail permanently for that user, because their `users/{uid}` pointer write is evaluated as a denied `update` once it already exists. Needs UX design for account recovery, not a patch.
-4. Minor, all real but low-severity: `storage.rules`' content-type check is enforced against a value the upload screen never explicitly sets (should pass `{contentType: 'image/jpeg'}` to `putFile`); no client-side image compression before upload against the new 10MB cap; the `households` `allow create` rule no longer requires a `members` array to exist (only `memberIds`) — self-inflicted-only, not exploitable against others, but lost an implicit shape guarantee.
-5. `MedicationListScreen`'s dose-log/`ExpenseListScreen`'s filter buttons have no visual selected-state; expense amounts have no positive-value validation; `generateInviteCode()` uses `Math.random()`, not a CSPRNG (not currently exploitable) — all pre-existing, low-severity, cosmetic-or-defensive-only items noted for whenever a polish pass happens.
+4. **FIXED (2026-09-12):** `VetVisitDocumentsScreen.tsx` now passes `{contentType: 'image/jpeg'}` to `putFile`, so `storage.rules`' content-type check is enforced against a real value instead of an absent one; `firestore.rules`' `households` `allow create` rule now requires `members`/`memberIds` to both exist and stay equal in size, restoring the shape guarantee. Re-verified against the real emulator (still 35/35). Still open: no client-side image compression before upload against the 10MB cap.
+5. **PARTIALLY FIXED (2026-09-12):** `ExpenseListScreen`'s filter buttons and `AddExpenseScreen`'s category picker now show a visual selected state; expense amounts now require a positive value (`AddExpenseScreen.tsx`). Still open: `generateInviteCode()` in `householdService.ts` uses `Math.random()`, not a CSPRNG (not currently exploitable — deliberately left alone rather than adding a new native crypto dependency, e.g. `expo-crypto`, that would need `expo prebuild` + a real device to verify, which isn't available in this environment yet).
 
 ## Known environment constraints (whatever sandbox built this so far)
 
-- No Android SDK/`adb`/Java — every rules-test and device-run step across
-  both plans was substituted with compile-only/hand-trace verification.
-  This is the actual reason the emulator run above has never happened.
+- **UPDATED (2026-09-12):** Java (Microsoft OpenJDK 21, via `winget install Microsoft.OpenJDK.21`) is now installed on this machine, which is what unblocked the rules-emulator run above. Still no Android SDK/`adb`/physical device connected, so `npm run android` / an actual on-screen check of any UI still cannot happen here — that's the next real environment gap to close.
 - No iOS prebuild on Windows (`expo prebuild` refuses iOS on this OS).
 - Real Firebase project not yet created — root `google-services.json`/
   `GoogleService-Info.plist` are placeholders (safe fake values, no real
-  secrets) that only unblock `expo prebuild`. See `.env.example`.
+  secrets) that only unblock `expo prebuild`. See `.env.example`. **Note:**
+  as of 2026-09-12 these two files did not actually exist on disk in this
+  environment (despite being described here as already present) and had
+  to be recreated from scratch to unblock `expo prebuild` for the
+  date-picker dependency below — they're gitignored, so a fresh clone/
+  environment will always need them recreated; don't assume they exist
+  without checking.
 - If a session's Bash tool has no `git`/`node`/`npx` on PATH (this
   happened during both plans' builds), use PowerShell, or invoke Git for
   Windows's `bash.exe` directly for anything that specifically needs a

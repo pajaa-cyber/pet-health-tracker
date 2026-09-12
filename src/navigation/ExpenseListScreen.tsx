@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, FlatList, Text, Button } from 'react-native';
+import { View, FlatList, Text, Button, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToExpenses } from '../pets/expenseService';
 import { firestore } from '../firebase/config';
@@ -29,7 +29,18 @@ export function ExpenseListScreen({ route, navigation }: any) {
       <Button title="Add expense" onPress={() => navigation.navigate('AddExpense', { petId })} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
         {CATEGORIES.map((c) => (
-          <Button key={c} title={c} onPress={() => setFilter(c)} />
+          <Pressable
+            key={c}
+            onPress={() => setFilter(c)}
+            style={{
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderRadius: 6,
+              backgroundColor: c === filter ? '#2563eb' : '#e5e7eb',
+            }}
+          >
+            <Text style={{ color: c === filter ? '#fff' : '#000' }}>{c}</Text>
+          </Pressable>
         ))}
       </View>
       <Text>Total: ${(totalCents / 100).toFixed(2)}</Text>

@@ -71,22 +71,32 @@ than a charting library, to avoid a new native dependency during MVP.
 
 ## Known gaps (see `NEXTSTEPS.md` for full detail)
 
-- **Highest priority:** no rules construct in this codebase (`isMember`/
-  `isJoining`/`isHouseholdMember`, the `diff()`/`affectedKeys()` field
-  scoping, the `storage.rules` cross-service `firestore.get()` form) has
-  ever been run through a real Firestore rules compiler — every
-  verification has been hand-traced. One real construct (`.filter()` with
-  a lambda) turned out to be invalid syntax and was only caught in Plan 2's
-  final review. Run `firebase emulators:exec --only firestore,storage
-  "npx jest __tests__/firestore.rules.test.ts"` on a machine with Java
-  before trusting this app with real data.
-- Vet-visit documents can be uploaded (`VetVisitDocumentsScreen.tsx`) but
-  no screen reads `documentUrls` back — attachments are currently
-  write-only.
-- No date-picker UI anywhere — every date field defaults to `Date.now()`
-  at entry time, so `Vaccine.nextDueDate` can never be set to a real
-  future date. This blocks Plan 3's reminder computation, which needs a
-  real stored due date.
+- **RESOLVED (2026-09-12):** every rules construct in this codebase
+  (`isMember`/`isJoining`/`isHouseholdMember`, the `diff()`/
+  `affectedKeys()` field scoping, the `storage.rules` cross-service
+  `firestore.get()` form) has now been run through a real Firestore
+  rules compiler via `firebase emulators:exec --only firestore,storage
+  "npx jest __tests__/firestore.rules.test.ts"` — 35/35 passed, no new
+  defects found. (One real construct, `.filter()` with a lambda, had
+  previously turned out to be invalid syntax and was only caught in
+  Plan 2's final review — see NEXTSTEPS.md for that history.)
+- **RESOLVED (2026-09-12):** `VetVisitDocumentsScreen.tsx` now renders
+  `documentUrls` back as an image grid (previously write-only);
+  uploads also now set `contentType: 'image/jpeg'` explicitly so
+  `storage.rules`' content-type check is enforced against a real value.
+- **RESOLVED (2026-09-12):** date fields are no longer hardcoded to
+  `Date.now()`. A shared `src/components/DateField.tsx` (wrapping
+  `@react-native-community/datetimepicker`, added as a new native
+  dependency — `app.json`'s `plugins` array and `android/` were
+  regenerated via `expo prebuild --platform android` to wire it in) is
+  now used by every add/log screen: pet birth date, vaccine
+  dateGiven/nextDueDate, medication startDate/endDate, vet visit date,
+  expense date, and weight-log date. `Vaccine.nextDueDate` can now be
+  set to a real future date, unblocking Plan 3's reminder computation.
+  Verified via `tsc --noEmit` and the full Jest suite; **not yet
+  visually verified on a device/emulator** — no Android SDK/device is
+  set up in this environment yet (see "Known environment constraints"
+  in NEXTSTEPS.md), so do that before considering this fully done.
 - A user whose household document becomes unreadable (e.g. a future
   "remove member" feature) has no in-app recovery path — both
   `createHousehold`/`joinHousehold` fail once their `users/{uid}` pointer

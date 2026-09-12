@@ -144,9 +144,20 @@ service cloud.firestore {
       // Fourth site of the invalid `.filter()` idiom (see isMember above);
       // rewritten the same way. A creator must name themselves in the new
       // document's memberIds, so nobody can create a household they are not
-      // a member of.
+      // a member of. The keys()/size() clauses restore a shape guarantee
+      // that was implicit in the old `.filter()`-based check (which
+      // necessarily dereferenced `members`, so a doc missing it could never
+      // pass): `members` must exist and stay in lockstep (same element
+      // count) with `memberIds` from the moment of creation, matching what
+      // householdService.ts's createHousehold always writes. This is a
+      // self-inflicted-only guarantee (a caller can only ever malform their
+      // own new household document) — it doesn't defend against another
+      // user, but it keeps the two arrays' invariant enforced everywhere,
+      // not just from Plan 2 onward.
       allow create: if request.auth != null &&
-        request.auth.uid in request.resource.data.memberIds;
+        request.auth.uid in request.resource.data.memberIds &&
+        request.resource.data.keys().hasAll(['members', 'memberIds']) &&
+        request.resource.data.members.size() == request.resource.data.memberIds.size();
       allow update: if isMember(resource.data) || isJoining(resource.data);
       allow delete: if false;
     }
