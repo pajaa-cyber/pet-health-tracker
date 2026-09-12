@@ -7,6 +7,7 @@ import { VaccineListScreen } from './VaccineListScreen';
 import { AddVaccineScreen } from './AddVaccineScreen';
 import { MedicationListScreen } from './MedicationListScreen';
 import { AddMedicationScreen } from './AddMedicationScreen';
+import { WeightLogScreen } from './WeightLogScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,7 @@ export function MainNavigator() {
       <Stack.Screen name="AddVaccine" component={AddVaccineScreen} />
       <Stack.Screen name="MedicationList" component={MedicationListScreen} />
       <Stack.Screen name="AddMedication" component={AddMedicationScreen} />
+      <Stack.Screen name="WeightLog" component={WeightLogScreen} />
     </Stack.Navigator>
   );
 }
