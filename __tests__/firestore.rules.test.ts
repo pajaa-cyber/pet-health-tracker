@@ -389,4 +389,24 @@ describe('household security rules', () => {
       })
     );
   });
+
+  it('allows a household member to create an expense', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1', 'expenses', 'expense-1'), {
+        id: 'expense-1', petId: 'pet-1', date: 0, category: 'vet', amountCents: 5000, note: 'Checkup',
+      })
+    );
+  });
+
+  it('denies a non-member from creating an expense', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1', 'expenses', 'expense-1'), {
+        id: 'expense-1', petId: 'pet-1', date: 0, category: 'vet', amountCents: 5000, note: 'Checkup',
+      })
+    );
+  });
 });
