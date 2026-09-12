@@ -4,7 +4,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import * as fs from 'fs';
 
 let testEnv: RulesTestEnvironment;
@@ -93,12 +93,57 @@ describe('household security rules', () => {
     );
   });
 
-  it('allows any authenticated user to read an invite-code lookup entry', async () => {
+  // Regression test for finding 6: the test above submits a same-size
+  // array, which the size(new) == size(old) + 1 check alone already
+  // rejects — it never actually reaches hasAll(). This test submits the
+  // CORRECT size (old size + 1) while fabricating a substitute for the
+  // existing member and appending the requester, so size and
+  // self-presence both pass and only hasAll(old members) can catch it.
+  it('denies a non-member join write that is correctly sized but fabricates a replacement for the existing member', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
+        members: [
+          { userId: 'fake-user-1', displayName: 'Imposter', joinedAt: 0 },
+          { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
+        ],
+      })
+    );
+  });
+
+  // Regression test for finding 2: isJoining() must not let a join write
+  // smuggle changes to fields other than `members` in the same update.
+  it('denies a non-member join write that also smuggles a change to another field', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
+        name: 'Hijacked Household Name',
+        members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+      })
+    );
+  });
+
+  it('allows any authenticated user to get a single invite-code lookup entry by known code', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1' });
     });
     const someUserDb = testEnv.authenticatedContext('user-2').firestore();
     await assertSucceeds(getDoc(doc(someUserDb, 'inviteCodes', 'ABC123')));
+  });
+
+  // Regression test for finding 1 (Critical): `allow read` (get + list
+  // combined) on inviteCodes let any signed-in user dump the entire
+  // collection via a collection-level query, discovering every
+  // code -> householdId mapping and joining any household with zero
+  // knowledge of its actual invite code. The rules now expose `get` only.
+  it('denies a non-member from listing/querying the entire inviteCodes collection', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1' });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDocs(collection(someUserDb, 'inviteCodes')));
   });
 
   it('denies creating an invite-code entry with extra fields', async () => {

@@ -14,11 +14,23 @@ service cloud.firestore {
     // members array that drops an existing member while still passing the
     // size(+1)-and-self-present checks alone (this was found and fixed
     // during review — see the plan's revision log).
+    //
+    // The diff().affectedKeys().hasOnly(['members']) clause (added in a
+    // later fix round) closes a second gap: without it, a joining write
+    // could smuggle changes to any other field (name, inviteCode,
+    // createdAt, ...) in the same updateDoc call, since the checks above
+    // only ever look at the `members` array. NOTE: this specific
+    // Map.diff()/MapDiff.affectedKeys() syntax could not be verified
+    // against a running emulator in this environment (no JRE available) —
+    // it matches Firestore rules-language documentation from training
+    // knowledge, but should be confirmed with a real emulator run before
+    // being trusted in production.
     function isJoining(householdData) {
       return request.auth != null &&
         request.resource.data.members.size() == householdData.members.size() + 1 &&
         request.resource.data.members.hasAll(householdData.members) &&
-        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1;
+        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1 &&
+        request.resource.data.diff(householdData).affectedKeys().hasOnly(['members']);
     }
 
     match /households/{householdId} {
@@ -39,7 +51,39 @@ service cloud.firestore {
     // matches), so this lookup collection exists specifically to make
     // joining possible at all.
     match /inviteCodes/{code} {
-      allow read: if request.auth != null;
+      // `allow get` ONLY — deliberately no `allow list` (and no combined
+      // `allow read`, which grants both). This condition doesn't reference
+      // resource.data, so it's trivially provable for every document in
+      // the collection; if it were spelled as `allow read`, Firestore
+      // would permit an unrestricted `list`/`getDocs(collection(...))`
+      // against the whole collection, letting any signed-in user dump
+      // every code -> householdId mapping and then join ANY household via
+      // arrayUnion with zero knowledge of its real invite code (isJoining()
+      // only checks the shape of the resulting members array, never
+      // whether the caller actually possesses a valid code). Restricting
+      // to `get` limits reads to exactly what joinHousehold does:
+      // `getDoc(doc(db, 'inviteCodes', code))` for one known code.
+      allow get: if request.auth != null;
+
+      // Create is intentionally NOT scoped to verify the caller owns the
+      // referenced household. Doing that robustly with pure security
+      // rules is hard here because both documents (household + invite
+      // code) are written together in one batch (see householdService.ts):
+      // an interior get() on /households/$(householdId) evaluated
+      // mid-batch is not guaranteed to see that household doc as already
+      // committed — Firestore's exact rule-evaluation semantics for
+      // reads-of-sibling-writes within the same batch could not be
+      // verified in this sandbox (no emulator/JRE available) and should
+      // not be assumed either way without a real test. Left as a residual,
+      // now-low-severity gap: a signed-in user could still create an
+      // inviteCodes/{code} -> {householdId: <arbitrary>} mapping for a
+      // household they don't own, but with `list` removed above they have
+      // no way to discover which household IDs exist to target, and
+      // creating a bogus mapping does not by itself grant any access to
+      // `households/{householdId}` (isMember/isJoining gate that
+      // separately). Whoever picks this up next: verify get()-during-batch
+      // rule semantics against a real emulator before attempting to close
+      // this further.
       allow create: if request.auth != null &&
         request.resource.data.keys().hasOnly(['householdId']);
       allow update, delete: if false;
