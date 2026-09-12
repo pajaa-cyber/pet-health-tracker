@@ -54,12 +54,35 @@ service cloud.firestore {
         request.resource.data.diff(householdData).affectedKeys().hasOnly(['members', 'joinCodeUsed']);
     }
 
+    // Gates every pet subcollection (and, per this plan, every later
+    // record-type subcollection nested under a household) for the rest of
+    // Plan 2. Unlike isJoining above, there's no untrusted-non-member path
+    // to defend against here: every caller of these rules is already an
+    // existing household member acting within their own household, so a
+    // plain membership check via a cross-document get() on the ancestor
+    // household doc is sufficient — no hasAll/diff hijack protection is
+    // needed because there's no asymmetric trust boundary to cross.
+    function isHouseholdMember(householdId) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/households/$(householdId)) &&
+        get(/databases/$(database)/documents/households/$(householdId)).data.members
+          .filter(m => m.userId == request.auth.uid).size() > 0;
+    }
+
     match /households/{householdId} {
       allow read: if isMember(resource.data);
       allow create: if request.auth != null &&
         request.resource.data.members.filter(m => m.userId == request.auth.uid).size() > 0;
       allow update: if isMember(resource.data) || isJoining(resource.data);
       allow delete: if false;
+    }
+
+    match /households/{householdId}/pets/{petId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['id', 'householdId', 'name', 'species', 'breed', 'birthDate', 'photoUrl']);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
     }
 
     // Maps a shareable invite code to its household ID. Readable by any

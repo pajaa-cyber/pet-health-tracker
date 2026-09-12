@@ -251,4 +251,59 @@ describe('household security rules', () => {
     const strangerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(getDoc(doc(strangerDb, 'users', 'user-1')));
   });
+
+  const seedPetHousehold = async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1'), {
+        id: 'h1',
+        name: 'Test Household',
+        members: [{ userId: 'user-1', displayName: 'Ana', joinedAt: 0 }],
+        inviteCode: 'ABC123',
+        createdAt: 0,
+      });
+    });
+  };
+
+  it('allows a household member to create a pet', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1'), {
+        id: 'pet-1',
+        householdId: 'h1',
+        name: 'Rex',
+        species: 'dog',
+        breed: 'Labrador',
+        birthDate: 0,
+        photoUrl: null,
+      })
+    );
+  });
+
+  it('denies a non-member from creating a pet in someone else\'s household', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1'), {
+        id: 'pet-1',
+        householdId: 'h1',
+        name: 'Rex',
+        species: 'dog',
+        breed: 'Labrador',
+        birthDate: 0,
+        photoUrl: null,
+      })
+    );
+  });
+
+  it('denies a non-member from reading a pet', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'pets', 'pet-1'), {
+        id: 'pet-1', householdId: 'h1', name: 'Rex', species: 'dog', breed: 'Labrador', birthDate: 0, photoUrl: null,
+      });
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1')));
+  });
 });
