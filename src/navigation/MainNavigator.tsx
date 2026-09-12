@@ -12,6 +12,7 @@ import { ExpenseListScreen } from './ExpenseListScreen';
 import { AddExpenseScreen } from './AddExpenseScreen';
 import { VetVisitListScreen } from './VetVisitListScreen';
 import { AddVetVisitScreen } from './AddVetVisitScreen';
+import { VetVisitDocumentsScreen } from './VetVisitDocumentsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ export function MainNavigator() {
       <Stack.Screen name="AddExpense" component={AddExpenseScreen} />
       <Stack.Screen name="VetVisitList" component={VetVisitListScreen} />
       <Stack.Screen name="AddVetVisit" component={AddVetVisitScreen} />
+      <Stack.Screen name="VetVisitDocuments" component={VetVisitDocumentsScreen} />
     </Stack.Navigator>
   );
 }

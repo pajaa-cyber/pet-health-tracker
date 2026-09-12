@@ -1,0 +1,31 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Mirrors firestore.rules' isHouseholdMember(householdId) helper (Task 2 /
+    // Pet Records Core), but expressed in the Storage rules language, which
+    // has no local functions scoped to a match block the way Firestore rules
+    // do — the check is inlined directly in the allow clause instead.
+    //
+    // Storage rules calling into Firestore via firestore.get()/firestore.exists()
+    // is a documented cross-service feature (see
+    // https://firebase.google.com/docs/storage/security/user-security#security-rules-cross-service),
+    // used here so a vet visit document upload/read is gated by the SAME
+    // household-membership data (households/{householdId}.members) that
+    // firestore.rules already enforces for the vetVisits document itself —
+    // there is deliberately no separate/duplicated membership model for
+    // Storage. NOTE: this specific cross-service syntax (path literal form
+    // required by firestore.get()/firestore.exists(), as opposed to the
+    // $(database)-style path interpolation Firestore rules use for get()/
+    // exists() against its own database) could not be verified against a
+    // real emulator in this sandbox (no JRE available, same standing
+    // constraint noted throughout this project's rules files) — confirm via
+    // `firebase emulators:exec --only firestore,storage "..."` on a machine
+    // with Java before trusting this in production.
+    match /households/{householdId}/pets/{petId}/vetVisits/{visitId}/{fileName} {
+      allow read, write: if request.auth != null &&
+        firestore.exists(/databases/(default)/documents/households/$(householdId)) &&
+        firestore.get(/databases/(default)/documents/households/$(householdId)).data.members
+          .filter(m => m.userId == request.auth.uid).size() > 0;
+    }
+  }
+}
