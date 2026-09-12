@@ -29,10 +29,24 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setLoading(true);
-    return onSnapshot(doc(firestore, 'users', user.uid), (snap) => {
-      setHouseholdId(snap.exists() ? (snap.data() as { householdId: string }).householdId : null);
-      if (!snap.exists()) setLoading(false);
-    });
+    return onSnapshot(
+      doc(firestore, 'users', user.uid),
+      (snap) => {
+        setHouseholdId(snap.exists() ? (snap.data() as { householdId: string }).householdId : null);
+        if (!snap.exists()) setLoading(false);
+      },
+      // A live listener can start failing after it's already running (e.g.
+      // permission-denied following a legitimate state change, or an
+      // offline/cache error) — without this, the success callback above
+      // simply stops firing and `loading`/`householdId` would be stuck at
+      // whatever they last held, with no way for a consumer to notice.
+      // Reset to a safe "no household known" state instead of leaving
+      // stale data displayed under an error condition.
+      () => {
+        setHouseholdId(null);
+        setLoading(false);
+      }
+    );
   }, [user]);
 
   // Step 2: once we know the household ID, listen to the household document
@@ -42,10 +56,22 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
       setHousehold(null);
       return;
     }
-    return onSnapshot(doc(firestore, 'households', householdId), (snap) => {
-      setHousehold(snap.exists() ? (snap.data() as Household) : null);
-      setLoading(false);
-    });
+    return onSnapshot(
+      doc(firestore, 'households', householdId),
+      (snap) => {
+        setHousehold(snap.exists() ? (snap.data() as Household) : null);
+        setLoading(false);
+      },
+      // Same reasoning as the users/{uid} listener above: e.g. a member
+      // being removed from the household mid-listen would turn every
+      // subsequent update into a permission-denied error rather than a
+      // snapshot, so without this the UI would otherwise hang on stale
+      // `household` data and `loading: true` forever.
+      () => {
+        setHousehold(null);
+        setLoading(false);
+      }
+    );
   }, [householdId]);
 
   return (
