@@ -1,16 +1,30 @@
-// Placeholder — replaced in Task 15.
-import React from 'react';
-import { View, Text, Button } from 'react-native';
+// src/navigation/PetHomeScreen.tsx
+import React, { useEffect, useState } from 'react';
+import { View, Button, Text } from 'react-native';
+import { useHousehold } from '../household/HouseholdContext';
+import { subscribeToWeightLogs } from '../pets/weightLogService';
+import { firestore } from '../firebase/config';
+import { WeightLog } from '../types/weightLog';
+import { WeightTrendChart } from '../pets/WeightTrendChart';
 
 export function PetHomeScreen({ route, navigation }: any) {
+  const { petId } = route.params;
+  const { household } = useHousehold();
+  const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
+
+  useEffect(() => {
+    if (!household) return;
+    return subscribeToWeightLogs(firestore, household.id, petId, setWeightLogs);
+  }, [household, petId]);
+
   return (
-    <View style={{ padding: 24 }}>
-      <Text>Pet home for {route.params?.petId} — record screens added in later tasks.</Text>
-      <Button title="Vaccines" onPress={() => navigation.navigate('VaccineList', { petId: route.params?.petId })} />
-      <Button title="Medications" onPress={() => navigation.navigate('MedicationList', { petId: route.params?.petId })} />
-      <Button title="Weight" onPress={() => navigation.navigate('WeightLog', { petId: route.params?.petId })} />
-      <Button title="Expenses" onPress={() => navigation.navigate('ExpenseList', { petId: route.params?.petId })} />
-      <Button title="Vet Visits" onPress={() => navigation.navigate('VetVisitList', { petId: route.params?.petId })} />
+    <View style={{ padding: 24, gap: 12 }}>
+      <WeightTrendChart logs={weightLogs} />
+      <Button title="Vaccines" onPress={() => navigation.navigate('VaccineList', { petId })} />
+      <Button title="Medications" onPress={() => navigation.navigate('MedicationList', { petId })} />
+      <Button title="Vet Visits" onPress={() => navigation.navigate('VetVisitList', { petId })} />
+      <Button title="Weight" onPress={() => navigation.navigate('WeightLog', { petId })} />
+      <Button title="Expenses" onPress={() => navigation.navigate('ExpenseList', { petId })} />
     </View>
   );
 }
