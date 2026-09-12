@@ -10,6 +10,7 @@ export function PetHomeScreen({ route, navigation }: any) {
       <Button title="Medications" onPress={() => navigation.navigate('MedicationList', { petId: route.params?.petId })} />
       <Button title="Weight" onPress={() => navigation.navigate('WeightLog', { petId: route.params?.petId })} />
       <Button title="Expenses" onPress={() => navigation.navigate('ExpenseList', { petId: route.params?.petId })} />
+      <Button title="Vet Visits" onPress={() => navigation.navigate('VetVisitList', { petId: route.params?.petId })} />
     </View>
   );
 }
