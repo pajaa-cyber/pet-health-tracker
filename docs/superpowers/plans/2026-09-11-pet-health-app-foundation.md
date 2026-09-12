@@ -598,6 +598,18 @@ Expected: FAIL (permissive placeholder rules allow the "denies"/hijack-preventio
 
 - [ ] **Step 5: Write the real rules**
 
+> **⚠️ STALE — DO NOT COPY THIS SNIPPET.** The `.filter(m => ...)` construct
+> below is NOT valid Firestore Rules syntax (the Rules language has no
+> lambda/anonymous-function support; `List` only supports `concat`/`hasAll`/
+> `hasAny`/`hasOnly`/`join`/`removeAll`/`size`/`toSet`). This was discovered
+> during Plan 2's final whole-branch review — every occurrence in the actual
+> shipped `firestore.rules` was replaced with a denormalized `memberIds:
+> string[]` array checked via `request.auth.uid in memberIds`. See
+> `CLAUDE.md`'s "Pet records data model" section and Plan 2's ledger for the
+> full fix. This snippet is left as-is below purely as a historical record of
+> what was actually implemented at the time — copy the CURRENT
+> `firestore.rules` file, never this text block, if writing new rules.
+
 ```
 // firestore.rules
 rules_version = '2';

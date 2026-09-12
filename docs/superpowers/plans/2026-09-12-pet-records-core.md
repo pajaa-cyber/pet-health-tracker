@@ -515,6 +515,14 @@ Expected: PASS (3 tests)
 
 - [ ] **Step 6: Extend `firestore.rules`**
 
+> **⚠️ STALE — DO NOT COPY THIS SNIPPET.** `.filter(m => ...)` is not valid
+> Firestore Rules syntax (no lambda support in the language). Discovered in
+> Plan 2's final whole-branch review; the shipped `firestore.rules` checks
+> membership via a denormalized `memberIds: string[]` array and the `in`
+> operator instead — see `CLAUDE.md`'s "Pet records data model" section.
+> This snippet is left as a historical record of the plan text as originally
+> written; copy the CURRENT `firestore.rules` file, never this block.
+
 ```
 // firestore.rules — add near the top, alongside isMember/isJoining:
     function isHouseholdMember(householdId) {
