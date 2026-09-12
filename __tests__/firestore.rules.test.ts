@@ -306,4 +306,24 @@ describe('household security rules', () => {
     const strangerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1')));
   });
+
+  it('allows a household member to create a vaccine record for their pet', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1', 'vaccines', 'vax-1'), {
+        id: 'vax-1', petId: 'pet-1', name: 'Rabies', dateGiven: 0, nextDueDate: 1000, vetName: 'Dr. Smith',
+      })
+    );
+  });
+
+  it('denies a non-member from creating a vaccine record', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1', 'vaccines', 'vax-1'), {
+        id: 'vax-1', petId: 'pet-1', name: 'Rabies', dateGiven: 0, nextDueDate: 1000, vetName: 'Dr. Smith',
+      })
+    );
+  });
 });

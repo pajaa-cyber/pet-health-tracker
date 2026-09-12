@@ -85,6 +85,14 @@ service cloud.firestore {
       allow delete: if isHouseholdMember(householdId);
     }
 
+    match /households/{householdId}/pets/{petId}/vaccines/{vaccineId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['id', 'petId', 'name', 'dateGiven', 'nextDueDate', 'vetName']);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
     // Maps a shareable invite code to its household ID. Readable by any
     // signed-in user — that's the point: it's how joinHousehold (Task 4)
     // finds a household without needing read access to the household
