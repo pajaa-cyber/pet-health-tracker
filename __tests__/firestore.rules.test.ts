@@ -326,4 +326,47 @@ describe('household security rules', () => {
       })
     );
   });
+
+  it('allows a household member to create a medication', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1', 'medications', 'med-1'), {
+        id: 'med-1', petId: 'pet-1', name: 'Amoxicillin', dosage: '250mg',
+        schedule: { timesPerDay: 2, intervalDays: 1 }, startDate: 0, endDate: null, log: [],
+      })
+    );
+  });
+
+  it('allows a household member to log a medication dose', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'pets', 'pet-1', 'medications', 'med-1'), {
+        id: 'med-1', petId: 'pet-1', name: 'Amoxicillin', dosage: '250mg',
+        schedule: { timesPerDay: 2, intervalDays: 1 }, startDate: 0, endDate: null, log: [],
+      });
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1', 'medications', 'med-1'), {
+        log: arrayUnion({ givenBy: 'user-1', givenAt: 0 }),
+      })
+    );
+  });
+
+  it('denies a non-member from logging a medication dose', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'pets', 'pet-1', 'medications', 'med-1'), {
+        id: 'med-1', petId: 'pet-1', name: 'Amoxicillin', dosage: '250mg',
+        schedule: { timesPerDay: 2, intervalDays: 1 }, startDate: 0, endDate: null, log: [],
+      });
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1', 'medications', 'med-1'), {
+        log: arrayUnion({ givenBy: 'user-2', givenAt: 0 }),
+      })
+    );
+  });
 });
