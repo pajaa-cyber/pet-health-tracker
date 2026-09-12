@@ -32,7 +32,13 @@ export function subscribeToVetVisits(
 ): Unsubscribe {
   return onSnapshot(
     collection(db, 'households', householdId, 'pets', petId, 'vetVisits'),
-    (snap) => callback(snap.docs.map((d) => d.data() as VetVisit))
+    (snap) => callback(snap.docs.map((d) => d.data() as VetVisit)),
+    // See subscribeToPets in petService.ts for the rationale — a listener
+    // error must not leave the screen stuck on stale/empty data silently.
+    (error) => {
+      console.error('subscribeToVetVisits listener error', error);
+      callback([]);
+    }
   );
 }
 

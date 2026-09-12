@@ -31,6 +31,12 @@ export function subscribeToVaccines(
 ): Unsubscribe {
   return onSnapshot(
     collection(db, 'households', householdId, 'pets', petId, 'vaccines'),
-    (snap) => callback(snap.docs.map((d) => d.data() as Vaccine))
+    (snap) => callback(snap.docs.map((d) => d.data() as Vaccine)),
+    // See subscribeToPets in petService.ts for the rationale — a listener
+    // error must not leave the screen stuck on stale/empty data silently.
+    (error) => {
+      console.error('subscribeToVaccines listener error', error);
+      callback([]);
+    }
   );
 }

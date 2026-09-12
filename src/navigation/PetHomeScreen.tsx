@@ -1,6 +1,6 @@
 // src/navigation/PetHomeScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Button, Text } from 'react-native';
+import { View, Button } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs } from '../pets/weightLogService';
 import { firestore } from '../firebase/config';

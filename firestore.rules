@@ -2,9 +2,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // MEMBERSHIP IS CHECKED AGAINST `memberIds`, NOT `members` — READ THIS
+    // BEFORE CHANGING ANY MEMBERSHIP CHECK IN THIS FILE.
+    //
+    // Every membership check in this file (and in storage.rules) used to be
+    // spelled `householdData.members.filter(m => m.userId == request.auth.uid)
+    // .size() > 0`. That is NOT valid Firestore Rules: the rules language's
+    // List type exposes only concat/hasAll/hasAny/hasOnly/join/removeAll/
+    // size/toSet — there is no filter(), and the language has no lambda /
+    // anonymous-function syntax at all (named `function`s like these are
+    // top-level rule helpers with concrete parameters; you cannot build an
+    // inline predicate and pass it as a value). This was the foundation of
+    // all access control across both plans and survived three hand-traced
+    // security reviews only because no JRE/emulator has ever been available
+    // in this sandbox to actually deploy the ruleset — every review traced
+    // the LOGIC while assuming the SYNTAX was valid. Left in place it would
+    // either fail the whole ruleset at deploy time or error on every
+    // evaluation (which Firestore treats as a denial), i.e. lock every user
+    // out of the entire app.
+    //
+    // Fix: the household document now carries a denormalized
+    // `memberIds: string[]` alongside `members: HouseholdMember[]`, written
+    // in lockstep by createHousehold/joinHousehold (see householdService.ts,
+    // both writes are inside the same atomic batch). Membership is tested
+    // with `request.auth.uid in householdData.memberIds` — the `in` operator
+    // over a list of strings is standard, unambiguously documented rules
+    // syntax. `members` is retained because the app needs displayName per
+    // member for the UI; it is no longer consulted for authorization by any
+    // rule, so the two arrays' only hard requirement is that memberIds stays
+    // append-only and accurate (enforced for untrusted writes by isJoining
+    // below).
     function isMember(householdData) {
       return request.auth != null &&
-        householdData.members.filter(m => m.userId == request.auth.uid).size() > 0;
+        request.auth.uid in householdData.memberIds;
     }
 
     // A non-member may update the document only to join it: the write must
@@ -45,13 +75,43 @@ service cloud.firestore {
     // access. `joinCodeUsed` is intentionally added to the diff-scope
     // allowlist (not just `members`) since the join write now legitimately
     // touches both fields; it is intentionally NOT widened further.
+    //
+    // The `memberIds` clauses (added in the final-review fix wave, same
+    // change as the isMember rewrite above) replace the one line that used
+    // the invalid `.filter(m => m.userId == request.auth.uid).size() == 1`
+    // idiom — the "requester appears exactly once in the new members array"
+    // check. The size(+1)/hasAll pair over `members` is UNCHANGED and still
+    // provides the original eviction-hijack protection over the full member
+    // -object array; the identical size(+1)/hasAll pair over `memberIds`
+    // forces that array to gain exactly one new slot while every previously
+    // present ID survives unchanged, and `request.auth.uid in
+    // request.resource.data.memberIds` forces that one new slot to be the
+    // requester's own ID. Together that is the same "adds exactly the
+    // requester, nobody else, evicts nobody" guarantee the filter-based
+    // check provided, expressed over the plain string array instead of the
+    // object array. Requiring the checks on BOTH arrays is what keeps them
+    // in lockstep: a write that grows only one of the two is denied, so
+    // memberIds can never silently drift from members. `memberIds` is added
+    // to the diff-scope allowlist for the same reason `joinCodeUsed` was —
+    // a legitimate join write now touches it.
+    //
+    // Residual (accepted, display-only): since no rule can inspect the
+    // userId field INSIDE a member object without filter(), a joiner who
+    // possesses the real invite code could append a members entry naming
+    // someone else while adding their OWN uid to memberIds. That grants no
+    // access they weren't already entitled to (they hold the code, and
+    // memberIds — the only array any rule authorizes against — still gains
+    // exactly their own uid and evicts nobody); the impact is limited to a
+    // wrong displayName rendering in the members list.
     function isJoining(householdData) {
       return request.auth != null &&
         request.resource.data.members.size() == householdData.members.size() + 1 &&
         request.resource.data.members.hasAll(householdData.members) &&
-        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1 &&
+        request.resource.data.memberIds.size() == householdData.memberIds.size() + 1 &&
+        request.resource.data.memberIds.hasAll(householdData.memberIds) &&
+        request.auth.uid in request.resource.data.memberIds &&
         request.resource.data.joinCodeUsed == householdData.inviteCode &&
-        request.resource.data.diff(householdData).affectedKeys().hasOnly(['members', 'joinCodeUsed']);
+        request.resource.data.diff(householdData).affectedKeys().hasOnly(['members', 'memberIds', 'joinCodeUsed']);
     }
 
     // Gates every pet subcollection (and, per this plan, every later
@@ -62,17 +122,31 @@ service cloud.firestore {
     // plain membership check via a cross-document get() on the ancestor
     // household doc is sufficient — no hasAll/diff hijack protection is
     // needed because there's no asymmetric trust boundary to cross.
+    //
+    // Membership is read from the denormalized `memberIds` array — see the
+    // long comment on isMember above for why `members.filter(...)` had to go.
+    //
+    // The preceding exists() call was dropped (final-review fix wave): it
+    // was a redundant second billed document read of the very document the
+    // get() below already fetches. get() on a missing document yields no
+    // usable `.data`, so this expression cannot evaluate to true for a
+    // nonexistent household under any circumstance — whether the runtime
+    // treats it as null-dereference error or as a plain false, Firestore
+    // denies the request either way (rule-evaluation errors are denials).
+    // The check therefore still fails closed, at half the read cost.
     function isHouseholdMember(householdId) {
       return request.auth != null &&
-        exists(/databases/$(database)/documents/households/$(householdId)) &&
-        get(/databases/$(database)/documents/households/$(householdId)).data.members
-          .filter(m => m.userId == request.auth.uid).size() > 0;
+        request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.memberIds;
     }
 
     match /households/{householdId} {
       allow read: if isMember(resource.data);
+      // Fourth site of the invalid `.filter()` idiom (see isMember above);
+      // rewritten the same way. A creator must name themselves in the new
+      // document's memberIds, so nobody can create a household they are not
+      // a member of.
       allow create: if request.auth != null &&
-        request.resource.data.members.filter(m => m.userId == request.auth.uid).size() > 0;
+        request.auth.uid in request.resource.data.memberIds;
       allow update: if isMember(resource.data) || isJoining(resource.data);
       allow delete: if false;
     }

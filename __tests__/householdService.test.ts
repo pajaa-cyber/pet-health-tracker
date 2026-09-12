@@ -46,6 +46,10 @@ describe('householdService', () => {
     expect(household.members).toEqual([
       expect.objectContaining({ userId: 'user-1', displayName: 'Ana' }),
     ]);
+    // memberIds is the array firestore.rules/storage.rules authorize
+    // against (`request.auth.uid in memberIds`); it must be written in the
+    // same document as members, never derived client-side at read time.
+    expect(household.memberIds).toEqual(['user-1']);
     expect(household.inviteCode).toHaveLength(6);
     expect(mockWriteBatch).toHaveBeenCalledWith(fakeDb);
     expect(mockBatchSet).toHaveBeenCalledWith(mockCreatedDocRef, household);
@@ -93,8 +97,14 @@ describe('householdService', () => {
     expect(mockArrayUnion).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-2', displayName: 'Marko' })
     );
+    // memberIds must be arrayUnion'd in the SAME update as members —
+    // firestore.rules' isJoining() requires both arrays to grow by exactly
+    // one in a single write, so a join that updated only one of them is
+    // rejected outright.
+    expect(mockArrayUnion).toHaveBeenCalledWith('user-2');
     expect(mockBatchUpdate).toHaveBeenCalledWith(mockHouseholdDocRef, {
       members: { __arrayUnion: [expect.objectContaining({ userId: 'user-2' })] },
+      memberIds: { __arrayUnion: ['user-2'] },
       joinCodeUsed: 'ABC123',
     });
     expect(mockBatchSet).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'h1' });

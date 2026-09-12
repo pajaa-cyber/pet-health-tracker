@@ -29,6 +29,12 @@ export function subscribeToWeightLogs(
 ): Unsubscribe {
   return onSnapshot(
     collection(db, 'households', householdId, 'pets', petId, 'weightLogs'),
-    (snap) => callback(snap.docs.map((d) => d.data() as WeightLog))
+    (snap) => callback(snap.docs.map((d) => d.data() as WeightLog)),
+    // See subscribeToPets in petService.ts for the rationale — a listener
+    // error must not leave the screen stuck on stale/empty data silently.
+    (error) => {
+      console.error('subscribeToWeightLogs listener error', error);
+      callback([]);
+    }
   );
 }

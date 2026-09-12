@@ -36,6 +36,11 @@ describe('household security rules', () => {
         id: 'h1',
         name: 'Test Household',
         members: [{ userId: 'user-1', displayName: 'Ana', joinedAt: 0 }],
+        // memberIds is what every membership check in firestore.rules now
+        // reads (`request.auth.uid in memberIds`) — the previous
+        // members.filter(...) spelling was not valid rules syntax. It must
+        // mirror `members` exactly, the way householdService.ts writes it.
+        memberIds: ['user-1'],
         inviteCode: 'ABC123',
         createdAt: 0,
       });
@@ -67,6 +72,10 @@ describe('household security rules', () => {
         id: 'h2',
         name: 'New Household',
         members: [{ userId: 'user-3', displayName: 'Marko', joinedAt: 0 }],
+        // `allow create` now checks `request.auth.uid in
+        // request.resource.data.memberIds` (was the invalid members.filter
+        // spelling), so the creator must name themselves here.
+        memberIds: ['user-3'],
         inviteCode: 'ZZZ999',
         createdAt: 0,
       })
@@ -85,6 +94,10 @@ describe('household security rules', () => {
     await assertSucceeds(
       updateDoc(doc(joinerDb, 'households', 'h1'), {
         members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        // Mirrors joinHousehold()'s real write shape — isJoining() requires
+        // members AND memberIds to each grow by exactly one in the same
+        // update, so omitting this would now (correctly) fail the join.
+        memberIds: arrayUnion('user-2'),
         joinCodeUsed: 'ABC123',
       })
     );
@@ -103,6 +116,10 @@ describe('household security rules', () => {
     await assertFails(
       updateDoc(doc(attackerDb, 'households', 'h1'), {
         members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        // Included so every OTHER clause of isJoining() passes and the
+        // denial is attributable to the joinCodeUsed mismatch specifically,
+        // not to a missing memberIds update.
+        memberIds: arrayUnion('user-2'),
         joinCodeUsed: 'WRONGC',
       })
     );
@@ -117,6 +134,9 @@ describe('household security rules', () => {
     await assertFails(
       updateDoc(doc(attackerDb, 'households', 'h1'), {
         members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        // As above: keeps the memberIds clauses satisfied so the denial is
+        // attributable to the absent joinCodeUsed specifically.
+        memberIds: arrayUnion('user-2'),
       })
     );
   });
@@ -125,7 +145,12 @@ describe('household security rules', () => {
   // member's own update must never require joinCodeUsed. allow update is
   // `isMember(resource.data) || isJoining(resource.data)` — this confirms
   // the isMember branch alone is sufficient and isJoining (which would
-  // reject a missing joinCodeUsed) is never forced to evaluate.
+  // reject a missing joinCodeUsed, and now also a missing memberIds update)
+  // is never forced to evaluate. isMember itself changed in the
+  // final-review fix wave — it now reads `request.auth.uid in
+  // resource.data.memberIds` — so this test depends on seedHousehold()
+  // carrying memberIds: ['user-1']; without it isMember could not evaluate
+  // true and this write would be denied.
   it('allows an existing member to update the household with no joinCodeUsed field', async () => {
     await seedHousehold();
     const memberDb = testEnv.authenticatedContext('user-1').firestore();
@@ -142,6 +167,11 @@ describe('household security rules', () => {
     await assertFails(
       updateDoc(doc(attackerDb, 'households', 'h1'), {
         members: [{ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }],
+        // The attack is a wholesale replacement of BOTH arrays, evicting
+        // user-1 from each. Denied by the size(new) == size(old) + 1 checks
+        // (each array shrinks to 1 where 2 is required) before hasAll is
+        // ever reached — same clause as before this change.
+        memberIds: ['user-2'],
         joinCodeUsed: 'ABC123',
       })
     );
@@ -157,6 +187,16 @@ describe('household security rules', () => {
   // keeps isolating hasAll() specifically — without a correct code here,
   // this write would now also be denied by the (unrelated) joinCodeUsed
   // check added in fix round 3, which would defeat the point of this test.
+  //
+  // memberIds is deliberately submitted HONESTLY here (['user-1','user-2'])
+  // for the same isolation reason: it makes all four memberIds clauses pass
+  // so the ONLY clause that can produce the denial is
+  // members.hasAll(oldMembers). If a bogus memberIds were sent instead, the
+  // write would be denied by the new memberIds checks and this test would
+  // silently stop exercising members.hasAll at all. The attack shape is
+  // still meaningful in its own right: a code-holding joiner trying to
+  // erase the existing member's entry from the member-object array while
+  // keeping the ID array honest — and it is still denied.
   it('denies a non-member join write that is correctly sized but fabricates a replacement for the existing member', async () => {
     await seedHousehold();
     const attackerDb = testEnv.authenticatedContext('user-2').firestore();
@@ -166,17 +206,87 @@ describe('household security rules', () => {
           { userId: 'fake-user-1', displayName: 'Imposter', joinedAt: 0 },
           { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
         ],
+        memberIds: ['user-1', 'user-2'],
+        joinCodeUsed: 'ABC123',
+      })
+    );
+  });
+
+  // The memberIds counterpart of the hasAll hijack test above, and the
+  // reason it matters most: memberIds is the array every membership check
+  // in firestore.rules and storage.rules actually authorizes against, so an
+  // eviction there is a real access revocation, not a display glitch. Here
+  // `members` is submitted honestly (correct size, hasAll passes) while
+  // memberIds is correctly sized but drops user-1 in favour of a fabricated
+  // ID — so the denial is attributable to memberIds.hasAll(old) alone.
+  it('denies a join write whose memberIds array is correctly sized but evicts the existing member ID', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
+        members: [
+          { userId: 'user-1', displayName: 'Ana', joinedAt: 0 },
+          { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
+        ],
+        memberIds: ['fake-user-1', 'user-2'],
+        joinCodeUsed: 'ABC123',
+      })
+    );
+  });
+
+  // Direct coverage for the clause that REPLACED the invalid
+  // `members.filter(m => m.userId == request.auth.uid).size() == 1` check:
+  // `request.auth.uid in request.resource.data.memberIds`. Everything else
+  // about this write is legitimate (both arrays grow by exactly one, both
+  // hasAll the originals, correct invite code, no smuggled fields) — the
+  // single defect is that the added member is a THIRD PARTY, not the
+  // requester. Without this clause a code-holder could enrol arbitrary
+  // other accounts into the household, so this must be denied.
+  it('denies a join write that adds someone other than the requester', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
+        members: [
+          { userId: 'user-1', displayName: 'Ana', joinedAt: 0 },
+          { userId: 'user-3', displayName: 'Victim', joinedAt: 0 },
+        ],
+        memberIds: ['user-1', 'user-3'],
+        joinCodeUsed: 'ABC123',
+      })
+    );
+  });
+
+  // Positive control for the new memberIds machinery, written with raw
+  // arrays instead of arrayUnion so the exact resulting document shape is
+  // asserted rather than delegated to a server-side transform. This test
+  // fails if memberIds is dropped from the diff-scope allowlist, if either
+  // size/hasAll pair is wrong, or if the `uid in memberIds` clause is
+  // omitted in a way that changes the legitimate path — i.e. it is the test
+  // that would break had memberIds been forgotten or mis-specified.
+  it('allows a non-member to join with explicit (non-arrayUnion) members and memberIds arrays', async () => {
+    await seedHousehold();
+    const joinerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      updateDoc(doc(joinerDb, 'households', 'h1'), {
+        members: [
+          { userId: 'user-1', displayName: 'Ana', joinedAt: 0 },
+          { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
+        ],
+        memberIds: ['user-1', 'user-2'],
         joinCodeUsed: 'ABC123',
       })
     );
   });
 
   // Regression test for finding 2: isJoining() must not let a join write
-  // smuggle changes to fields other than `members`/`joinCodeUsed` in the
-  // same update. joinCodeUsed is set correctly here so the denial is
-  // attributable to the smuggled `name` field failing the
-  // diff().affectedKeys().hasOnly(['members', 'joinCodeUsed']) check, not
-  // to a missing/wrong invite code.
+  // smuggle changes to fields other than `members`/`memberIds`/
+  // `joinCodeUsed` in the same update. joinCodeUsed is set correctly here,
+  // and memberIds is updated correctly (it is now a legitimate join-write
+  // field and is in the allowlist), so the denial is attributable to the
+  // smuggled `name` field failing the
+  // diff().affectedKeys().hasOnly(['members', 'memberIds', 'joinCodeUsed'])
+  // check, not to a missing/wrong invite code or a missing memberIds update.
   it('denies a non-member join write that also smuggles a change to another field', async () => {
     await seedHousehold();
     const attackerDb = testEnv.authenticatedContext('user-2').firestore();
@@ -184,6 +294,7 @@ describe('household security rules', () => {
       updateDoc(doc(attackerDb, 'households', 'h1'), {
         name: 'Hijacked Household Name',
         members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        memberIds: arrayUnion('user-2'),
         joinCodeUsed: 'ABC123',
       })
     );
@@ -252,12 +363,17 @@ describe('household security rules', () => {
     await assertFails(getDoc(doc(strangerDb, 'users', 'user-1')));
   });
 
+  // Duplicates seedHousehold's body rather than reusing it (kept as-is from
+  // Plan 2); both must carry memberIds, since isHouseholdMember() resolves
+  // membership for every pet subcollection via
+  // `request.auth.uid in get(.../households/h1).data.memberIds`.
   const seedPetHousehold = async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'households', 'h1'), {
         id: 'h1',
         name: 'Test Household',
         members: [{ userId: 'user-1', displayName: 'Ana', joinedAt: 0 }],
+        memberIds: ['user-1'],
         inviteCode: 'ABC123',
         createdAt: 0,
       });

@@ -49,6 +49,11 @@ export async function createHousehold(
       id: docRef.id,
       name: householdName,
       members: [member],
+      // Denormalized userId-only mirror of `members`, written in the same
+      // atomic batch so the two can never diverge. firestore.rules and
+      // storage.rules check membership via `request.auth.uid in
+      // memberIds` — see the Household type for the full rationale.
+      memberIds: [userId],
       inviteCode,
       createdAt: Date.now(),
     };
@@ -103,6 +108,13 @@ export async function joinHousehold(
   const batch = writeBatch(db);
   batch.update(doc(db, 'households', householdId), {
     members: arrayUnion(newMember),
+    // Kept in exact lockstep with `members` above — same write, same
+    // arrayUnion semantics (append-only, idempotent). isJoining() in
+    // firestore.rules requires BOTH arrays to grow by exactly one and to
+    // still contain all prior entries, and requires the requester's own
+    // uid to be the one added to memberIds; a join write that updated
+    // only one of the two arrays is rejected.
+    memberIds: arrayUnion(userId),
     // Ties this write to proof the caller actually knows the household's
     // invite code — firestore.rules' isJoining() requires this to equal
     // the household's own stored inviteCode. Without it, anyone who learns

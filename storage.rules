@@ -10,7 +10,7 @@ service firebase.storage {
     // is a documented cross-service feature (see
     // https://firebase.google.com/docs/storage/security/user-security#security-rules-cross-service),
     // used here so a vet visit document upload/read is gated by the SAME
-    // household-membership data (households/{householdId}.members) that
+    // household-membership data (households/{householdId}.memberIds) that
     // firestore.rules already enforces for the vetVisits document itself —
     // there is deliberately no separate/duplicated membership model for
     // Storage. NOTE: this specific cross-service syntax (path literal form
@@ -21,11 +21,30 @@ service firebase.storage {
     // constraint noted throughout this project's rules files) — confirm via
     // `firebase emulators:exec --only firestore,storage "..."` on a machine
     // with Java before trusting this in production.
+    // Membership is read from the denormalized `memberIds: string[]` array
+    // on the household document, NOT from `members` — the previous
+    // `members.filter(m => m.userId == request.auth.uid).size() > 0` spelling
+    // is not valid rules syntax (no filter(), no lambdas — see the long
+    // comment on isMember() in firestore.rules for the full finding). The
+    // `in` operator over a list of strings is the standard documented form.
+    // Read and write are split so uploads can additionally be bounded in
+    // size and constrained to images (a vet-visit document is photographed
+    // paperwork), which keeps an authenticated member from filling the
+    // bucket with arbitrary large binaries; reads stay a plain membership
+    // check since request.resource is not meaningful for them. Side effect
+    // to be aware of: `delete` is also classified as a `write`, and on a
+    // delete request.resource is null, so the size/contentType clauses make
+    // deletes fail closed. Nothing in the app deletes storage objects today
+    // (VetVisitDocumentsScreen only uploads); whoever adds a "remove
+    // document" feature must split `delete` out into its own allow clause
+    // with the membership check alone.
     match /households/{householdId}/pets/{petId}/vetVisits/{visitId}/{fileName} {
-      allow read, write: if request.auth != null &&
-        firestore.exists(/databases/(default)/documents/households/$(householdId)) &&
-        firestore.get(/databases/(default)/documents/households/$(householdId)).data.members
-          .filter(m => m.userId == request.auth.uid).size() > 0;
+      allow read: if request.auth != null &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/households/$(householdId)).data.memberIds;
+      allow write: if request.auth != null &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/households/$(householdId)).data.memberIds &&
+        request.resource.size < 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
     }
   }
 }
