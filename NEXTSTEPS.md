@@ -18,7 +18,7 @@ competitor (11pets) on price, reliability, and simplicity. Full context:
   `src/household/` or `firestore.rules`** — the join-household design
   changed twice after review found it didn't actually work.
 - Plans 2 ("Pet Records Core") and 3 ("Reminders & Notifications") are
-  not written yet — Plan 1 needs to finish and get merged first.
+  not written yet.
 
 ## Where the work is happening
 
@@ -34,109 +34,96 @@ why — is at:
 `.superpowers/sdd/2026-09-11-pet-health-app-foundation/progress.md`
 (relative to the worktree above). **Read the whole ledger before resuming**
 — this file summarizes it, but the ledger has the full reasoning behind
-every ruling.
+every ruling, including the full security history of the household
+join-flow (three remediation rounds, each independently re-reviewed).
 
-## Task status (Plan 1: Foundation & Auth, 7 tasks total)
+## Plan 1 (Foundation & Auth) is COMPLETE — all 7 tasks implemented and reviewed
 
 | Task | What | Status |
 |---|---|---|
 | 1 | Expo/RNFB project scaffold | ✅ Done, reviewed, approved |
 | 2 | Firebase client config | ✅ Done, reviewed, approved |
-| 3 | Household/HouseholdMember types | ✅ Done, reviewed, approved (bundled into Task 4's commit as a prerequisite — see ledger) |
-| 4 | Household create/join service | ✅ Implemented and rewritten twice — see below, NOT yet re-reviewed after the last rewrite |
-| 5 | Firestore security rules | ✅ Implemented and rewritten twice — see below, NOT yet re-reviewed after the last rewrite |
-| 6 | Auth context | ❌ Not started |
-| 7 | Sign up/in + household setup screens | ❌ Not started |
+| 3 | Household/HouseholdMember types | ✅ Done, reviewed, approved |
+| 4 | Household create/join service | ✅ Done, reviewed, approved (3 remediation rounds — see ledger) |
+| 5 | Firestore security rules | ✅ Done, reviewed, approved (3 remediation rounds — see ledger) |
+| 6 | Auth context | ✅ Done, reviewed, approved |
+| 7 | Sign up/in + household setup screens | ✅ Done, reviewed, approved |
+
+The household join flow (Tasks 4/5) went through an unusually deep review
+history — the original design, and two subsequent "fixes," each looked
+correct on the surface but had a real security hole found by adversarial
+re-review (a join-permission bug, a member-eviction hijack, a Firestore
+list-query rejection, an unrestricted `list` on the invite-code lookup
+collection that let anyone enumerate every household and join without a
+code, a field-smuggling gap, and finally a complete absence of any
+invite-code-possession check at all). The final state (commit `18c3625`
+onward) was confirmed by an adversarial re-review to have no bypass in
+the invite-code check and no regression on any earlier finding. Full
+blow-by-blow reasoning is in the ledger — read it before touching
+`firestore.rules` or `src/household/householdService.ts` again.
 
 ## The one thing that MUST happen next
 
-Tasks 4 and 5 went through a serious back-and-forth during review:
+**Nothing is implemented wrong that's known about.** What's left is
+verification that could only happen on a real machine, not more coding
+in this sandbox. Whoever resumes should choose between:
 
-1. First pass: implemented and approved.
-2. Review found the update-permission rule denied the household-join flow
-   entirely (joining user isn't a member yet at the time of their own
-   join-write). Fixed once (commit `37be082`) — re-review found this fix
-   *introduced* a hijack: a non-member could evict an existing member
-   while adding themselves.
-3. Deeper investigation found a second, independent problem: the
-   invite-code lookup used a Firestore query that real Firestore rejects
-   outright for non-members (list-query rules must hold for every
-   potential match, not just the actual one).
-4. Both were fixed together in commit `a553b58`
-   ("fix: resolve invite codes via lookup collection and close
-   member-eviction hijack") — introduces an `inviteCodes/{code}` lookup
-   collection + `arrayUnion` + `.hasAll()` in the rules. Full technical
-   explanation in the plan's Revision log (second entry).
+**(a) Real-machine verification** (do this before trusting the app with
+real data) — in priority order:
+1. **Run the Firestore rules test suite for real**, on a machine with a
+   JRE: `firebase emulators:exec --only firestore "npx jest
+   __tests__/firestore.rules.test.ts"`. This is the highest-priority item
+   — every rules-logic claim across three remediation rounds rests on
+   hand-tracing plus a mocked business-logic suite, never the real rules
+   engine. If this fails, treat it as a real bug in `firestore.rules`,
+   not a test artifact.
+2. Create a real Firebase project (Firestore + Auth enabled), download
+   real `google-services.json`/`GoogleService-Info.plist` to the repo
+   root (see `.env.example` and `CLAUDE.md`'s "Firebase setup" section for
+   exact steps — current files on disk are safe placeholders).
+3. Run `npx expo run:android` on a machine with Android Studio, sign up
+   with a test email, confirm the Household Setup screen appears, create
+   a household, and confirm in the Firebase console that a
+   `households/{id}` document was created correctly.
+4. Generate the iOS project (`npx expo prebuild`) on macOS or Linux —
+   Windows can't do this — and verify there too if targeting iOS.
 
-**Commit `a553b58` has NOT been reviewed.** The re-review agent was
-dispatched and immediately failed with an API rate-limit error (session
-limit, resets 00:40 Europe/Budapest — check current time before retrying)
-before producing any output. Nothing about `a553b58`'s correctness has
-been verified independently — treat it as unreviewed, not as approved.
+**(b) Start writing Plan 2 ("Pet Records Core")** — the next feature
+plan, using `superpowers:writing-plans` against the design spec. Plan 1's
+`households/{householdId}` root is now the foundation Plan 2's
+`pets/{petId}` subcollections will nest under.
 
-### Exact next action
-
-Re-dispatch the scoped re-review. Everything needed:
-
-```bash
-cd "C:\Users\PC\OneDrive\Desktop\app\.worktrees\pet-app-foundation"
-bash "/c/Users/PC/.claude/plugins/cache/superpowers-marketplace/superpowers/6.3.0/skills/subagent-driven-development/scripts/review-package" \
-  docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md 609077cb26c8c61170171d61cc3e67a814a8119e a553b58
-```
-
-This regenerates the diff file at
-`.superpowers/sdd/2026-09-11-pet-health-app-foundation/review-609077c..a553b58.diff`
-(base and head commits are ancestors of the current worktree HEAD, so
-this always works even after more commits land). Then dispatch a review
-subagent reading:
-- The plan's Task 4 + Task 5 sections + both "Revision log" entries
-- `.superpowers/sdd/2026-09-11-pet-health-app-foundation/task-4-5-remediation-report.md`
-- The regenerated diff file
-
-Ask it specifically to be adversarial about: (a) whether `.hasAll()`
-really closes the eviction hijack (trace a raw-array replacement attempt
-by hand), (b) whether there's slack in `size()==old+1 && hasAll(old) &&
-self-count==1` that would let a non-member add fabricated *extra* members
-alongside themselves, (c) whether the `inviteCodes` lookup genuinely
-avoids the list-query rejection (single-doc `get()`, not a query), (d)
-whether the tests are real regression tests, not tautological against
-their own mocks. (This is the same brief that was sent to the failed
-agent — if you still have this conversation's history, the full text is
-in the SendMessage that launched it; otherwise the paragraph above plus
-the plan's Revision log has everything needed to reconstruct it.)
-
-If that review comes back clean: mark Task 4/5 (remediation) complete in
-the ledger, then proceed to Task 6 (`bash .../scripts/task-brief ... 6`).
-If it finds new issues: another fix round, same pattern as before.
+Ask the user which they'd rather do next if it's not obvious from context.
 
 ## Known environment constraints (this sandbox specifically)
 
 Not project facts — facts about the machine this was built on so far.
 Re-check on whatever machine resumes this:
 
-- **No Android SDK / `adb` / Java** in this execution environment. Task 1's
-  and Task 5's "verify by actually running it" steps were substituted with
-  compile-only / manual-trace verification and explicitly flagged as
-  needing real verification later. Before trusting this build:
-  - Run `npx expo run:android` for real on a machine with Android Studio.
-  - Run `firebase emulators:exec --only firestore "npx jest __tests__/firestore.rules.test.ts"`
-    for real on a machine with a JRE — this is the security-rules test
-    suite, and **nothing has verified it against a real Firestore emulator
-    yet**, only hand-traced logic. Given how many rounds the rules logic
-    went through, treat this as the highest-priority manual verification
-    once Java is available.
+- **No Android SDK / `adb` / Java** in this execution environment. Every
+  "verify by actually running it" step across all 7 tasks was substituted
+  with compile-only / manual-trace verification and explicitly flagged as
+  needing real verification later (see "The one thing that MUST happen
+  next" above).
 - **No iOS prebuild on Windows** — `expo prebuild` refuses iOS outright on
   this OS. `ios/` doesn't exist in this worktree. Needs a macOS or Linux
   machine to generate it.
-- A `winget install` attempt for a JRE (Temurin 21) did not resolve
-  (likely stuck on an elevation prompt) and was killed. If resuming on
-  this same machine, either install Java manually first, or accept the
-  same deferred-verification pattern for Task 5's real run.
+- A `winget install` attempt for a JRE (Temurin 21) did not resolve on
+  this machine (likely stuck on an elevation prompt) and was killed. If
+  resuming on this same machine, either install Java manually first, or
+  accept the same deferred-verification pattern.
 - Firebase project setup is NOT done — `google-services.json` /
   `GoogleService-Info.plist` at the repo root are placeholder/fake values
   (safe, no real secrets) just to unblock `expo prebuild`. See
   `.env.example` for the real setup steps before this app can talk to a
   real Firebase backend.
+- **This session's shell environment had a broken Bash tool** (its `bash`
+  had no `git`/`node`/`npx` on PATH — Windows PowerShell worked fine, and
+  invoking Git for Windows's bash directly via
+  `"C:\Program Files\Git\bin\bash.exe" <script>` worked for the SDD
+  skill's helper scripts). If resuming with a similarly broken Bash tool,
+  use PowerShell or the full bash.exe path instead of the default Bash
+  tool.
 
 ## Process notes for whoever resumes (mistakes already made, don't repeat)
 
@@ -151,3 +138,9 @@ Re-check on whatever machine resumes this:
   and the worktree — an absolute path typo landed one plan edit in the
   main checkout instead of the worktree once (caught via `git status`
   before committing, no harm done, but easy to repeat).
+- When a re-review comes back with new findings after a fix round, don't
+  assume the NEXT fix closes everything either — this project's join flow
+  had three consecutive rounds that each looked clean until adversarially
+  re-reviewed. Keep dispatching fresh, skeptical re-reviews rather than
+  taking an implementer's own confidence/self-report as sufficient,
+  especially for `firestore.rules` changes specifically.
