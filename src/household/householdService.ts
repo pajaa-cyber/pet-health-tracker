@@ -88,6 +88,15 @@ export async function joinHousehold(
 
   await updateDoc(doc(db, 'households', householdId), {
     members: arrayUnion(newMember),
+    // Ties this write to proof the caller actually knows the household's
+    // invite code — firestore.rules' isJoining() requires this to equal
+    // the household's own stored inviteCode. Without it, anyone who learns
+    // a household's document ID could join via arrayUnion alone, with zero
+    // knowledge of the real code (see firestore.rules for the full
+    // rationale). This value is intentionally the code the user typed in,
+    // not a derived/looked-up one, so a wrong or stale code fails the
+    // rule's equality check rather than silently succeeding.
+    joinCodeUsed: inviteCode,
   });
 }
 

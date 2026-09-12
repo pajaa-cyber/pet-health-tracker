@@ -15,7 +15,7 @@ service cloud.firestore {
     // size(+1)-and-self-present checks alone (this was found and fixed
     // during review — see the plan's revision log).
     //
-    // The diff().affectedKeys().hasOnly(['members']) clause (added in a
+    // The diff().affectedKeys().hasOnly([...]) clause (added in a
     // later fix round) closes a second gap: without it, a joining write
     // could smuggle changes to any other field (name, inviteCode,
     // createdAt, ...) in the same updateDoc call, since the checks above
@@ -25,12 +25,33 @@ service cloud.firestore {
     // it matches Firestore rules-language documentation from training
     // knowledge, but should be confirmed with a real emulator run before
     // being trusted in production.
+    //
+    // The joinCodeUsed == householdData.inviteCode check (added in fix
+    // round 3) closes the deepest gap found so far: everything above only
+    // ever validated the SHAPE of the resulting members array — it never
+    // verified the requester actually possesses the household's invite
+    // code. Without this check, anyone who learns a household's raw
+    // document ID (which every current/former member inherently knows,
+    // since it's the app's own primary key) could call
+    // updateDoc(households/{knownId}, {members: arrayUnion(self)}) directly
+    // and join with zero knowledge of the real invite code, silently
+    // defeating the invite-code system. joinHousehold (householdService.ts)
+    // now writes a `joinCodeUsed` field alongside `members` carrying the
+    // code the user typed in; this rule requires it to match the
+    // household's OWN currently-stored `inviteCode` — readable here via
+    // householdData.inviteCode even though the joining client has no read
+    // grant on the document itself, because rules evaluate against the
+    // document's actual stored data regardless of the requester's own read
+    // access. `joinCodeUsed` is intentionally added to the diff-scope
+    // allowlist (not just `members`) since the join write now legitimately
+    // touches both fields; it is intentionally NOT widened further.
     function isJoining(householdData) {
       return request.auth != null &&
         request.resource.data.members.size() == householdData.members.size() + 1 &&
         request.resource.data.members.hasAll(householdData.members) &&
         request.resource.data.members.filter(m => m.userId == request.auth.uid).size() == 1 &&
-        request.resource.data.diff(householdData).affectedKeys().hasOnly(['members']);
+        request.resource.data.joinCodeUsed == householdData.inviteCode &&
+        request.resource.data.diff(householdData).affectedKeys().hasOnly(['members', 'joinCodeUsed']);
     }
 
     match /households/{householdId} {
@@ -57,11 +78,13 @@ service cloud.firestore {
       // the collection; if it were spelled as `allow read`, Firestore
       // would permit an unrestricted `list`/`getDocs(collection(...))`
       // against the whole collection, letting any signed-in user dump
-      // every code -> householdId mapping and then join ANY household via
-      // arrayUnion with zero knowledge of its real invite code (isJoining()
-      // only checks the shape of the resulting members array, never
-      // whether the caller actually possesses a valid code). Restricting
-      // to `get` limits reads to exactly what joinHousehold does:
+      // every code -> householdId mapping and then join ANY household by
+      // supplying that household's own real invite code back to it via
+      // `joinCodeUsed` (isJoining() DOES now verify code possession — see
+      // that function's comment — but dumping this collection would still
+      // hand an attacker every household's actual code, defeating the
+      // point just as thoroughly). Restricting to `get` limits reads to
+      // exactly what joinHousehold does:
       // `getDoc(doc(db, 'inviteCodes', code))` for one known code.
       allow get: if request.auth != null;
 

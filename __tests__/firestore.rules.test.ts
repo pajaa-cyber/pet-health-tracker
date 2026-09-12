@@ -73,11 +73,49 @@ describe('household security rules', () => {
     );
   });
 
-  it('allows a non-member to join by adding themselves via arrayUnion', async () => {
+  // Regression test for fix round 3 (joinCodeUsed): a non-member join
+  // write that supplies the household's ACTUAL invite code alongside a
+  // correctly-shaped members array is the legitimate join path and must
+  // still succeed now that joinCodeUsed is a required field — it's easy
+  // to accidentally break this happy path while adding a new required
+  // check.
+  it('allows a non-member to join by adding themselves via arrayUnion, with the correct joinCodeUsed', async () => {
     await seedHousehold();
     const joinerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertSucceeds(
       updateDoc(doc(joinerDb, 'households', 'h1'), {
+        members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        joinCodeUsed: 'ABC123',
+      })
+    );
+  });
+
+  // Regression test for fix round 3 (joinCodeUsed): this is the actual gap
+  // that round closed. Before this fix, `isJoining()` never checked invite
+  // -code possession at all — anyone who knew a household's document ID
+  // could join via arrayUnion with zero knowledge of its real invite code.
+  // This submits an otherwise-perfectly-valid join write (correct size,
+  // hasAll, self-count all pass) but with a joinCodeUsed that does not
+  // match the household's actual stored inviteCode, and must be denied.
+  it('denies a non-member join write with a joinCodeUsed that does not match the household\'s actual invite code', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
+        members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        joinCodeUsed: 'WRONGC',
+      })
+    );
+  });
+
+  // Same gap, the "field omitted entirely" variant — this is exactly the
+  // shape of the original attack described in the plan's progress log: a
+  // bare arrayUnion join write with no invite-code proof at all.
+  it('denies a non-member join write with joinCodeUsed omitted entirely', async () => {
+    await seedHousehold();
+    const attackerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(attackerDb, 'households', 'h1'), {
         members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
       })
     );
@@ -89,6 +127,7 @@ describe('household security rules', () => {
     await assertFails(
       updateDoc(doc(attackerDb, 'households', 'h1'), {
         members: [{ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }],
+        joinCodeUsed: 'ABC123',
       })
     );
   });
@@ -99,6 +138,10 @@ describe('household security rules', () => {
   // CORRECT size (old size + 1) while fabricating a substitute for the
   // existing member and appending the requester, so size and
   // self-presence both pass and only hasAll(old members) can catch it.
+  // joinCodeUsed is set to the household's real invite code so this test
+  // keeps isolating hasAll() specifically — without a correct code here,
+  // this write would now also be denied by the (unrelated) joinCodeUsed
+  // check added in fix round 3, which would defeat the point of this test.
   it('denies a non-member join write that is correctly sized but fabricates a replacement for the existing member', async () => {
     await seedHousehold();
     const attackerDb = testEnv.authenticatedContext('user-2').firestore();
@@ -108,12 +151,17 @@ describe('household security rules', () => {
           { userId: 'fake-user-1', displayName: 'Imposter', joinedAt: 0 },
           { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
         ],
+        joinCodeUsed: 'ABC123',
       })
     );
   });
 
   // Regression test for finding 2: isJoining() must not let a join write
-  // smuggle changes to fields other than `members` in the same update.
+  // smuggle changes to fields other than `members`/`joinCodeUsed` in the
+  // same update. joinCodeUsed is set correctly here so the denial is
+  // attributable to the smuggled `name` field failing the
+  // diff().affectedKeys().hasOnly(['members', 'joinCodeUsed']) check, not
+  // to a missing/wrong invite code.
   it('denies a non-member join write that also smuggles a change to another field', async () => {
     await seedHousehold();
     const attackerDb = testEnv.authenticatedContext('user-2').firestore();
@@ -121,6 +169,7 @@ describe('household security rules', () => {
       updateDoc(doc(attackerDb, 'households', 'h1'), {
         name: 'Hijacked Household Name',
         members: arrayUnion({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        joinCodeUsed: 'ABC123',
       })
     );
   });

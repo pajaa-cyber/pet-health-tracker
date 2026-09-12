@@ -91,6 +91,7 @@ describe('householdService', () => {
     );
     expect(mockUpdateDoc).toHaveBeenCalledWith(mockHouseholdDocRef, {
       members: { __arrayUnion: [expect.objectContaining({ userId: 'user-2' })] },
+      joinCodeUsed: 'ABC123',
     });
   });
 
