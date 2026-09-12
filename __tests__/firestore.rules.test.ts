@@ -409,4 +409,24 @@ describe('household security rules', () => {
       })
     );
   });
+
+  it('allows a household member to create a vet visit', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1', 'vetVisits', 'visit-1'), {
+        id: 'visit-1', petId: 'pet-1', date: 0, reason: 'Checkup', notes: 'Fine', documentUrls: [],
+      })
+    );
+  });
+
+  it('denies a non-member from creating a vet visit', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1', 'vetVisits', 'visit-1'), {
+        id: 'visit-1', petId: 'pet-1', date: 0, reason: 'Checkup', notes: 'Fine', documentUrls: [],
+      })
+    );
+  });
 });
