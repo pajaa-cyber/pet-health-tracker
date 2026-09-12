@@ -3,24 +3,28 @@ import type { Firestore } from '@react-native-firebase/firestore';
 const mockCreatedDocRef = { id: 'generated-id' };
 const mockInviteDocRef = { id: 'invite-ref' };
 const mockHouseholdDocRef = { id: 'h1' };
+const mockUsersDocRef = { id: 'users-ref' };
 const mockCollectionRef = {};
-const mockUpdateDoc = jest.fn();
 const mockGetDoc = jest.fn();
 const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
 const mockBatchSet = jest.fn();
+const mockBatchUpdate = jest.fn();
 const mockBatchCommit = jest.fn();
-const mockBatch = { set: mockBatchSet, commit: mockBatchCommit };
-const mockWriteBatch = jest.fn();
+const mockWriteBatch = jest.fn((..._args: unknown[]) => ({
+  set: mockBatchSet,
+  update: mockBatchUpdate,
+  commit: mockBatchCommit,
+}));
 
 jest.mock('@react-native-firebase/firestore', () => ({
   collection: jest.fn(() => mockCollectionRef),
   doc: jest.fn((_refOrDb: unknown, path?: string) => {
     if (path === 'inviteCodes') return mockInviteDocRef;
     if (path === 'households') return mockHouseholdDocRef;
+    if (path === 'users') return mockUsersDocRef;
     return mockCreatedDocRef; // doc(collectionRef) auto-id case, used by createHousehold
   }),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
-  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
   arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
   writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }));
@@ -32,11 +36,10 @@ const fakeDb = {} as Firestore;
 beforeEach(() => {
   jest.clearAllMocks();
   mockBatchCommit.mockResolvedValue(undefined);
-  mockWriteBatch.mockReturnValue(mockBatch);
 });
 
 describe('householdService', () => {
-  it('creates a household and a matching invite-code lookup entry atomically via a batch', async () => {
+  it('creates a household, its invite code, and a users/{uid} pointer in one batch', async () => {
     const household = await createHousehold(fakeDb, 'user-1', 'Ana', "Ana's Household");
 
     expect(household.id).toBe('generated-id');
@@ -47,6 +50,7 @@ describe('householdService', () => {
     expect(mockWriteBatch).toHaveBeenCalledWith(fakeDb);
     expect(mockBatchSet).toHaveBeenCalledWith(mockCreatedDocRef, household);
     expect(mockBatchSet).toHaveBeenCalledWith(mockInviteDocRef, { householdId: 'generated-id' });
+    expect(mockBatchSet).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'generated-id' });
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);
   });
 
@@ -59,9 +63,10 @@ describe('householdService', () => {
 
     expect(household.id).toBe('generated-id');
     expect(household.inviteCode).toHaveLength(6);
-    // One batch per attempt, and the household+invite writes are re-set on
-    // the retry's batch (the first attempt's batch committed nothing, so
-    // the household doc still doesn't exist and can be `set` again).
+    // One batch per attempt, and the household+invite+pointer writes are
+    // re-set on the retry's batch (the first attempt's batch committed
+    // nothing, so the household doc still doesn't exist and can be `set`
+    // again).
     expect(mockWriteBatch).toHaveBeenCalledTimes(2);
     expect(mockBatchCommit).toHaveBeenCalledTimes(2);
     expect(mockBatchSet).toHaveBeenCalledWith(mockCreatedDocRef, household);
@@ -79,9 +84,8 @@ describe('householdService', () => {
     expect(mockBatchCommit).toHaveBeenCalledTimes(5);
   });
 
-  it('lets a second user join via invite code, using arrayUnion instead of reading the household first', async () => {
+  it('joins a household and writes the users/{uid} pointer in the same batch', async () => {
     mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1' }) });
-    mockUpdateDoc.mockResolvedValue(undefined);
 
     await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
 
@@ -89,10 +93,12 @@ describe('householdService', () => {
     expect(mockArrayUnion).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-2', displayName: 'Marko' })
     );
-    expect(mockUpdateDoc).toHaveBeenCalledWith(mockHouseholdDocRef, {
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockHouseholdDocRef, {
       members: { __arrayUnion: [expect.objectContaining({ userId: 'user-2' })] },
       joinCodeUsed: 'ABC123',
     });
+    expect(mockBatchSet).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'h1' });
+    expect(mockBatchCommit).toHaveBeenCalled();
   });
 
   it('throws when the invite code does not match any household', async () => {

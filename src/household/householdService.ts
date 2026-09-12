@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, updateDoc, arrayUnion, writeBatch, type Firestore } from '@react-native-firebase/firestore';
+import { collection, doc, getDoc, arrayUnion, writeBatch, type Firestore } from '@react-native-firebase/firestore';
 import { Household, HouseholdMember } from '../types/household';
 
 function generateInviteCode(): string {
@@ -56,6 +56,14 @@ export async function createHousehold(
     const batch = writeBatch(db);
     batch.set(docRef, household);
     batch.set(doc(db, 'inviteCodes', inviteCode), { householdId: docRef.id });
+    // users/{uid} -> { householdId } lets the app find "which household am
+    // I in" on a fresh launch via a single-document get() (see
+    // HouseholdContext.tsx) instead of a query Firestore would reject (same
+    // reasoning as the inviteCodes lookup above). firestore.rules only
+    // allows this as a `create` (doc must not already exist), so retrying
+    // this same batch.set on invite-code collision is still safe: the prior
+    // batch committed nothing, so this doc still doesn't exist either.
+    batch.set(doc(db, 'users', userId), { householdId: docRef.id });
 
     try {
       await batch.commit();
@@ -86,7 +94,14 @@ export async function joinHousehold(
   const { householdId } = inviteSnap.data() as { householdId: string };
   const newMember: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
 
-  await updateDoc(doc(db, 'households', householdId), {
+  // Batched with the users/{uid} pointer write below so both succeed or
+  // fail together — a user must never end up a household member without
+  // the pointer that lets the app find that household again on relaunch,
+  // or vice versa. This does NOT change any existing join security
+  // property: it's still a single `update` on the household doc with
+  // exactly the same members/joinCodeUsed shape isJoining() validates.
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'households', householdId), {
     members: arrayUnion(newMember),
     // Ties this write to proof the caller actually knows the household's
     // invite code — firestore.rules' isJoining() requires this to equal
@@ -98,6 +113,14 @@ export async function joinHousehold(
     // rule's equality check rather than silently succeeding.
     joinCodeUsed: inviteCode,
   });
+  // See createHousehold's users/{uid} write above: same pointer doc, same
+  // reason. firestore.rules only allows this as a `create`, so a user who
+  // already belongs to a household (and thus already has this doc) has the
+  // WHOLE batch rejected if they attempt to join another — an intentional
+  // defense-in-depth backstop for "one household per user" in this plan's
+  // scope, not a bug (RootNavigator is the primary UX gate).
+  batch.set(doc(db, 'users', userId), { householdId });
+  await batch.commit();
 }
 
 export async function getHousehold(

@@ -219,4 +219,36 @@ describe('household security rules', () => {
       })
     );
   });
+
+  it('allows a user to create their own users/{uid} household pointer', async () => {
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h1' })
+    );
+  });
+
+  it('denies a user from creating a household pointer for someone else', async () => {
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(userDb, 'users', 'user-2'), { householdId: 'h1' })
+    );
+  });
+
+  it('denies overwriting an existing users/{uid} pointer', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', 'user-1'), { householdId: 'h1' });
+    });
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('denies a user from reading someone else\'s household pointer', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', 'user-1'), { householdId: 'h1' });
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDoc(doc(strangerDb, 'users', 'user-1')));
+  });
 });

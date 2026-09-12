@@ -111,5 +111,29 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly(['householdId']);
       allow update, delete: if false;
     }
+
+    // Maps a signed-in user to the household they belong to, so the app can
+    // answer "which household am I in" on a fresh launch via a single-
+    // document get() (users/{uid}) instead of a query — the same reasoning
+    // as inviteCodes above: a where('members', 'array-contains', ...)-style
+    // query can't be proven against every structurally-matching document
+    // for a non-member, so Firestore would reject it outright.
+    match /users/{userId} {
+      // A single-document get() by known uid, not a query — mirrors the
+      // inviteCodes pattern from Plan 1. Only the user themselves may ever
+      // read their own pointer; list is explicitly denied so this can never
+      // be enumerated to discover other users' household membership.
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow list: if false;
+      // Only fires when the document does not yet exist (Firestore classifies
+      // a write to an existing doc as `update`, not `create`) — so a user who
+      // already belongs to a household cannot overwrite their pointer via this
+      // rule. Changing households (leaving one, joining another) is out of
+      // scope for this plan; that needs its own explicit "leave household"
+      // design, parked as a future task.
+      allow create: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly(['householdId']);
+      allow update, delete: if false;
+    }
   }
 }
