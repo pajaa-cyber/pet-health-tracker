@@ -1,129 +1,131 @@
-# Where we left off (2026-09-12, Plans 1 & 2 complete and merged)
+# Where we left off (2026-09-13)
 
 Read this before doing anything else in this project. It's a handoff for
-resuming work, not permanent documentation (see `CLAUDE.md` for that —
-it now documents the full data model/architecture, including the known
-gaps below).
+resuming work, not permanent documentation (see `CLAUDE.md` for that — it
+documents the full data model/architecture/UI system, including the known
+gaps below). Assume the reader knows nothing about what happened in this
+session.
 
 ## What this is
 
 Pet Health Tracker (React Native/Expo + Firebase), beating 11pets on price/
-reliability/simplicity. Context:
+reliability/simplicity, built for/with a non-technical solo owner on a
+Windows PC. Context:
 
-- Design spec: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`
-- Plan 1 ("Foundation & Auth"): `docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md` — **COMPLETE, merged.**
-- Plan 2 ("Pet Records Core"): `docs/superpowers/plans/2026-09-12-pet-records-core.md` — **COMPLETE, merged.**
+- Original design spec: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`
+- Plan 1 ("Foundation & Auth") and Plan 2 ("Pet Records Core") — **complete, merged, on `master`.**
 - Plan 3 ("Reminders & Notifications") — **not written yet.**
+- `ROADMAP-and-claude-code-playbook.md` (project root) — the owner's own
+  plan for Plans 3-9 (bottom-tab redesign, i18n for Serbian, reminders,
+  calendar, vets directory, records hub, release readiness). It references
+  two files that **do not exist yet**: `docs/superpowers/specs/2026-09-13-ux-and-feature-spec.md`
+  and `docs/design/DESIGN-GUIDE.md`. Its "Part 0" blocker ("this app has
+  never been seen running") is now resolved — see below — so its Plan 3
+  onward is the likely next real work, once those two spec files exist.
 
-Both plan documents contain some superseded code snippets from early
-drafts, flagged inline with "⚠️ STALE — DO NOT COPY THIS SNIPPET" warnings
-(added after the `.filter()` bug below was found) — always copy from the
-current source files, never from plan text, when referencing prior work.
+## The single biggest thing that changed this session
 
-## Where the work is happening
+**The app has been seen running on a real device for the first time, ever.**
+Previously: no real Firebase project, no Android SDK, no device/emulator,
+placeholder config files only, and multiple "not yet visually verified"
+caveats on recent work. As of today:
 
-There is **no separate worktree anymore** — the `pet-app-foundation`
-branch was merged into `master` and both the branch and its worktree
-were deleted after the merge. Everything now lives directly in the main
-checkout: `C:\Users\PC\OneDrive\Desktop\app`, on `master`.
+- A real Firebase project exists: **`pet-tracker-app-63512`**. Firestore is
+  enabled with `firestore.rules` deployed and confirmed working against
+  real data. Authentication's Email/Password provider is enabled.
+- **Cloud Storage is NOT usable on this project** — Google now requires the
+  paid Blaze plan for Storage, Blaze requires a Google Cloud billing
+  account, and that signup asked for tax/business info the owner (a
+  personal, non-organization account) can't supply. This was discovered
+  the hard way (photo uploads failing with a 404 "terminated the upload
+  session" error) after building a whole Storage-based photo feature.
+  **Fix:** pivoted to storing photos as compressed base64 data URIs
+  directly in Firestore fields instead — see `CLAUDE.md`'s "Photo storage"
+  section. `@react-native-firebase/storage` was removed from the project.
+  `storage.rules` is still in the repo, unused, in case a future
+  business-entity upgrade makes real Storage viable.
+- A real Android phone (Honor, MagicOS 10) now builds, installs, and runs
+  the app over USB debugging from this Windows machine. Sign-up, sign-in,
+  household creation, and adding pets/records have all been used for real,
+  not just hand-traced or unit-tested.
+- The whole app was visually redesigned (shared theme + component set —
+  see `CLAUDE.md`'s "UI/Design system"). Camera support was added for pet
+  photos and vet-visit documents (previously library-picker only).
+- A full local Android build toolchain now exists on this machine that did
+  not exist before (Java, Android SDK, an isolated Gradle cache) — see
+  `CLAUDE.md`'s "Local device build environment" section for exactly what
+  was installed and why each piece is configured the way it is. **This is
+  the section to read before attempting another build on this machine** —
+  several of its details (the isolated `GRADLE_USER_HOME`, the OneDrive
+  symlink quirk, `local.properties` getting wiped by every `expo prebuild`)
+  are non-obvious and will cause confusing failures if skipped.
 
-The SDD ledgers that recorded every task's outcome and every ruling made
-during both plans' execution were git-ignored scratch space inside the
-now-deleted worktree — they no longer exist on disk. The durable record
-of everything that happened is the git commit history on `master`
-(commit messages are descriptive; `git log --oneline` tells the story)
-plus this file and `CLAUDE.md`, which were updated with the substance of
-what mattered before that scratch space was removed.
+## Environment constraints (this machine specifically)
 
-## What actually happened (the short version)
+- This project folder is inside an actively-syncing **OneDrive** folder
+  (`C:\Users\PC\OneDrive\Desktop\app`). This causes two separate, real
+  problems, both already fixed but worth knowing about if something
+  similar recurs: (1) Node/Jest saw every file as a symlink rather than a
+  regular file, silently breaking test discovery — fixed via
+  `jest.config.js`'s `haste.enableSymlinks`/`watchman: false`; (2)
+  unrelated to OneDrive, `android/`'s 1000+ post-build generated files
+  separately overwhelmed both Jest's and Metro's file crawlers — fixed via
+  excluding `android/` in both `jest.config.js` and the new `metro.config.js`.
+- **VS Code's Gradle extension** (`vscjava.vscode-gradle`) runs its own
+  background Gradle daemon against this same project on a different
+  Gradle version than the project's wrapper, corrupting the shared Gradle
+  cache mid-build if both use the same `GRADLE_USER_HOME`. Fixed by giving
+  our builds an isolated cache at `C:\Android\gradle-home` (env var, set
+  persistently for this Windows user). If a build ever again fails with
+  `Cannot snapshot ... not a regular file` or a similarly odd file-system
+  error, check for this before assuming antivirus or disk corruption.
+- Four antivirus products are registered simultaneously on this machine
+  (Windows Defender, Avast, 360 Total Security, Reason Cybersecurity) —
+  genuinely unusual, and was the first (wrong) theory for the Gradle
+  failures above. Not fixed, not blocking anything currently understood,
+  but worth flagging to the owner at some point as likely unintentional
+  and possibly a performance/conflict problem in its own right.
+- No iOS prebuild on Windows (`expo prebuild` refuses iOS on this OS) —
+  unchanged, not attempted this session.
+- `google-services.json`/`GoogleService-Info.plist` at the project root are
+  gitignored and machine-local. The real ones (for `pet-tracker-app-63512`)
+  are in place on this machine now, but a fresh clone/environment starts
+  with neither file present — see `.env.example`, and note that even a
+  fake placeholder pair (to merely unblock `expo prebuild`) needs to be
+  recreated from scratch, not assumed to exist.
+- `android/local.properties` (gitignored, holds `sdk.dir`) is wiped by
+  every `expo prebuild` run along with the rest of `android/` — recreate
+  it (`sdk.dir=C\:\\Android\\Sdk`) after every prebuild, every time.
 
-All 22 tasks across both plans (7 in Plan 1, 15 in Plan 2) were
-implemented and individually reviewed clean. The household join flow
-(Plan 1) went through 3 security remediation rounds during its own
-development. Plan 2 added pets, vaccines, medications, weight logs,
-expenses, and vet visits (with Cloud Storage document attachments), each
-with its own type/service/rules/screens, culminating in a pet-home
-dashboard.
+## Known, deliberately-parked gaps (not silently dropped — real work, not yet scheduled)
 
-**Plan 2's final whole-branch review found a genuinely critical defect:**
-the entire access-control model in `firestore.rules` and `storage.rules`
-relied on `list.filter(m => m.userId == request.auth.uid)` — a construct
-the Firestore Rules language does not support at all (no lambda/
-anonymous-function syntax exists in that language). This had been the
-foundation of every membership check since Plan 1 and survived three
-prior "adversarial" security reviews, because none of them had a real
-Firestore emulator available to actually deploy/run the rules — every
-review hand-traced the LOGIC while implicitly assuming the SYNTAX was
-valid. Left as-is, this would have either failed the ruleset at deploy
-time or locked every user out of the entire app.
+1. **No in-app recovery if a household becomes unreadable.** If a household
+   document's read ever fails (e.g. a future "remove member" feature),
+   both `createHousehold` and `joinHousehold` fail permanently for that
+   user, because their `users/{uid}` pointer write is evaluated as a
+   denied `update` once it already exists. Needs UX design, not a patch.
+2. `generateInviteCode()` in `householdService.ts` uses `Math.random()`,
+   not a CSPRNG. Not currently exploitable; a proper fix needs a new
+   native crypto dependency (`expo-crypto`) and another prebuild/rebuild
+   cycle, so it's parked as low-severity.
+3. No client-side size/dimension warning if a vet visit accumulates enough
+   document photos to approach Firestore's 1 MiB per-document limit (see
+   CLAUDE.md's "Photo storage" section for the math) — would fail loudly
+   with a Firestore error today, not silently, but there's no proactive
+   UI warning before that point.
+4. Minor, low-severity, pre-existing: no positive-value validation beyond
+   what's already there; `MedicationListScreen`'s dose log has no filter
+   UI at all (nothing to fix, just never built).
 
-**Fix:** denormalized a `memberIds: string[]` array onto the household
-document (kept in lockstep with the existing `members: HouseholdMember[]`
-by `householdService.ts`'s atomic batches), and replaced every membership
-check with `request.auth.uid in memberIds` — the `in` operator on a
-string list is solid, unambiguous Firestore Rules syntax. The fix was
-independently re-reviewed, which hand-traced both classic hijack attack
-shapes against the new logic and confirmed no regressions, and also
-caught a fourth `.filter()` site the original review had missed. See
-`CLAUDE.md`'s "Data model" section for the resulting architecture.
-
-The fix wave also added missing `onSnapshot` error handlers to all six
-record-type subscription functions, error handling on the
-mark-dose-given action, and made the medication dose log show *who* gave
-a dose (not just when).
-
-## The single highest-priority next action
-
-**DONE (2026-09-12).** The Firestore rules test suite was run against a
-real local Firestore/Storage emulator (Java/JRE installed via
-`winget install Microsoft.OpenJDK.21` — none had been available in the
-sandbox these two plans were built in):
-
-```bash
-firebase emulators:exec --only firestore,storage "npx jest __tests__/firestore.rules.test.ts"
-```
-
-Result: **35/35 tests passed.** Every rules construct in this codebase
-(`isMember`/`isJoining`/`isHouseholdMember`, the `diff()`/
-`affectedKeys()` field-scoping, the `storage.rules` cross-service
-`firestore.get()` form, and `memberIds`/`in`) has now actually been
-compiled and run by a real Firestore rules engine, not just hand-traced —
-no further bugs found. (The `PERMISSION_DENIED` lines in the console
-output during the run are expected noise: the SDK logs a warning every
-time the test suite deliberately attempts an action the rules should
-reject, to confirm it's correctly denied.)
-
-## Other known, deliberately-parked gaps (not silently dropped — real work, not yet scheduled)
-
-1. **FIXED (2026-09-12).** `VetVisitDocumentsScreen.tsx` now subscribes to the pet's vet visits (reusing the existing `subscribeToVetVisits` listener, same pattern as every other screen — no new service function needed), finds the current visit by `visitId`, and renders its `documentUrls` as a 2-column image grid below the upload button. No `firestore.rules`/`storage.rules` changes were needed — both already granted read access to household members. Type-check and the full unit-test suite (22/22) pass; this hasn't been visually verified on a device/emulator yet since none is set up in this environment (see "Known environment constraints" below) — do that before considering it fully done.
-2. **FIXED (2026-09-12).** Added `@react-native-community/datetimepicker` (expo-installed, config plugin auto-added to `app.json`, `android/` regenerated via `npx expo prebuild --platform android` to autolink it — required creating placeholder `google-services.json`/`GoogleService-Info.plist` at the project root first, since this environment didn't have them yet despite `.env.example` describing them as already present; see "Known environment constraints" below, now updated). A new shared `src/components/DateField.tsx` wraps it (tap-to-open native picker, plus a "Clear" action for the two optional fields) and is wired into all six previously-hardcoded date fields: `AddPetScreen` (birthDate), `AddVaccineScreen` (dateGiven, nextDueDate), `AddMedicationScreen` (startDate, endDate), `AddVetVisitScreen` (date), `AddExpenseScreen` (date), `WeightLogScreen` (date). `Vaccine.nextDueDate` can now be set to a real future date, unblocking Plan 3's reminder computation. `tsc --noEmit` and the full Jest suite (22/22) pass. **Not yet visually verified on a device/emulator** — still no Android SDK/device connected in this environment; do that before trusting the picker's on-screen behavior.
-3. **No in-app recovery if a household becomes unreadable.** If a household document's read ever fails (e.g. after a future "remove member" feature), both `createHousehold` and `joinHousehold` fail permanently for that user, because their `users/{uid}` pointer write is evaluated as a denied `update` once it already exists. Needs UX design for account recovery, not a patch.
-4. **FIXED (2026-09-12):** `VetVisitDocumentsScreen.tsx` now passes `{contentType: 'image/jpeg'}` to `putFile`, so `storage.rules`' content-type check is enforced against a real value instead of an absent one; `firestore.rules`' `households` `allow create` rule now requires `members`/`memberIds` to both exist and stay equal in size, restoring the shape guarantee. Re-verified against the real emulator (still 35/35). Still open: no client-side image compression before upload against the 10MB cap.
-5. **PARTIALLY FIXED (2026-09-12):** `ExpenseListScreen`'s filter buttons and `AddExpenseScreen`'s category picker now show a visual selected state; expense amounts now require a positive value (`AddExpenseScreen.tsx`). Still open: `generateInviteCode()` in `householdService.ts` uses `Math.random()`, not a CSPRNG (not currently exploitable — deliberately left alone rather than adding a new native crypto dependency, e.g. `expo-crypto`, that would need `expo prebuild` + a real device to verify, which isn't available in this environment yet).
-
-## Known environment constraints (whatever sandbox built this so far)
-
-- **UPDATED (2026-09-12):** Java (Microsoft OpenJDK 21, via `winget install Microsoft.OpenJDK.21`) is now installed on this machine, which is what unblocked the rules-emulator run above. Still no Android SDK/`adb`/physical device connected, so `npm run android` / an actual on-screen check of any UI still cannot happen here — that's the next real environment gap to close.
-- No iOS prebuild on Windows (`expo prebuild` refuses iOS on this OS).
-- Real Firebase project not yet created — root `google-services.json`/
-  `GoogleService-Info.plist` are placeholders (safe fake values, no real
-  secrets) that only unblock `expo prebuild`. See `.env.example`. **Note:**
-  as of 2026-09-12 these two files did not actually exist on disk in this
-  environment (despite being described here as already present) and had
-  to be recreated from scratch to unblock `expo prebuild` for the
-  date-picker dependency below — they're gitignored, so a fresh clone/
-  environment will always need them recreated; don't assume they exist
-  without checking.
-- If a session's Bash tool has no `git`/`node`/`npx` on PATH (this
-  happened during both plans' builds), use PowerShell, or invoke Git for
-  Windows's `bash.exe` directly for anything that specifically needs a
-  POSIX shell.
-
-## If resuming with an SDD-style process again (e.g. for Plan 3)
+## If resuming with an SDD-style process again (e.g. for Plan 3, or the owner's Plan 3-9 roadmap)
 
 The two prior plans were executed via `superpowers:subagent-driven-development`
 inside a dedicated git worktree (created via `superpowers:using-git-worktrees`),
 merged back to `master` via `superpowers:finishing-a-development-branch`
-once complete. That's a reasonable pattern to repeat for Plan 3 — set up
-a fresh worktree/branch off current `master`, don't develop Plan 3
-directly on `master`.
+once complete. That's a reasonable pattern to repeat — set up a fresh
+worktree/branch off current `master` for each plan, don't develop directly
+on `master`. Everything in this session (device setup, redesign, photo
+storage pivot) was done directly on `master` as ad-hoc same-day work with
+the owner actively testing on their phone throughout, which was the right
+call for this kind of exploratory/environment-setup work but is not the
+pattern to default back to for the next real feature plan.
