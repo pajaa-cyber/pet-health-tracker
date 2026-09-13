@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, Button } from 'react-native';
+import { FlatList, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { firestore } from '../firebase/config';
 import { VetVisit } from '../types/vetVisit';
+import { ScreenContainer, Card, Button, Subtitle, MutedText } from '../components/ui';
+import { spacing } from '../theme/theme';
 
 export function VetVisitListScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -16,18 +18,24 @@ export function VetVisitListScreen({ route, navigation }: any) {
   }, [household, petId]);
 
   return (
-    <View style={{ padding: 24, gap: 12, flex: 1 }}>
+    <ScreenContainer style={{ flex: 1 }}>
       <Button title="Add vet visit" onPress={() => navigation.navigate('AddVetVisit', { petId })} />
       <FlatList
         data={visits}
         keyExtractor={(v) => v.id}
+        contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => (
-          <Text onPress={() => navigation.navigate('VetVisitDocuments', { petId, visitId: item.id })}>
-            {new Date(item.date).toLocaleDateString()} — {item.reason}: {item.notes} ({item.documentUrls.length} docs)
-          </Text>
+          <Pressable onPress={() => navigation.navigate('VetVisitDocuments', { petId, visitId: item.id })}>
+            <Card style={{ gap: spacing.xs }}>
+              <Subtitle>{item.reason}</Subtitle>
+              <MutedText>{new Date(item.date).toLocaleDateString()}</MutedText>
+              {item.notes ? <MutedText>{item.notes}</MutedText> : null}
+              <MutedText>{item.documentUrls.length} document{item.documentUrls.length === 1 ? '' : 's'}</MutedText>
+            </Card>
+          </Pressable>
         )}
-        ListEmptyComponent={<Text>No vet visits recorded yet.</Text>}
+        ListEmptyComponent={<MutedText>No vet visits recorded yet.</MutedText>}
       />
-    </View>
+    </ScreenContainer>
   );
 }

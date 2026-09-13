@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Button, Text, Image, FlatList } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref, putFile, getDownloadURL } from '@react-native-firebase/storage';
+import { View, Image, FlatList } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { addVetVisitDocument, subscribeToVetVisits } from '../pets/vetVisitService';
+import { pickAndProcessImage, ImageSource } from '../pets/imageUpload';
 import { firestore } from '../firebase/config';
 import { VetVisit } from '../types/vetVisit';
+import { ScreenContainer, Button, ErrorText, MutedText } from '../components/ui';
+import { radii, spacing } from '../theme/theme';
 
 export function VetVisitDocumentsScreen({ route }: any) {
   const { petId, visitId } = route.params;
@@ -25,21 +26,15 @@ export function VetVisitDocumentsScreen({ route }: any) {
 
   const documentUrls = visits.find((v) => v.id === visitId)?.documentUrls ?? [];
 
-  const handlePickAndUpload = async () => {
+  const handleAdd = async (source: ImageSource) => {
     if (!household) return;
     setError(null);
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'] });
-    if (result.canceled) return;
-
     setUploading(true);
     try {
-      const localUri = result.assets[0].uri;
-      const fileName = `${Date.now()}.jpg`;
-      const storage = getStorage();
-      const fileRef = ref(storage, `households/${household.id}/pets/${petId}/vetVisits/${visitId}/${fileName}`);
-      await putFile(fileRef, localUri, { contentType: 'image/jpeg' });
-      const downloadUrl = await getDownloadURL(fileRef);
-      await addVetVisitDocument(firestore, household.id, petId, visitId, downloadUrl);
+      const dataUri = await pickAndProcessImage(source);
+      if (dataUri) {
+        await addVetVisitDocument(firestore, household.id, petId, visitId, dataUri);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -48,22 +43,38 @@ export function VetVisitDocumentsScreen({ route }: any) {
   };
 
   return (
-    <View style={{ padding: 24, gap: 12, flex: 1 }}>
-      <Button title={uploading ? 'Uploading...' : 'Attach a photo'} onPress={handlePickAndUpload} disabled={uploading} />
-      {error && <Text style={{ color: 'red' }}>{error}</Text>}
+    <ScreenContainer style={{ flex: 1 }}>
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <Button
+          title={uploading ? 'Uploading...' : 'Take a photo'}
+          onPress={() => handleAdd('camera')}
+          loading={uploading}
+          style={{ flex: 1 }}
+        />
+        <Button
+          title="Choose from library"
+          variant="outline"
+          onPress={() => handleAdd('library')}
+          disabled={uploading}
+          style={{ flex: 1 }}
+        />
+      </View>
+      {error && <ErrorText>{error}</ErrorText>}
       <FlatList
         data={documentUrls}
-        keyExtractor={(url) => url}
+        keyExtractor={(_, index) => String(index)}
         numColumns={2}
+        columnWrapperStyle={{ gap: spacing.sm }}
+        contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => (
           <Image
             source={{ uri: item }}
-            style={{ width: 150, height: 150, margin: 4, borderRadius: 6 }}
+            style={{ flex: 1, aspectRatio: 1, borderRadius: radii.md }}
             resizeMode="cover"
           />
         )}
-        ListEmptyComponent={<Text>No documents attached yet.</Text>}
+        ListEmptyComponent={<MutedText>No documents attached yet.</MutedText>}
       />
-    </View>
+    </ScreenContainer>
   );
 }

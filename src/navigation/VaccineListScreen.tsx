@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, Button } from 'react-native';
+import { FlatList } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToVaccines } from '../pets/vaccineService';
 import { firestore } from '../firebase/config';
 import { Vaccine } from '../types/vaccine';
+import { ScreenContainer, Card, Button, Subtitle, MutedText } from '../components/ui';
+import { spacing } from '../theme/theme';
 
 export function VaccineListScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -16,19 +18,21 @@ export function VaccineListScreen({ route, navigation }: any) {
   }, [household, petId]);
 
   return (
-    <View style={{ padding: 24, gap: 12, flex: 1 }}>
+    <ScreenContainer style={{ flex: 1 }}>
       <Button title="Add vaccine" onPress={() => navigation.navigate('AddVaccine', { petId })} />
       <FlatList
         data={vaccines}
         keyExtractor={(v) => v.id}
+        contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => (
-          <Text>
-            {item.name} — given {new Date(item.dateGiven).toLocaleDateString()}
-            {item.nextDueDate ? `, due ${new Date(item.nextDueDate).toLocaleDateString()}` : ''}
-          </Text>
+          <Card style={{ gap: spacing.xs }}>
+            <Subtitle>{item.name}</Subtitle>
+            <MutedText>Given {new Date(item.dateGiven).toLocaleDateString()}</MutedText>
+            {item.nextDueDate && <MutedText>Next due {new Date(item.nextDueDate).toLocaleDateString()}</MutedText>}
+          </Card>
         )}
-        ListEmptyComponent={<Text>No vaccine records yet.</Text>}
+        ListEmptyComponent={<MutedText>No vaccine records yet.</MutedText>}
       />
-    </View>
+    </ScreenContainer>
   );
 }

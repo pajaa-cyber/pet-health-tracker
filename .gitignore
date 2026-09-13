@@ -48,3 +48,9 @@ ios/GoogleService-Info.plist
 
 # Firebase CLI local project alias (no project configured in this environment)
 .firebaserc
+
+# Local debug/build artifacts
+firestore-debug.log
+metro.log
+screen.png
+*.log

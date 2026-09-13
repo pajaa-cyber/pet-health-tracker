@@ -7,6 +7,7 @@ import { SignInScreen } from '../auth/SignInScreen';
 import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
 import { MainNavigator } from './MainNavigator';
+import { colors } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,14 +20,14 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         {!user ? (
           <>
             <Stack.Screen name="SignIn" component={SignInScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
           </>
         ) : household ? (
-          <Stack.Screen name="Main" component={MainNavigator} options={{ headerShown: false }} />
+          <Stack.Screen name="Main" component={MainNavigator} />
         ) : (
           <Stack.Screen name="HouseholdSetup" component={HouseholdSetupScreen} />
         )}

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList, Text, Button } from 'react-native';
+import { FlatList } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToMedications, logMedicationDose } from '../pets/medicationService';
 import { firestore } from '../firebase/config';
 import { Medication } from '../types/medication';
+import { ScreenContainer, Card, Button, Subtitle, MutedText, ErrorText } from '../components/ui';
+import { spacing } from '../theme/theme';
 
 export function MedicationListScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -18,11 +20,6 @@ export function MedicationListScreen({ route, navigation }: any) {
     return subscribeToMedications(firestore, household.id, petId, setMedications);
   }, [household, petId]);
 
-  // Matches the setError(null) -> try -> catch (e: any) => setError(e.message)
-  // pattern every other action handler in this codebase uses (see
-  // AddMedicationScreen.tsx). Without it a failed dose write — the single
-  // most safety-relevant action in the app — was an unhandled promise
-  // rejection with no user-visible feedback at all.
   const handleMarkGiven = async (medicationId: string) => {
     if (!household || !user) return;
     setError(null);
@@ -33,38 +30,37 @@ export function MedicationListScreen({ route, navigation }: any) {
     }
   };
 
-  // The dose log stores `givenBy` as a raw userId; the spec asks for
-  // "who/when", so resolve it against the household's member list for a
-  // display name. Falls back to the raw userId if the giver isn't in the
-  // current members array — defensive only (leaving a household isn't
-  // implemented yet, so this shouldn't happen today).
   const displayNameFor = (userId: string) =>
     household?.members.find((m) => m.userId === userId)?.displayName ?? userId;
 
   return (
-    <View style={{ padding: 24, gap: 12, flex: 1 }}>
+    <ScreenContainer style={{ flex: 1 }}>
       <Button title="Add medication" onPress={() => navigation.navigate('AddMedication', { petId })} />
-      {error && <Text style={{ color: 'red' }}>{error}</Text>}
+      {error && <ErrorText>{error}</ErrorText>}
       <FlatList
         data={medications}
         keyExtractor={(m) => m.id}
+        contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => {
           const lastDose = item.log.length > 0 ? item.log[item.log.length - 1] : null;
           return (
-            <View style={{ gap: 4 }}>
-              <Text>{item.name} — {item.dosage} ({item.schedule.timesPerDay}x/day, every {item.schedule.intervalDays}d)</Text>
-              <Text>
+            <Card style={{ gap: spacing.xs }}>
+              <Subtitle>{item.name} — {item.dosage}</Subtitle>
+              <MutedText>
+                {item.schedule.timesPerDay}x/day, every {item.schedule.intervalDays}d
+              </MutedText>
+              <MutedText>
                 Last given:{' '}
                 {lastDose
                   ? `${new Date(lastDose.givenAt).toLocaleString()} by ${displayNameFor(lastDose.givenBy)}`
                   : 'never'}
-              </Text>
-              <Button title="Mark dose as given" onPress={() => handleMarkGiven(item.id)} />
-            </View>
+              </MutedText>
+              <Button title="Mark dose as given" variant="accent" onPress={() => handleMarkGiven(item.id)} />
+            </Card>
           );
         }}
-        ListEmptyComponent={<Text>No medications yet.</Text>}
+        ListEmptyComponent={<MutedText>No medications yet.</MutedText>}
       />
-    </View>
+    </ScreenContainer>
   );
 }

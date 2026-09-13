@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, TextInput, Button, Text } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { createMedication } from '../pets/medicationService';
 import { firestore } from '../firebase/config';
 import { DateField } from '../components/DateField';
+import { ScreenContainer, TextField, Button, ErrorText } from '../components/ui';
 
 export function AddMedicationScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -15,10 +15,12 @@ export function AddMedicationScreen({ route, navigation }: any) {
   const [startDate, setStartDate] = useState(Date.now());
   const [endDate, setEndDate] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
     if (!household) return;
     setError(null);
+    setLoading(true);
     try {
       await createMedication(
         firestore, household.id, petId, name, dosage,
@@ -28,19 +30,31 @@ export function AddMedicationScreen({ route, navigation }: any) {
       navigation.goBack();
     } catch (e: any) {
       setError(e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={{ padding: 24, gap: 12 }}>
-      <TextInput placeholder="Medication name" value={name} onChangeText={setName} />
-      <TextInput placeholder="Dosage (e.g. 250mg)" value={dosage} onChangeText={setDosage} />
-      <TextInput placeholder="Times per day" value={timesPerDay} onChangeText={setTimesPerDay} keyboardType="number-pad" />
-      <TextInput placeholder="Every N days" value={intervalDays} onChangeText={setIntervalDays} keyboardType="number-pad" />
+    <ScreenContainer scroll>
+      <TextField label="Medication name" value={name} onChangeText={setName} />
+      <TextField label="Dosage" placeholder="e.g. 250mg" value={dosage} onChangeText={setDosage} />
+      <TextField
+        label="Times per day"
+        value={timesPerDay}
+        onChangeText={setTimesPerDay}
+        keyboardType="number-pad"
+      />
+      <TextField
+        label="Every N days"
+        value={intervalDays}
+        onChangeText={setIntervalDays}
+        keyboardType="number-pad"
+      />
       <DateField label="Start date" value={startDate} onChange={setStartDate} />
       <DateField label="End date" value={endDate} onChange={setEndDate} onClear={() => setEndDate(null)} />
-      {error && <Text style={{ color: 'red' }}>{error}</Text>}
-      <Button title="Add medication" onPress={handleSubmit} />
-    </View>
+      {error && <ErrorText>{error}</ErrorText>}
+      <Button title="Add medication" onPress={handleSubmit} loading={loading} />
+    </ScreenContainer>
   );
 }

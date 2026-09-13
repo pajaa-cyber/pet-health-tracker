@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, TextInput, Button, Text } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs, createWeightLog } from '../pets/weightLogService';
 import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { DateField } from '../components/DateField';
+import { ScreenContainer, Card, TextField, Button, ErrorText } from '../components/ui';
 
 export function WeightLogScreen({ route }: any) {
   const { petId } = route.params;
@@ -14,6 +14,7 @@ export function WeightLogScreen({ route }: any) {
   const [weight, setWeight] = useState('');
   const [date, setDate] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!household) return;
@@ -28,21 +29,26 @@ export function WeightLogScreen({ route }: any) {
       setError('Enter a valid weight');
       return;
     }
+    setLoading(true);
     try {
       await createWeightLog(firestore, household.id, petId, date, parsed);
       setWeight('');
     } catch (e: any) {
       setError(e.message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={{ padding: 24, gap: 12 }}>
-      <WeightTrendChart logs={logs} />
-      <TextInput placeholder="Weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+    <ScreenContainer scroll>
+      <Card>
+        <WeightTrendChart logs={logs} />
+      </Card>
+      <TextField label="Weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
       <DateField label="Date" value={date} onChange={setDate} />
-      {error && <Text style={{ color: 'red' }}>{error}</Text>}
-      <Button title="Log weight" onPress={handleAdd} />
-    </View>
+      {error && <ErrorText>{error}</ErrorText>}
+      <Button title="Log weight" onPress={handleAdd} loading={loading} />
+    </ScreenContainer>
   );
 }

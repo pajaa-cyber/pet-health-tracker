@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, FlatList, Text, Button, Pressable } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToExpenses } from '../pets/expenseService';
 import { firestore } from '../firebase/config';
 import { Expense, ExpenseCategory } from '../types/expense';
+import { ScreenContainer, Card, Button, Chip, Subtitle, MutedText } from '../components/ui';
+import { spacing } from '../theme/theme';
 
 const CATEGORIES: (ExpenseCategory | 'all')[] = ['all', 'food', 'vet', 'grooming', 'insurance', 'supplies', 'other'];
 
@@ -25,35 +27,29 @@ export function ExpenseListScreen({ route, navigation }: any) {
   const totalCents = useMemo(() => filtered.reduce((sum, e) => sum + e.amountCents, 0), [filtered]);
 
   return (
-    <View style={{ padding: 24, gap: 12, flex: 1 }}>
+    <ScreenContainer style={{ flex: 1 }}>
       <Button title="Add expense" onPress={() => navigation.navigate('AddExpense', { petId })} />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
         {CATEGORIES.map((c) => (
-          <Pressable
-            key={c}
-            onPress={() => setFilter(c)}
-            style={{
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderRadius: 6,
-              backgroundColor: c === filter ? '#2563eb' : '#e5e7eb',
-            }}
-          >
-            <Text style={{ color: c === filter ? '#fff' : '#000' }}>{c}</Text>
-          </Pressable>
+          <Chip key={c} label={c} selected={c === filter} onPress={() => setFilter(c)} />
         ))}
       </View>
-      <Text>Total: ${(totalCents / 100).toFixed(2)}</Text>
+      <Subtitle>Total: ${(totalCents / 100).toFixed(2)}</Subtitle>
       <FlatList
         data={filtered}
         keyExtractor={(e) => e.id}
+        contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => (
-          <Text>
-            {item.category}: ${(item.amountCents / 100).toFixed(2)} — {item.note}
-          </Text>
+          <Card style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <Subtitle style={{ textTransform: 'capitalize' }}>{item.category}</Subtitle>
+              <MutedText>{item.note}</MutedText>
+            </View>
+            <Subtitle>${(item.amountCents / 100).toFixed(2)}</Subtitle>
+          </Card>
         )}
-        ListEmptyComponent={<Text>No expenses yet.</Text>}
+        ListEmptyComponent={<MutedText>No expenses yet.</MutedText>}
       />
-    </View>
+    </ScreenContainer>
   );
 }
