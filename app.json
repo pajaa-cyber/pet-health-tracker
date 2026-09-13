@@ -28,7 +28,13 @@
     "plugins": [
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Pet Health Tracker to use the camera to take photos of your pets and vet documents."
+        }
+      ]
     ]
   }
 }

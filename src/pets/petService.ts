@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   getDoc,
+  updateDoc,
   onSnapshot,
   type Firestore,
   type Unsubscribe,
@@ -21,6 +22,15 @@ export async function createPet(
   const pet: Pet = { id: docRef.id, householdId, name, species, breed, birthDate, photoUrl: null };
   await setDoc(docRef, pet);
   return pet;
+}
+
+export async function updatePetPhoto(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  photoUrl: string
+): Promise<void> {
+  await updateDoc(doc(db, 'households', householdId, 'pets', petId), { photoUrl });
 }
 
 export async function getPet(db: Firestore, householdId: string, petId: string): Promise<Pet | null> {
