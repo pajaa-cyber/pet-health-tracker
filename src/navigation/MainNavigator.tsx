@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { PetListScreen } from './PetListScreen';
+import { HomeScreen } from './HomeScreen';
 import { AddPetScreen } from './AddPetScreen';
 import { PetHomeScreen } from './PetHomeScreen';
 import { VaccineListScreen } from './VaccineListScreen';
@@ -28,7 +28,7 @@ const screenOptions = {
 export function MainNavigator() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen name="PetList" component={PetListScreen} options={{ title: 'My Pets' }} />
+      <Stack.Screen name="PetList" component={HomeScreen} options={{ title: 'My Pets' }} />
       <Stack.Screen name="AddPet" component={AddPetScreen} options={{ title: 'Add Pet' }} />
       <Stack.Screen name="PetHome" component={PetHomeScreen} options={{ title: 'Pet Home' }} />
       <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ title: 'Vaccines' }} />
