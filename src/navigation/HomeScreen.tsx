@@ -4,7 +4,7 @@ import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets } from '../pets/petService';
 import { subscribeToVaccines } from '../pets/vaccineService';
 import { getNextDue } from '../pets/upcomingSummary';
-import { usePetSelection } from '../selection/PetSelectionContext';
+import { usePetSelection, reconcileSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
 import { Pet } from '../types/pet';
 import { Vaccine } from '../types/vaccine';
@@ -62,13 +62,19 @@ function PetCard({ pet, navigation }: { pet: Pet; navigation: any }) {
 
 export function HomeScreen({ navigation }: any) {
   const { household } = useHousehold();
-  const { selectedPetId } = usePetSelection();
+  const { selectedPetId, setSelectedPetId } = usePetSelection();
   const [pets, setPets] = useState<Pet[]>([]);
 
   useEffect(() => {
     if (!household) return;
-    return subscribeToPets(firestore, household.id, setPets);
+    return subscribeToPets(firestore, household.id, (all) =>
+      setPets(all.filter((p) => (p.status ?? 'active') === 'active'))
+    );
   }, [household]);
+
+  useEffect(() => {
+    reconcileSelection(selectedPetId, pets.map((p) => p.id), setSelectedPetId);
+  }, [pets, selectedPetId, setSelectedPetId]);
 
   const visiblePets = selectedPetId === 'all' ? pets : pets.filter((p) => p.id === selectedPetId);
 

@@ -21,3 +21,13 @@ export function usePetSelection(): PetSelectionContextValue {
   if (!ctx) throw new Error('usePetSelection must be used within PetSelectionProvider');
   return ctx;
 }
+
+export function reconcileSelection(
+  selectedPetId: string | 'all',
+  activePetIds: string[],
+  setSelectedPetId: (id: string | 'all') => void
+): void {
+  if (selectedPetId !== 'all' && !activePetIds.includes(selectedPetId)) {
+    setSelectedPetId('all');
+  }
+}
