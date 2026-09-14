@@ -5,8 +5,7 @@ import { usePetSelection } from '../../selection/PetSelectionContext';
 import { MutedText, Subtitle } from './Typography';
 import { colors, spacing } from '../../theme/theme';
 import { petColor } from '../../theme/petColors';
-
-const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
+import { SPECIES_EMOJI } from '../../pets/species';
 
 export function PetSelector({ pets }: { pets: Pet[] }) {
   const { selectedPetId, setSelectedPetId } = usePetSelection();

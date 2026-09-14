@@ -10,8 +10,7 @@ import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, Card, Subtitle, AvatarPicker } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
 import { PET_COLORS, petColor } from '../theme/petColors';
-
-const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
+import { SPECIES_EMOJI } from '../pets/species';
 
 const SECTIONS = [
   { key: 'VaccineList', label: 'Vaccines', emoji: '💉' },

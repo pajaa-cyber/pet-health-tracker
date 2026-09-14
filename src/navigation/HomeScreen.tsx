@@ -11,14 +11,13 @@ import { Vaccine } from '../types/vaccine';
 import { ScreenContainer, Card, Button, Subtitle, BodyText, MutedText, PetSelector } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
 import { petColor } from '../theme/petColors';
-
-const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
+import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 
 function speciesAndAge(pet: Pet): string {
-  if (pet.birthDate == null) return pet.species;
+  if (pet.birthDate == null) return speciesDisplay(pet);
   const ageMs = Date.now() - pet.birthDate;
   const years = Math.floor(ageMs / (365.25 * 24 * 60 * 60 * 1000));
-  return `${pet.species}${years >= 0 ? ` · ${years} yr` : ''}`;
+  return `${speciesDisplay(pet)}${years >= 0 ? ` · ${years} yr` : ''}`;
 }
 
 function PetCard({ pet, navigation }: { pet: Pet; navigation: any }) {
