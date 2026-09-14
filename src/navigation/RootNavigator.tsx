@@ -6,7 +6,7 @@ import { useHousehold } from '../household/HouseholdContext';
 import { SignInScreen } from '../auth/SignInScreen';
 import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
-import { MainNavigator } from './MainNavigator';
+import { MainTabs } from './MainTabs';
 import { colors } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
@@ -27,7 +27,7 @@ export function RootNavigator() {
             <Stack.Screen name="SignUp" component={SignUpScreen} />
           </>
         ) : household ? (
-          <Stack.Screen name="Main" component={MainNavigator} />
+          <Stack.Screen name="Main" component={MainTabs} />
         ) : (
           <Stack.Screen name="HouseholdSetup" component={HouseholdSetupScreen} />
         )}
