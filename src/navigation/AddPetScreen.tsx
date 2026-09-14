@@ -10,6 +10,8 @@ import {
   Title, MutedText, GracefulDateField, BreedPicker,
 } from '../components/ui';
 import { spacing } from '../theme/theme';
+import { canAddCustomField, customFieldLimitMessage } from '../limits/limits';
+import { DateField } from '../components/DateField';
 
 type WizardData = NewPetInput & { photoDataUri: string | null };
 
@@ -131,8 +133,112 @@ export function AddPetScreen({ navigation }: any) {
             />
           </>
         );
+      case 4:
+        return (
+          <>
+            <Title>{`When did ${petName} join your care?`}</Title>
+            <MutedText>Optional — skip this if you'd rather not answer.</MutedText>
+            <GracefulDateField
+              label="Arrival date"
+              options={['exact', 'roughly', 'unknown']}
+              precision={data.arrivalDatePrecision}
+              date={data.arrivalDate}
+              approximateAgeMonths={null}
+              onChange={({ precision, date }) =>
+                update({ arrivalDatePrecision: precision as ArrivalPrecision, arrivalDate: date })
+              }
+            />
+            <Button
+              title="Skip"
+              variant="outline"
+              onPress={() => update({ arrivalDatePrecision: null, arrivalDate: null })}
+            />
+          </>
+        );
+      case 5:
+        return (
+          <>
+            <Title>{`About ${petName}`}</Title>
+            <View style={{ gap: spacing.xs }}>
+              <MutedText>Sex — helps tailor care reminders.</MutedText>
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                {(['male', 'female', 'unknown'] as const).map((s) => (
+                  <Chip key={s} label={s} selected={data.sex === s} onPress={() => update({ sex: s })} />
+                ))}
+              </View>
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <MutedText>Neutered / spayed — some vaccines and medications are dosed differently.</MutedText>
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <Chip label="Yes" selected={data.neutered === true} onPress={() => update({ neutered: true })} />
+                <Chip label="No" selected={data.neutered === false} onPress={() => update({ neutered: false })} />
+                <Chip label="Don't know" selected={data.neutered === null} onPress={() => update({ neutered: null })} />
+              </View>
+            </View>
+            <TextField
+              label="Colour / markings (optional)"
+              value={data.colorMarkings}
+              onChangeText={(t) => update({ colorMarkings: t })}
+            />
+            <View style={{ gap: spacing.xs }}>
+              <MutedText>Where do they spend their time? This changes flea/tick/worm risk, so protection can be tailored to match.</MutedText>
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                {(['indoor', 'outdoor', 'both'] as const).map((e) => (
+                  <Chip key={e} label={e} selected={data.livingEnvironment === e} onPress={() => update({ livingEnvironment: e })} />
+                ))}
+              </View>
+            </View>
+          </>
+        );
+      case 6:
+        return (
+          <>
+            <Title>Microchip</Title>
+            <MutedText>Optional — add this now or anytime from the pet's profile.</MutedText>
+            <TextField label="Provider" value={data.microchipProvider} onChangeText={(t) => update({ microchipProvider: t })} />
+            <TextField label="Chip number" value={data.microchipNumber} onChangeText={(t) => update({ microchipNumber: t })} />
+            <DateField
+              label="Date implanted"
+              value={data.microchipDate}
+              onChange={(v) => update({ microchipDate: v })}
+              onClear={() => update({ microchipDate: null })}
+            />
+            <TextField label="Registry" value={data.microchipRegistry} onChangeText={(t) => update({ microchipRegistry: t })} />
+          </>
+        );
+      case 7: {
+        const atLimit = !canAddCustomField(data);
+        return (
+          <>
+            <Title>Custom fields</Title>
+            <MutedText>Add your own fields — favourite food, walking route, anything you want to remember.</MutedText>
+            {data.customFields.map((f, i) => (
+              <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <TextField
+                  label="Label"
+                  value={f.label}
+                  onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
+                  style={{ flex: 1 }}
+                />
+                <TextField
+                  label="Value"
+                  value={f.value}
+                  onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
+                  style={{ flex: 1 }}
+                />
+              </View>
+            ))}
+            <Button
+              title={atLimit ? customFieldLimitMessage() : 'Add a custom field'}
+              variant="outline"
+              disabled={atLimit}
+              onPress={() => update({ customFields: [...data.customFields, { label: '', value: '' }] })}
+            />
+          </>
+        );
+      }
       default:
-        return null; // steps 4-8 added by Tasks 8-9
+        return null; // step 8 (Review) added by Task 9
     }
   };
 
