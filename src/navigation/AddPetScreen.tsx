@@ -175,11 +175,14 @@ export function AddPetScreen({ navigation }: any) {
                 <Chip label="Don't know" selected={data.neutered === null} onPress={() => update({ neutered: null })} />
               </View>
             </View>
-            <TextField
-              label="Colour / markings (optional)"
-              value={data.colorMarkings}
-              onChangeText={(t) => update({ colorMarkings: t })}
-            />
+            <View style={{ gap: spacing.xs }}>
+              <MutedText>Helps identify your pet if they're ever lost, and confirms it's them for vets or a microchip registry.</MutedText>
+              <TextField
+                label="Colour / markings (optional)"
+                value={data.colorMarkings}
+                onChangeText={(t) => update({ colorMarkings: t })}
+              />
+            </View>
             <View style={{ gap: spacing.xs }}>
               <MutedText>Where do they spend their time? This changes flea/tick/worm risk, so protection can be tailored to match.</MutedText>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
