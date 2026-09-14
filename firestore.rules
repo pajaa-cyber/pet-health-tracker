@@ -165,7 +165,14 @@ service cloud.firestore {
     match /households/{householdId}/pets/{petId} {
       allow read: if isHouseholdMember(householdId);
       allow create: if isHouseholdMember(householdId) &&
-        request.resource.data.keys().hasOnly(['id', 'householdId', 'name', 'species', 'breed', 'birthDate', 'photoUrl', 'colorKey']);
+        request.resource.data.keys().hasOnly([
+          'id', 'householdId', 'name', 'species', 'speciesOther', 'breed',
+          'birthDate', 'birthDatePrecision', 'approximateAgeMonths',
+          'arrivalDate', 'arrivalDatePrecision', 'photoUrl', 'colorKey',
+          'sex', 'neutered', 'colorMarkings', 'livingEnvironment',
+          'microchipProvider', 'microchipNumber', 'microchipDate', 'microchipRegistry',
+          'customFields', 'status'
+        ]);
       allow update: if isHouseholdMember(householdId);
       allow delete: if isHouseholdMember(householdId);
     }

@@ -15,6 +15,7 @@ import { petColor } from '../theme/petColors';
 const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
 
 function speciesAndAge(pet: Pet): string {
+  if (pet.birthDate == null) return pet.species;
   const ageMs = Date.now() - pet.birthDate;
   const years = Math.floor(ageMs / (365.25 * 24 * 60 * 60 * 1000));
   return `${pet.species}${years >= 0 ? ` · ${years} yr` : ''}`;

@@ -385,14 +385,12 @@ describe('household security rules', () => {
     const memberDb = testEnv.authenticatedContext('user-1').firestore();
     await assertSucceeds(
       setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1'), {
-        id: 'pet-1',
-        householdId: 'h1',
-        name: 'Rex',
-        species: 'dog',
-        breed: 'Labrador',
-        birthDate: 0,
-        photoUrl: null,
-        colorKey: '#EF4444',
+        id: 'pet-1', householdId: 'h1', name: 'Rex', species: 'dog', speciesOther: null,
+        breed: 'Labrador', birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
+        arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#EF4444',
+        sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+        microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
+        customFields: [], status: 'active',
       })
     );
   });
@@ -402,14 +400,12 @@ describe('household security rules', () => {
     const strangerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(
       setDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1'), {
-        id: 'pet-1',
-        householdId: 'h1',
-        name: 'Rex',
-        species: 'dog',
-        breed: 'Labrador',
-        birthDate: 0,
-        photoUrl: null,
-        colorKey: '#EF4444',
+        id: 'pet-1', householdId: 'h1', name: 'Rex', species: 'dog', speciesOther: null,
+        breed: 'Labrador', birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
+        arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#EF4444',
+        sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+        microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
+        customFields: [], status: 'active',
       })
     );
   });
