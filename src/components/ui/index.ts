@@ -3,6 +3,7 @@ export { Card } from './Card';
 export { ScreenContainer } from './ScreenContainer';
 export { TextField } from './TextField';
 export { Chip } from './Chip';
+export { GracefulDateField } from './GracefulDateField';
 export { AvatarPicker } from './AvatarPicker';
 export { Title, Subtitle, BodyText, MutedText, ErrorText } from './Typography';
 export { PetSelector } from './PetSelector';
