@@ -1,6 +1,5 @@
 # Pet Health Tracker — Execution Pack
 
-**Intended repo path:** `docs/superpowers/specs/2026-09-13-execution-pack.md`
 **Date:** 13 September 2026
 **Status:** Locked decisions and per-phase scope. This file governs Plans 3–9. Companion to `BUILD-PLAN.md` (the analysis and reasoning behind it).
 

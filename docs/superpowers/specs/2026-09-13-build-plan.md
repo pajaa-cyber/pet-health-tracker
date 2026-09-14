@@ -1,6 +1,5 @@
 # Pet Health Tracker — Build Plan
 
-**Intended repo path:** `docs/superpowers/specs/2026-09-13-build-plan.md`
 **Date:** 13 September 2026
 **Status:** Source of truth for Plans 3–9, alongside `EXECUTION-PACK.md`. Supplements `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`. Where they disagree, this file and the Execution Pack win.
 

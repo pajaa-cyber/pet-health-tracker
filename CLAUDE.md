@@ -2,13 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Work durability — read this before starting any multi-task plan
+
+**On 2026-09-14, a full day of work (an entire "Plan 3" and "Plan 4" implementation, reported by the owner as built, tested, and verified) turned out to have no trace anywhere** — not in local git history/reflog, not in any dangling/unreachable git object, not on the GitHub remote (`origin`, the only remote, single `master` branch), not in any other worktree or clone on the machine. This machine has no backup device. Whatever happened, the working tree state was lost before it was ever committed and pushed, and there was no second copy anywhere to recover it from. **This must never happen again.** Concretely:
+
+- **Commit after every individual task**, not just at the end of a plan — this repo's own history (Plans 1 & 2) shows this was the original practice; it must not lapse. A lost uncommitted task is a much smaller loss than a lost plan.
+- **Push to `origin` frequently during a plan, not only at the very end.** A commit that only exists on local disk in this OneDrive-synced folder is not a backup — push work-in-progress branches too, not just finished `master` merges.
+- **Never delete a worktree or its branch until you've confirmed (`git log <branch> ^origin/master`, or equivalent) that everything on it is merged into `master` AND `master` has been pushed.** Deleting a worktree whose branch was never merged/pushed is how work disappears with zero recoverable trace.
+- **Never pass `isolation: "worktree"` to the Agent tool when a plan already has its own dedicated worktree** — this creates a second, disconnected throwaway worktree/branch that nothing tracks; a near-miss of exactly this already happened once in this project.
+- **At the start of every session, verify actual repo state with `git log`/`git branch -a`/`git status` before trusting what CLAUDE.md/NEXTSTEPS.md claim was done** — those files are written by a session that may not have finished cleanly; git is the ground truth.
+
 ## Project
 
 Pet Health Tracker: a React Native (Expo) + Firebase mobile app for tracking a pet's vaccines, medications, vet visits, weight, and expenses, with real-time sharing across household members. Full rationale and MVP scope: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`.
 
 **Status:** Plan 1 ("Foundation & Auth", `docs/superpowers/plans/2026-09-11-pet-health-app-foundation.md`) and Plan 2 ("Pet Records Core", `docs/superpowers/plans/2026-09-12-pet-records-core.md`) are both **complete and merged into `master`**. Plan 3 ("Reminders & Notifications") is not written yet. See `NEXTSTEPS.md` for exact resume state and known gaps.
 
-**As of 2026-09-13, this app has actually been run on a real device for the first time** — a real Firebase project exists (`pet-tracker-app-63512`), a real Android phone runs the app over USB, and the app has been used end-to-end (sign-up, household creation, adding pets/records, camera photo capture). This closes the exact gap `ROADMAP-and-claude-code-playbook.md`'s "Part 0" describes ("this app has never been seen running") — read that file for the owner's plan for everything after this point (Plans 3–9), though it references two spec files (`docs/superpowers/specs/2026-09-13-ux-and-feature-spec.md`, `docs/design/DESIGN-GUIDE.md`) that do not exist in the repo yet.
+**As of 2026-09-13, this app has actually been run on a real device for the first time** — a real Firebase project exists (`pet-tracker-app-63512`), a real Android phone runs the app over USB, and the app has been used end-to-end (sign-up, household creation, adding pets/records, camera photo capture). This closes the "this app has never been seen running" gap that an earlier roadmap document (`ROADMAP-and-claude-code-playbook.md`, referenced in older notes but not present in this repo) opened with. That document has since been superseded by two current ones — `docs/superpowers/specs/2026-09-13-build-plan.md` (analysis/reasoning) and `docs/superpowers/specs/2026-09-13-execution-pack.md` (locked decisions + the seven concrete phases) — read both for the owner's plan for everything after this point (Plans 3–9); if only one, read the execution pack. The build plan references two spec files (`docs/superpowers/specs/2026-09-13-ux-and-feature-spec.md`, `docs/design/DESIGN-GUIDE.md`) that do not exist in the repo — and the execution pack explicitly says any future `DESIGN-GUIDE.md` is superseded by the redesign already in place (see "UI/Design system" below) and should not be applied.
 
 The app also has a full visual redesign now (see "UI/Design system" below) and a from-scratch local Android build environment on the Windows machine this was developed on (see "Local device build environment" below) — read both before assuming either doesn't exist.
 
