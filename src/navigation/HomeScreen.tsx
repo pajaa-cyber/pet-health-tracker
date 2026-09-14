@@ -10,6 +10,7 @@ import { Pet } from '../types/pet';
 import { Vaccine } from '../types/vaccine';
 import { ScreenContainer, Card, Button, Subtitle, BodyText, MutedText, PetSelector } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
+import { petColor } from '../theme/petColors';
 
 const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
 
@@ -31,8 +32,11 @@ function PetCard({ pet, navigation }: { pet: Pet; navigation: any }) {
   const nextDue = getNextDue(vaccines, Date.now());
 
   return (
-    <Pressable onPress={() => navigation.navigate('PetHome', { petId: pet.id })}>
-      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderLeftWidth: 4, borderLeftColor: pet.colorKey }}>
+    <Pressable
+      onPress={() => navigation.navigate('PetHome', { petId: pet.id })}
+      accessibilityRole="button"
+      accessibilityLabel={pet.name}>
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderLeftWidth: 4, borderLeftColor: petColor(pet) }}>
         {pet.photoUrl ? (
           <Image source={{ uri: pet.photoUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} resizeMode="cover" />
         ) : (

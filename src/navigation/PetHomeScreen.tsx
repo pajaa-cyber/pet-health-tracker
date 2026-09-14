@@ -9,7 +9,7 @@ import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, Card, Subtitle, AvatarPicker } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
-import { PET_COLORS } from '../theme/petColors';
+import { PET_COLORS, petColor } from '../theme/petColors';
 
 const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
 
@@ -55,9 +55,11 @@ export function PetHomeScreen({ route, navigation }: any) {
               <Pressable
                 key={c}
                 onPress={() => updatePetColor(firestore, household.id, petId, c)}
+                accessibilityRole="button"
+                accessibilityLabel={`Set colour to ${c}`}
                 style={{
-                  width: 28, height: 28, borderRadius: 14, backgroundColor: c,
-                  borderWidth: pet.colorKey === c ? 3 : 0, borderColor: colors.text,
+                  width: 44, height: 44, borderRadius: 22, backgroundColor: c,
+                  borderWidth: petColor(pet) === c ? 3 : 0, borderColor: colors.text,
                 }}
               />
             ))}

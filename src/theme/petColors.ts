@@ -17,3 +17,10 @@ export const PET_COLORS = [
 export function assignPetColor(existingPets: Pet[]): string {
   return PET_COLORS[existingPets.length % PET_COLORS.length];
 }
+
+// Pets created before colorKey existed deserialize with colorKey === undefined;
+// fall back to the first palette color rather than letting RN silently drop
+// the color prop (which renders as black).
+export function petColor(pet: { colorKey?: string }): string {
+  return pet.colorKey ?? PET_COLORS[0];
+}

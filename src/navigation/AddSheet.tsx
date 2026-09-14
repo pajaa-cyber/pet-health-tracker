@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, View, Pressable } from 'react-native';
+import { Modal, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { BodyText, Title } from '../components/ui';
@@ -40,7 +40,12 @@ export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () =
         <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, padding: spacing.lg, gap: spacing.sm }}>
           <Title style={{ marginBottom: spacing.sm }}>Add</Title>
           {ADD_ACTIONS.map((action) => (
-            <Pressable key={action.route} onPress={() => handlePress(action)} style={{ paddingVertical: spacing.sm }}>
+            <Pressable
+              key={action.route}
+              onPress={() => handlePress(action)}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              style={{ paddingVertical: spacing.sm }}>
               <BodyText>{action.label}</BodyText>
             </Pressable>
           ))}

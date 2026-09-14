@@ -4,6 +4,7 @@ import { Pet } from '../../types/pet';
 import { usePetSelection } from '../../selection/PetSelectionContext';
 import { MutedText, Subtitle } from './Typography';
 import { colors, spacing } from '../../theme/theme';
+import { petColor } from '../../theme/petColors';
 
 const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
 
@@ -41,7 +42,7 @@ export function PetSelector({ pets }: { pets: Pet[] }) {
             style={{
               width: 48, height: 48, borderRadius: 24, overflow: 'hidden',
               alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceTint,
-              borderWidth: 3, borderColor: selectedPetId === pet.id ? pet.colorKey : 'transparent',
+              borderWidth: 3, borderColor: selectedPetId === pet.id ? petColor(pet) : 'transparent',
             }}
           >
             {pet.photoUrl ? (
