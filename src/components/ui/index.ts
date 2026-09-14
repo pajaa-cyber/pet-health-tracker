@@ -5,3 +5,4 @@ export { TextField } from './TextField';
 export { Chip } from './Chip';
 export { AvatarPicker } from './AvatarPicker';
 export { Title, Subtitle, BodyText, MutedText, ErrorText } from './Typography';
+export { PetSelector } from './PetSelector';
