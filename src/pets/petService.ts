@@ -8,25 +8,36 @@ import {
   type Firestore,
   type Unsubscribe,
 } from '@react-native-firebase/firestore';
-import { Pet, PetSpecies } from '../types/pet';
+import { Pet } from '../types/pet';
 import { assignPetColor } from '../theme/petColors';
+
+export type NewPetInput = Omit<Pet, 'id' | 'householdId' | 'photoUrl' | 'colorKey'>;
 
 export async function createPet(
   db: Firestore,
   householdId: string,
-  name: string,
-  species: PetSpecies,
-  breed: string,
-  birthDate: number,
+  input: NewPetInput,
   existingPets: Pet[]
 ): Promise<Pet> {
   const docRef = doc(collection(db, 'households', householdId, 'pets'));
   const pet: Pet = {
-    id: docRef.id, householdId, name, species, breed, birthDate,
-    photoUrl: null, colorKey: assignPetColor(existingPets),
+    ...input,
+    id: docRef.id,
+    householdId,
+    photoUrl: null,
+    colorKey: assignPetColor(existingPets),
   };
   await setDoc(docRef, pet);
   return pet;
+}
+
+export async function updatePet(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  updates: Partial<Pet>
+): Promise<void> {
+  await updateDoc(doc(db, 'households', householdId, 'pets', petId), updates);
 }
 
 export async function updatePetPhoto(
