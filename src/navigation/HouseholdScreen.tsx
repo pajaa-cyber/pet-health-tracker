@@ -25,7 +25,7 @@ export function HouseholdScreen({ navigation }: any) {
         <Button
           variant="outline"
           title="Developer: style guide"
-          onPress={() => navigation.navigate('DevStyleGuide')}
+          onPress={() => navigation.navigate('PetsTab', { screen: 'DevStyleGuide' })}
         />
       )}
     </ScreenContainer>
