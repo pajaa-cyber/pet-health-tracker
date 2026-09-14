@@ -12,7 +12,12 @@ export function PetSelector({ pets }: { pets: Pet[] }) {
 
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}>
-      <Pressable onPress={() => setSelectedPetId('all')} style={{ alignItems: 'center', gap: spacing.xs }}>
+      <Pressable
+        onPress={() => setSelectedPetId('all')}
+        accessibilityRole="button"
+        accessibilityLabel="All Pets"
+        style={{ alignItems: 'center', gap: spacing.xs }}>
+
         <View
           style={{
             width: 48, height: 48, borderRadius: 24, backgroundColor: colors.surfaceTint,
@@ -25,7 +30,13 @@ export function PetSelector({ pets }: { pets: Pet[] }) {
         <MutedText>All Pets</MutedText>
       </Pressable>
       {pets.map((pet) => (
-        <Pressable key={pet.id} onPress={() => setSelectedPetId(pet.id)} style={{ alignItems: 'center', gap: spacing.xs }}>
+        <Pressable
+          key={pet.id}
+          onPress={() => setSelectedPetId(pet.id)}
+          accessibilityRole="button"
+          accessibilityLabel={pet.name}
+          style={{ alignItems: 'center', gap: spacing.xs }}>
+
           <View
             style={{
               width: 48, height: 48, borderRadius: 24, overflow: 'hidden',
