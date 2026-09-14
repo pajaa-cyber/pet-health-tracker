@@ -217,18 +217,26 @@ export function AddPetScreen({ navigation }: any) {
             <MutedText>Add your own fields — favourite food, walking route, anything you want to remember.</MutedText>
             {data.customFields.map((f, i) => (
               <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <TextField
-                  label="Label"
-                  value={f.label}
-                  onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
-                  style={{ flex: 1 }}
-                />
-                <TextField
-                  label="Value"
-                  value={f.value}
-                  onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
-                  style={{ flex: 1 }}
-                />
+                {/* TextField's `style` prop only reaches the inner TextInput, not its
+                    outer wrapper View — flex:1 there has no effect on width since the
+                    wrapper is a plain column View. Wrapping each TextField in its own
+                    flex:1 View lets the wrapper stretch (default alignItems: 'stretch')
+                    to fill this row's cell, which is what actually makes these inputs
+                    usable width instead of collapsing to a ~14px box. */}
+                <View style={{ flex: 1 }}>
+                  <TextField
+                    label="Label"
+                    value={f.label}
+                    onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <TextField
+                    label="Value"
+                    value={f.value}
+                    onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
+                  />
+                </View>
               </View>
             ))}
             <Button
@@ -240,8 +248,32 @@ export function AddPetScreen({ navigation }: any) {
           </>
         );
       }
+      case 8: {
+        const Row = ({ label, value, jumpTo }: { label: string; value: string; jumpTo: number }) => (
+          <Chip label={`${label}: ${value || '—'}`} selected={false} onPress={() => setStep(jumpTo)} />
+        );
+        return (
+          <>
+            <Title>Review</Title>
+            <MutedText>Tap anything to change it.</MutedText>
+            <View style={{ gap: spacing.xs }}>
+              <Row label="Name" value={data.name} jumpTo={0} />
+              <Row label="Species" value={data.species === 'other' ? (data.speciesOther ?? '') : SPECIES_LABEL[data.species]} jumpTo={1} />
+              <Row label="Breed" value={data.breed} jumpTo={2} />
+              <Row label="Birth date" value={data.birthDate ? new Date(data.birthDate).toLocaleDateString() : "Don't know"} jumpTo={3} />
+              <Row label="Arrival date" value={data.arrivalDate ? new Date(data.arrivalDate).toLocaleDateString() : 'Not set'} jumpTo={4} />
+              <Row label="Sex" value={data.sex} jumpTo={5} />
+              <Row label="Neutered" value={data.neutered === null ? "Don't know" : data.neutered ? 'Yes' : 'No'} jumpTo={5} />
+              <Row label="Colour / markings" value={data.colorMarkings} jumpTo={5} />
+              <Row label="Environment" value={data.livingEnvironment ?? 'Not set'} jumpTo={5} />
+              <Row label="Microchip" value={data.microchipNumber} jumpTo={6} />
+              <Row label="Custom fields" value={String(data.customFields.length)} jumpTo={7} />
+            </View>
+          </>
+        );
+      }
       default:
-        return null; // step 8 (Review) added by Task 9
+        return null;
     }
   };
 
