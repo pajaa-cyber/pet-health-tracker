@@ -7,3 +7,4 @@ export { GracefulDateField } from './GracefulDateField';
 export { AvatarPicker } from './AvatarPicker';
 export { Title, Subtitle, BodyText, MutedText, ErrorText } from './Typography';
 export { PetSelector } from './PetSelector';
+export { BreedPicker } from './BreedPicker';
