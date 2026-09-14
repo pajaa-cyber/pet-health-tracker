@@ -13,6 +13,7 @@ import { AddExpenseScreen } from './AddExpenseScreen';
 import { VetVisitListScreen } from './VetVisitListScreen';
 import { AddVetVisitScreen } from './AddVetVisitScreen';
 import { VetVisitDocumentsScreen } from './VetVisitDocumentsScreen';
+import { ChoosePetForAddScreen } from './ChoosePetForAddScreen';
 import { colors } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
@@ -41,6 +42,7 @@ export function MainNavigator() {
       <Stack.Screen name="VetVisitList" component={VetVisitListScreen} options={{ title: 'Vet Visits' }} />
       <Stack.Screen name="AddVetVisit" component={AddVetVisitScreen} options={{ title: 'Add Vet Visit' }} />
       <Stack.Screen name="VetVisitDocuments" component={VetVisitDocumentsScreen} options={{ title: 'Documents' }} />
+      <Stack.Screen name="ChoosePetForAdd" component={ChoosePetForAddScreen} options={{ title: 'Choose a pet' }} />
     </Stack.Navigator>
   );
 }
