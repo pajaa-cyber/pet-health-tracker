@@ -7,7 +7,7 @@ import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
-import { ScreenContainer, Card, Subtitle, AvatarPicker } from '../components/ui';
+import { ScreenContainer, Card, Subtitle, AvatarPicker, Button } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
 import { PET_COLORS, petColor } from '../theme/petColors';
 import { SPECIES_EMOJI } from '../pets/species';
@@ -65,6 +65,9 @@ export function PetHomeScreen({ route, navigation }: any) {
           </View>
         )}
       </View>
+      {pet && (
+        <Button title="Edit" variant="outline" onPress={() => navigation.navigate('EditPet', { petId })} />
+      )}
       <Card>
         <WeightTrendChart logs={weightLogs} />
       </Card>

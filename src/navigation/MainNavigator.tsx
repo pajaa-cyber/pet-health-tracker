@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from './HomeScreen';
 import { AddPetScreen } from './AddPetScreen';
 import { PetHomeScreen } from './PetHomeScreen';
+import { EditPetScreen } from './EditPetScreen';
 import { VaccineListScreen } from './VaccineListScreen';
 import { AddVaccineScreen } from './AddVaccineScreen';
 import { MedicationListScreen } from './MedicationListScreen';
@@ -33,6 +34,7 @@ export function MainNavigator() {
       <Stack.Screen name="PetList" component={HomeScreen} options={{ title: 'My Pets' }} />
       <Stack.Screen name="AddPet" component={AddPetScreen} options={{ title: 'Add Pet' }} />
       <Stack.Screen name="PetHome" component={PetHomeScreen} options={{ title: 'Pet Home' }} />
+      <Stack.Screen name="EditPet" component={EditPetScreen} options={{ title: 'Edit Pet' }} />
       <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ title: 'Vaccines' }} />
       <Stack.Screen name="AddVaccine" component={AddVaccineScreen} options={{ title: 'Add Vaccine' }} />
       <Stack.Screen name="MedicationList" component={MedicationListScreen} options={{ title: 'Medications' }} />
