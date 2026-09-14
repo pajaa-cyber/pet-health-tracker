@@ -57,7 +57,11 @@ export function EditPetScreen({ route, navigation }: any) {
       <AvatarPicker
         photoUri={pet.photoUrl}
         fallbackEmoji={SPECIES_EMOJI[pet.species]}
-        onPicked={(uri) => household && updatePetPhoto(firestore, household.id, petId, uri)}
+        onPicked={(uri) => {
+          if (!household) return;
+          updatePetPhoto(firestore, household.id, petId, uri);
+          patch({ photoUrl: uri });
+        }}
       />
       <TextField label="Name" value={pet.name} onChangeText={(t) => patch({ name: t })} />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
