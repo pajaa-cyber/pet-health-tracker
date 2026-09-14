@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs } from '../pets/weightLogService';
-import { subscribeToPets, updatePetPhoto } from '../pets/petService';
+import { subscribeToPets, updatePetPhoto, updatePetColor } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, Card, Subtitle, AvatarPicker } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
+import { PET_COLORS } from '../theme/petColors';
 
 const SPECIES_EMOJI: Record<string, string> = { dog: '🐶', cat: '🐱', other: '🐾' };
 
@@ -48,6 +49,20 @@ export function PetHomeScreen({ route, navigation }: any) {
           />
         )}
         {pet && <Subtitle>{pet.name}</Subtitle>}
+        {household && pet && (
+          <View style={{ flexDirection: 'row', gap: spacing.xs, justifyContent: 'center' }}>
+            {PET_COLORS.map((c) => (
+              <Pressable
+                key={c}
+                onPress={() => updatePetColor(firestore, household.id, petId, c)}
+                style={{
+                  width: 28, height: 28, borderRadius: 14, backgroundColor: c,
+                  borderWidth: pet.colorKey === c ? 3 : 0, borderColor: colors.text,
+                }}
+              />
+            ))}
+          </View>
+        )}
       </View>
       <Card>
         <WeightTrendChart logs={weightLogs} />

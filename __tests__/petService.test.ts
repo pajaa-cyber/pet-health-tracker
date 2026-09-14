@@ -5,6 +5,7 @@ const mockCollectionRef = {};
 const mockSetDoc = jest.fn();
 const mockGetDoc = jest.fn();
 const mockOnSnapshot = jest.fn();
+const mockUpdateDoc = jest.fn();
 
 jest.mock('@react-native-firebase/firestore', () => ({
   collection: jest.fn(() => mockCollectionRef),
@@ -12,6 +13,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
   onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
+  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
 }));
 
 import { createPet, getPet, subscribeToPets } from '../src/pets/petService';
@@ -23,10 +25,10 @@ beforeEach(() => {
 });
 
 describe('petService', () => {
-  it('creates a pet under the household', async () => {
+  it('creates a pet under the household with an assigned colour', async () => {
     mockSetDoc.mockResolvedValue(undefined);
 
-    const pet = await createPet(fakeDb, 'h1', 'Rex', 'dog', 'Labrador', 1000);
+    const pet = await createPet(fakeDb, 'h1', 'Rex', 'dog', 'Labrador', 1000, []);
 
     expect(pet).toEqual({
       id: 'pet-1',
@@ -36,6 +38,7 @@ describe('petService', () => {
       breed: 'Labrador',
       birthDate: 1000,
       photoUrl: null,
+      colorKey: '#EF4444',
     });
     expect(mockSetDoc).toHaveBeenCalledWith(mockCreatedDocRef, pet);
   });

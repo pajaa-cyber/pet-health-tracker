@@ -8,4 +8,5 @@ export interface Pet {
   breed: string;
   birthDate: number; // epoch millis
   photoUrl: string | null;
+  colorKey: string; // one of PET_COLORS (src/theme/petColors.ts)
 }

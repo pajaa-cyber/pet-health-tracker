@@ -392,6 +392,7 @@ describe('household security rules', () => {
         breed: 'Labrador',
         birthDate: 0,
         photoUrl: null,
+        colorKey: '#EF4444',
       })
     );
   });
@@ -408,6 +409,7 @@ describe('household security rules', () => {
         breed: 'Labrador',
         birthDate: 0,
         photoUrl: null,
+        colorKey: '#EF4444',
       })
     );
   });

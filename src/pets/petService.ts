@@ -9,6 +9,7 @@ import {
   type Unsubscribe,
 } from '@react-native-firebase/firestore';
 import { Pet, PetSpecies } from '../types/pet';
+import { assignPetColor } from '../theme/petColors';
 
 export async function createPet(
   db: Firestore,
@@ -16,10 +17,14 @@ export async function createPet(
   name: string,
   species: PetSpecies,
   breed: string,
-  birthDate: number
+  birthDate: number,
+  existingPets: Pet[]
 ): Promise<Pet> {
   const docRef = doc(collection(db, 'households', householdId, 'pets'));
-  const pet: Pet = { id: docRef.id, householdId, name, species, breed, birthDate, photoUrl: null };
+  const pet: Pet = {
+    id: docRef.id, householdId, name, species, breed, birthDate,
+    photoUrl: null, colorKey: assignPetColor(existingPets),
+  };
   await setDoc(docRef, pet);
   return pet;
 }
@@ -31,6 +36,15 @@ export async function updatePetPhoto(
   photoUrl: string
 ): Promise<void> {
   await updateDoc(doc(db, 'households', householdId, 'pets', petId), { photoUrl });
+}
+
+export async function updatePetColor(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  colorKey: string
+): Promise<void> {
+  await updateDoc(doc(db, 'households', householdId, 'pets', petId), { colorKey });
 }
 
 export async function getPet(db: Firestore, householdId: string, petId: string): Promise<Pet | null> {
