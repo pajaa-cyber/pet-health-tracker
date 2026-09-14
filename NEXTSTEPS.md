@@ -1,131 +1,136 @@
-# Where we left off (2026-09-13)
+# Where we left off (2026-09-14)
 
 Read this before doing anything else in this project. It's a handoff for
-resuming work, not permanent documentation (see `CLAUDE.md` for that — it
-documents the full data model/architecture/UI system, including the known
-gaps below). Assume the reader knows nothing about what happened in this
-session.
+resuming work, not permanent documentation (see `CLAUDE.md` for that).
+Assume the reader knows nothing about what happened in this session.
+**This file was completely out of date until today's rewrite** — it
+previously said "Plan 3 not written yet" while Plan 3 was actually
+mid-implementation in a worktree nobody had pointed this file at. Don't
+let that happen again: keep this file honest about what's actually
+in-progress, not just what's merged to `master`.
 
 ## What this is
 
 Pet Health Tracker (React Native/Expo + Firebase), beating 11pets on price/
 reliability/simplicity, built for/with a non-technical solo owner on a
-Windows PC. Context:
+Windows PC.
 
 - Original design spec: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`
 - Plan 1 ("Foundation & Auth") and Plan 2 ("Pet Records Core") — **complete, merged, on `master`.**
-- Plan 3 ("Reminders & Notifications") — **not written yet.**
-- `ROADMAP-and-claude-code-playbook.md` (project root) — the owner's own
-  plan for Plans 3-9 (bottom-tab redesign, i18n for Serbian, reminders,
-  calendar, vets directory, records hub, release readiness). It references
-  two files that **do not exist yet**: `docs/superpowers/specs/2026-09-13-ux-and-feature-spec.md`
-  and `docs/design/DESIGN-GUIDE.md`. Its "Part 0" blocker ("this app has
-  never been seen running") is now resolved — see below — so its Plan 3
-  onward is the likely next real work, once those two spec files exist.
+- The owner's roadmap for Plans 3-9 lives in two docs, now at
+  `docs/superpowers/specs/2026-09-13-build-plan.md` (analysis/reasoning)
+  and `docs/superpowers/specs/2026-09-13-execution-pack.md` (locked
+  decisions + per-phase planning/build prompts) — **treat these as the
+  center/authoritative documents for all future plan work**, not just
+  background reading. If only one, read the execution pack.
+- **Plan 3 ("App shell and home screen") is IN PROGRESS RIGHT NOW**, not
+  on `master` yet — see "Plan 3 status" below. Do not re-plan or re-start
+  it; resume the existing worktree.
 
-## The single biggest thing that changed this session
+## ⚠️ Data-loss incident, 2026-09-14 — read this before starting any multi-task plan
 
-**The app has been seen running on a real device for the first time, ever.**
-Previously: no real Firebase project, no Android SDK, no device/emulator,
-placeholder config files only, and multiple "not yet visually verified"
-caveats on recent work. As of today:
+An owner report of "Plan 3 and Plan 4, already built, tested, and pushed
+in a previous session" turned out, after a full forensic check (complete
+git reflog, GitHub remote, every worktree on the machine), to have **zero
+trace anywhere**. The work was never committed. There is no backup device.
+It's gone, full stop. See `CLAUDE.md`'s "Work durability" section (top of
+the file) for the rules now in place to stop this happening again:
+commit per task, push frequently, never delete an unmerged/unpushed
+worktree, verify real repo state via `git log`/`git status` at the start
+of every session rather than trusting this file or `CLAUDE.md` at face
+value.
 
-- A real Firebase project exists: **`pet-tracker-app-63512`**. Firestore is
-  enabled with `firestore.rules` deployed and confirmed working against
-  real data. Authentication's Email/Password provider is enabled.
-- **Cloud Storage is NOT usable on this project** — Google now requires the
-  paid Blaze plan for Storage, Blaze requires a Google Cloud billing
-  account, and that signup asked for tax/business info the owner (a
-  personal, non-organization account) can't supply. This was discovered
-  the hard way (photo uploads failing with a 404 "terminated the upload
-  session" error) after building a whole Storage-based photo feature.
-  **Fix:** pivoted to storing photos as compressed base64 data URIs
-  directly in Firestore fields instead — see `CLAUDE.md`'s "Photo storage"
-  section. `@react-native-firebase/storage` was removed from the project.
-  `storage.rules` is still in the repo, unused, in case a future
-  business-entity upgrade makes real Storage viable.
-- A real Android phone (Honor, MagicOS 10) now builds, installs, and runs
-  the app over USB debugging from this Windows machine. Sign-up, sign-in,
-  household creation, and adding pets/records have all been used for real,
-  not just hand-traced or unit-tested.
-- The whole app was visually redesigned (shared theme + component set —
-  see `CLAUDE.md`'s "UI/Design system"). Camera support was added for pet
-  photos and vet-visit documents (previously library-picker only).
-- A full local Android build toolchain now exists on this machine that did
-  not exist before (Java, Android SDK, an isolated Gradle cache) — see
-  `CLAUDE.md`'s "Local device build environment" section for exactly what
-  was installed and why each piece is configured the way it is. **This is
-  the section to read before attempting another build on this machine** —
-  several of its details (the isolated `GRADLE_USER_HOME`, the OneDrive
-  symlink quirk, `local.properties` getting wiped by every `expo prebuild`)
-  are non-obvious and will cause confusing failures if skipped.
+**The owner has explicitly authorized committing and pushing to `origin`
+freely, without asking first, for this project** — given the incident
+above. Applies to all future sessions on this project unless the owner
+says otherwise.
 
-## Environment constraints (this machine specifically)
+## Plan 3 status: in progress, NOT on `master`
 
-- This project folder is inside an actively-syncing **OneDrive** folder
-  (`C:\Users\PC\OneDrive\Desktop\app`). This causes two separate, real
-  problems, both already fixed but worth knowing about if something
-  similar recurs: (1) Node/Jest saw every file as a symlink rather than a
-  regular file, silently breaking test discovery — fixed via
-  `jest.config.js`'s `haste.enableSymlinks`/`watchman: false`; (2)
-  unrelated to OneDrive, `android/`'s 1000+ post-build generated files
-  separately overwhelmed both Jest's and Metro's file crawlers — fixed via
-  excluding `android/` in both `jest.config.js` and the new `metro.config.js`.
-- **VS Code's Gradle extension** (`vscjava.vscode-gradle`) runs its own
-  background Gradle daemon against this same project on a different
-  Gradle version than the project's wrapper, corrupting the shared Gradle
-  cache mid-build if both use the same `GRADLE_USER_HOME`. Fixed by giving
-  our builds an isolated cache at `C:\Android\gradle-home` (env var, set
-  persistently for this Windows user). If a build ever again fails with
-  `Cannot snapshot ... not a regular file` or a similarly odd file-system
-  error, check for this before assuming antivirus or disk corruption.
-- Four antivirus products are registered simultaneously on this machine
-  (Windows Defender, Avast, 360 Total Security, Reason Cybersecurity) —
-  genuinely unusual, and was the first (wrong) theory for the Gradle
-  failures above. Not fixed, not blocking anything currently understood,
-  but worth flagging to the owner at some point as likely unintentional
-  and possibly a performance/conflict problem in its own right.
-- No iOS prebuild on Windows (`expo prebuild` refuses iOS on this OS) —
-  unchanged, not attempted this session.
-- `google-services.json`/`GoogleService-Info.plist` at the project root are
-  gitignored and machine-local. The real ones (for `pet-tracker-app-63512`)
-  are in place on this machine now, but a fresh clone/environment starts
-  with neither file present — see `.env.example`, and note that even a
-  fake placeholder pair (to merely unblock `expo prebuild`) needs to be
-  recreated from scratch, not assumed to exist.
-- `android/local.properties` (gitignored, holds `sdk.dir`) is wiped by
-  every `expo prebuild` run along with the rest of `android/` — recreate
-  it (`sdk.dir=C\:\\Android\\Sdk`) after every prebuild, every time.
+- **Worktree location: `C:\dev\plan-3-app-shell`** (NOT under
+  `.claude/worktrees/` — see "Windows path-length gotcha" below for why).
+  Branch: `worktree-plan-3-app-shell`. Pushed to `origin/worktree-plan-3-app-shell`
+  — every commit so far is safely on GitHub even though the branch isn't
+  merged to `master`.
+- Plan document: `docs/superpowers/plans/2026-09-14-app-shell-and-home-screen.md`
+  (10 tasks). Being executed via `superpowers:subagent-driven-development`.
+- **SDD progress ledger (the authoritative task-by-task record — read this
+  first when resuming):** `C:\dev\plan-3-app-shell\.superpowers\sdd\2026-09-14-app-shell-and-home-screen\progress.md`
+  (this is git-ignored scratch, local to that worktree only — it does not
+  exist anywhere else, so if that worktree is ever lost, reconstruct
+  status from `git log` on the branch instead).
+- **Status as of this write-up:**
+  - Tasks 1-7: complete, reviewed (Approved), merged into the worktree branch.
+  - Task 8 (bottom tab navigator + raised "+" button): code complete,
+    committed (`fe6173d`), pushed, `tsc --noEmit` clean, and on-device
+    confirmed the tab bar + button render and position correctly — BUT
+    its task review has not been dispatched yet, and two behaviors are
+    still unverified on-device: tab-switching preserving state, and the
+    tab bar hiding when pushing into a screen from the Pets tab. A
+    subagent got cut off mid-verification by a platform rate limit
+    ("session limit, resets 12pm Europe/Budapest" — check whether that's
+    still relevant when resuming; if not, it's fully lifted by now).
+  - Tasks 9 (real `AddSheet` sheet + `ChoosePetForAddScreen`) and 10 (dev
+    style guide screen) — **not started.**
+  - Next action on resume: reconnect the phone, finish Task 8's remaining
+    on-device checks, dispatch its task review, then continue task-by-task
+    from Task 9 per the ledger.
 
-## Known, deliberately-parked gaps (not silently dropped — real work, not yet scheduled)
+## Windows path-length gotcha (new this session — durable, added to CLAUDE.md too)
 
-1. **No in-app recovery if a household becomes unreadable.** If a household
-   document's read ever fails (e.g. a future "remove member" feature),
-   both `createHousehold` and `joinHousehold` fail permanently for that
-   user, because their `users/{uid}` pointer write is evaluated as a
-   denied `update` once it already exists. Needs UX design, not a patch.
-2. `generateInviteCode()` in `householdService.ts` uses `Math.random()`,
-   not a CSPRNG. Not currently exploitable; a proper fix needs a new
-   native crypto dependency (`expo-crypto`) and another prebuild/rebuild
-   cycle, so it's parked as low-severity.
-3. No client-side size/dimension warning if a vet visit accumulates enough
-   document photos to approach Firestore's 1 MiB per-document limit (see
-   CLAUDE.md's "Photo storage" section for the math) — would fail loudly
-   with a Firestore error today, not silently, but there's no proactive
-   UI warning before that point.
-4. Minor, low-severity, pre-existing: no positive-value validation beyond
-   what's already there; `MedicationListScreen`'s dose log has no filter
-   UI at all (nothing to fix, just never built).
+Building from a git worktree nested under `.claude/worktrees/<name>` (the
+pattern Plans 1-2 used) can fail with `ninja: error: ... Filename longer
+than 260 characters` during the native CMake build of `react-native-safe-area-context`/
+`react-native-screens` — Windows' MAX_PATH limit, hit by the combination
+of this OneDrive-nested project path plus the worktree subdirectory plus
+CMake/ninja's own long intermediate object filenames. Happened partway
+through Plan 3's Task 1. **Fix used:** relocate the worktree to a short
+path outside OneDrive entirely, e.g. `C:\dev\<plan-name>`, not under
+`.claude/worktrees/`. `git worktree move` itself failed with a OneDrive
+file-lock permission error — worked around via `git worktree remove --force`
+(unregister only; the old nested directory may not fully delete, same
+root cause, harmless leftover) + a fresh `git worktree add <short-path> <branch>`.
+**Recommendation for future plans:** create worktrees under `C:\dev\`
+from the start, skip the `.claude/worktrees/` default.
 
-## If resuming with an SDD-style process again (e.g. for Plan 3, or the owner's Plan 3-9 roadmap)
+## Other environment notes from this session
 
-The two prior plans were executed via `superpowers:subagent-driven-development`
-inside a dedicated git worktree (created via `superpowers:using-git-worktrees`),
-merged back to `master` via `superpowers:finishing-a-development-branch`
-once complete. That's a reasonable pattern to repeat — set up a fresh
-worktree/branch off current `master` for each plan, don't develop directly
-on `master`. Everything in this session (device setup, redesign, photo
-storage pivot) was done directly on `master` as ad-hoc same-day work with
-the owner actively testing on their phone throughout, which was the right
-call for this kind of exploratory/environment-setup work but is not the
-pattern to default back to for the next real feature plan.
+- **Intermittent phone/adb disconnects.** The connected Android phone
+  dropped off `adb devices` (empty list) three separate times this
+  session, unrelated to any code change — confirmed via Windows Device
+  Manager once that the "ADB Interface" USB device itself showed status
+  "Unknown" even though the phone was otherwise recognized. Fixes that
+  worked, in order of what to try: unplug/replug the USB cable first
+  (resolved it twice); if that fails, unlock the phone's screen (it may
+  have simply locked/slept); if still failing, toggle USB debugging off/on
+  in Developer Options and re-accept the authorization prompt. Not
+  something to spend long debugging — it's a recurring flake on this
+  specific phone/cable/port combination, not a project bug.
+- The rest of the environment (Java, Android SDK, `GRADLE_USER_HOME`,
+  `google-services.json`/`GoogleService-Info.plist`, `android/local.properties`)
+  all still apply exactly as documented in `CLAUDE.md`'s "Local device
+  build environment" section — including that every new worktree needs
+  its own copy of the two gitignored Firebase config files and its own
+  `android/local.properties`, since none of that is git-tracked.
+
+## Known, deliberately-parked gaps (unchanged from before this session)
+
+1. No in-app recovery if a household becomes unreadable (`createHousehold`/
+   `joinHousehold` fail permanently once a `users/{uid}` pointer exists).
+2. `generateInviteCode()` uses `Math.random()`, not a CSPRNG — parked,
+   needs `expo-crypto` + a rebuild cycle.
+3. No client-side warning as a vet visit's `documentUrls` approaches
+   Firestore's 1 MiB/document limit.
+4. Minor pre-existing gaps: no positive-value validation beyond what
+   exists; `MedicationListScreen`'s dose log has no filter UI.
+
+## If resuming with an SDD-style process again
+
+Same pattern as Plans 1-2: dedicated worktree per plan (now: use `C:\dev\<name>`,
+not `.claude/worktrees/<name>` — see above), executed via
+`superpowers:subagent-driven-development`, merged via
+`superpowers:finishing-a-development-branch` once complete and **actually
+seen working on the phone** — reviewed is not verified, per this project's
+own repeated lesson (the join-household rules bug, and now this session's
+data-loss incident, both survived confident claims until someone actually
+ran the thing).
