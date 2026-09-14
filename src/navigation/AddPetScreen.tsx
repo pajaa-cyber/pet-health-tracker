@@ -1,23 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
-import { createPet, updatePetPhoto, subscribeToPets } from '../pets/petService';
+import { createPet, updatePetPhoto, subscribeToPets, NewPetInput } from '../pets/petService';
 import { firestore } from '../firebase/config';
-import { Pet, PetSpecies } from '../types/pet';
-import { DateField } from '../components/DateField';
-import { ScreenContainer, TextField, Button, ErrorText, Chip, AvatarPicker } from '../components/ui';
+import { Pet, PetSpecies, DatePrecision, ArrivalPrecision } from '../types/pet';
+import { SPECIES_LIST, SPECIES_LABEL, SPECIES_EMOJI } from '../pets/species';
+import {
+  ScreenContainer, TextField, Button, ErrorText, Chip, AvatarPicker,
+  Title, MutedText, GracefulDateField, BreedPicker,
+} from '../components/ui';
 import { spacing } from '../theme/theme';
 
-const SPECIES: PetSpecies[] = ['dog', 'cat', 'other'];
+type WizardData = NewPetInput & { photoDataUri: string | null };
+
+const INITIAL: WizardData = {
+  name: '', species: 'dog', speciesOther: null, breed: '',
+  birthDate: Date.now(), birthDatePrecision: 'exact', approximateAgeMonths: null,
+  arrivalDate: null, arrivalDatePrecision: null,
+  sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+  microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
+  customFields: [], status: 'active', photoDataUri: null,
+};
+
+const TOTAL_STEPS = 9; // 0-indexed steps 0..8; Task 9 adds the final review step (index 8)
 
 export function AddPetScreen({ navigation }: any) {
   const { household } = useHousehold();
-  const [name, setName] = useState('');
-  const [species, setSpecies] = useState<PetSpecies>('dog');
-  const [breed, setBreed] = useState('');
-  const [birthDate, setBirthDate] = useState(Date.now());
-  const [photoDataUri, setPhotoDataUri] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState<WizardData>(INITIAL);
   const [existingPets, setExistingPets] = useState<Pet[]>([]);
+  const [breedPickerOpen, setBreedPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,12 +38,17 @@ export function AddPetScreen({ navigation }: any) {
     return subscribeToPets(firestore, household.id, setExistingPets);
   }, [household]);
 
-  const handleSubmit = async () => {
+  const update = (patch: Partial<WizardData>) => setData((d) => ({ ...d, ...patch }));
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
+  const back = () => setStep((s) => Math.max(s - 1, 0));
+
+  const handleSave = async () => {
     if (!household) return;
     setError(null);
     setLoading(true);
     try {
-      const pet = await createPet(firestore, household.id, name, species, breed, birthDate, existingPets);
+      const { photoDataUri, ...input } = data;
+      const pet = await createPet(firestore, household.id, input, existingPets);
       if (photoDataUri) {
         await updatePetPhoto(firestore, household.id, pet.id, photoDataUri);
       }
@@ -43,19 +60,95 @@ export function AddPetScreen({ navigation }: any) {
     }
   };
 
+  const petName = data.name.trim() || 'your pet';
+
+  const renderStep = () => {
+    switch (step) {
+      case 0:
+        return (
+          <>
+            <Title>Let's add a pet</Title>
+            <AvatarPicker photoUri={data.photoDataUri} onPicked={(uri) => update({ photoDataUri: uri })} />
+            <TextField label="Name" placeholder="Pet's name" value={data.name} onChangeText={(t) => update({ name: t })} />
+          </>
+        );
+      case 1:
+        return (
+          <>
+            <Title>{`What kind of animal is ${petName}?`}</Title>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              {SPECIES_LIST.map((s) => (
+                <Chip
+                  key={s}
+                  label={`${SPECIES_EMOJI[s]} ${SPECIES_LABEL[s]}`}
+                  selected={data.species === s}
+                  onPress={() => update({ species: s, speciesOther: s === 'other' ? data.speciesOther : null })}
+                />
+              ))}
+            </View>
+            {data.species === 'other' && (
+              <TextField
+                label="What kind?"
+                placeholder="e.g. Guinea pig, tortoise..."
+                value={data.speciesOther ?? ''}
+                onChangeText={(t) => update({ speciesOther: t })}
+              />
+            )}
+          </>
+        );
+      case 2:
+        return (
+          <>
+            <Title>{`${petName}'s breed`}</Title>
+            <MutedText>Not sure, or not a specific breed? That's completely fine — pick Mixed, Stray or rescued, or Don't know.</MutedText>
+            <Button
+              title={data.breed || 'Choose a breed (optional)'}
+              variant="outline"
+              onPress={() => setBreedPickerOpen(true)}
+            />
+            <BreedPicker
+              visible={breedPickerOpen}
+              species={data.species}
+              value={data.breed}
+              onSelect={(b) => update({ breed: b })}
+              onClose={() => setBreedPickerOpen(false)}
+            />
+          </>
+        );
+      case 3:
+        return (
+          <>
+            <Title>{`When was ${petName} born?`}</Title>
+            <GracefulDateField
+              label="Birth date"
+              options={['exact', 'roughly', 'approxAge', 'unknown']}
+              precision={data.birthDatePrecision}
+              date={data.birthDate}
+              approximateAgeMonths={data.approximateAgeMonths}
+              onChange={({ precision, date, approximateAgeMonths }) =>
+                update({ birthDatePrecision: precision as DatePrecision, birthDate: date, approximateAgeMonths })
+              }
+            />
+          </>
+        );
+      default:
+        return null; // steps 4-8 added by Tasks 8-9
+    }
+  };
+
   return (
     <ScreenContainer scroll>
-      <AvatarPicker photoUri={photoDataUri} onPicked={setPhotoDataUri} />
-      <TextField label="Name" placeholder="Pet's name" value={name} onChangeText={setName} />
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        {SPECIES.map((s) => (
-          <Chip key={s} label={s} selected={species === s} onPress={() => setSpecies(s)} />
-        ))}
-      </View>
-      <TextField label="Breed" placeholder="Optional" value={breed} onChangeText={setBreed} />
-      <DateField label="Birth date" value={birthDate} onChange={setBirthDate} />
+      <MutedText>{`Step ${step + 1} of ${TOTAL_STEPS}`}</MutedText>
+      {renderStep()}
       {error && <ErrorText>{error}</ErrorText>}
-      <Button title="Add pet" onPress={handleSubmit} loading={loading} />
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        {step > 0 && <Button title="Back" variant="outline" onPress={back} style={{ flex: 1 }} />}
+        {step < TOTAL_STEPS - 1 ? (
+          <Button title="Next" onPress={next} style={{ flex: 1 }} />
+        ) : (
+          <Button title="Add pet" onPress={handleSave} loading={loading} style={{ flex: 1 }} />
+        )}
+      </View>
     </ScreenContainer>
   );
 }
