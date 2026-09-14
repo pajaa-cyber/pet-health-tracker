@@ -4,7 +4,7 @@ import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToVaccines } from '../pets/vaccineService';
 import { firestore } from '../firebase/config';
 import { Vaccine } from '../types/vaccine';
-import { ScreenContainer, Card, Button, Subtitle, MutedText } from '../components/ui';
+import { ScreenContainer, Card, Button, Subtitle, MutedText, GuidedEmptyState } from '../components/ui';
 import { spacing } from '../theme/theme';
 
 export function VaccineListScreen({ route, navigation }: any) {
@@ -31,7 +31,15 @@ export function VaccineListScreen({ route, navigation }: any) {
             {item.nextDueDate && <MutedText>Next due {new Date(item.nextDueDate).toLocaleDateString()}</MutedText>}
           </Card>
         )}
-        ListEmptyComponent={<MutedText>No vaccine records yet.</MutedText>}
+        ListEmptyComponent={
+          <GuidedEmptyState
+            emoji="💉"
+            title="No vaccines logged yet"
+            message="Track vaccinations here to spot what's due and keep a full record for the vet."
+            actionLabel="Add a vaccine"
+            onAction={() => navigation.navigate('AddVaccine', { petId })}
+          />
+        }
       />
     </ScreenContainer>
   );

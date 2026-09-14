@@ -5,7 +5,7 @@ import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { DateField } from '../components/DateField';
-import { ScreenContainer, Card, TextField, Button, ErrorText } from '../components/ui';
+import { ScreenContainer, Card, TextField, Button, ErrorText, GuidedEmptyState } from '../components/ui';
 
 export function WeightLogScreen({ route }: any) {
   const { petId } = route.params;
@@ -42,9 +42,19 @@ export function WeightLogScreen({ route }: any) {
 
   return (
     <ScreenContainer scroll>
-      <Card>
-        <WeightTrendChart logs={logs} />
-      </Card>
+      {logs.length === 0 ? (
+        <GuidedEmptyState
+          emoji="⚖️"
+          title="No weight logged yet"
+          message="Track your pet's weight to spot health changes early."
+          actionLabel="Log weight"
+          onAction={handleAdd}
+        />
+      ) : (
+        <Card>
+          <WeightTrendChart logs={logs} />
+        </Card>
+      )}
       <TextField label="Weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
       <DateField label="Date" value={date} onChange={setDate} />
       {error && <ErrorText>{error}</ErrorText>}
