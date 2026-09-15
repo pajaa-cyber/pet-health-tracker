@@ -96,7 +96,6 @@ export function HomeScreen({ navigation }: any) {
 
   return (
     <ScreenContainer style={{ flex: 1 }}>
-      <Button title="Add a pet" onPress={() => navigation.navigate('AddPet')} />
       {pets.length > 0 && <PetSelector pets={pets} />}
       <FlatList
         style={{ flex: 1 }}
@@ -106,6 +105,7 @@ export function HomeScreen({ navigation }: any) {
         renderItem={({ item }) => <PetCard pet={item} navigation={navigation} />}
         ListEmptyComponent={<MutedText>No pets yet — add one to get started.</MutedText>}
       />
+      <Button title="Add a pet" onPress={() => navigation.navigate('AddPet')} />
     </ScreenContainer>
   );
 }
