@@ -36,7 +36,7 @@ export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () =
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(15,23,42,0.4)', justifyContent: 'flex-end' }} onPress={onClose}>
+      <Pressable style={{ flex: 1, backgroundColor: 'rgba(30,27,46,0.4)', justifyContent: 'flex-end' }} onPress={onClose}>
         <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, padding: spacing.lg, gap: spacing.sm }}>
           <Title style={{ marginBottom: spacing.sm }}>Add</Title>
           {ADD_ACTIONS.map((action) => (

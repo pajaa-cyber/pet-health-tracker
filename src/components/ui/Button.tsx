@@ -13,7 +13,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
 
 const variantStyles: Record<Variant, { bg: string; border?: string; text: string }> = {
   primary: { bg: colors.primary, text: '#FFFFFF' },
-  accent: { bg: colors.accent, text: '#FFFFFF' },
+  accent: { bg: colors.accent, text: colors.accentText },
   outline: { bg: 'transparent', border: colors.primary, text: colors.primary },
   danger: { bg: colors.danger, text: '#FFFFFF' },
 };

@@ -29,7 +29,7 @@ function RaisedAddButton(props: BottomTabBarButtonProps) {
         style={{
           top: -16, alignSelf: 'center', width: 56, height: 56, borderRadius: 28,
           backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
-          shadowColor: '#0F172A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 6,
+          shadowColor: '#1E1B2E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 6,
         }}
         accessibilityRole="button"
         accessibilityLabel="Add"

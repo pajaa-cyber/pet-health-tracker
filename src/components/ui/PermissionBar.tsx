@@ -12,7 +12,7 @@ export function PermissionBar({ message, onPress }: PermissionBarProps) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button">
       <View style={{ backgroundColor: colors.accent, borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.sm }}>
-        <BodyText style={{ color: '#FFFFFF', fontWeight: '600' }}>{message}</BodyText>
+        <BodyText style={{ color: colors.accentText, fontWeight: '600' }}>{message}</BodyText>
       </View>
     </Pressable>
   );
