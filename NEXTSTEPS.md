@@ -13,14 +13,12 @@ All three earlier blockers are resolved:
 - **The "Unable to delete directory" Gradle build failure:** did not
   recur when building from a separate checkout at `C:\dev\pet-app`
   (outside the OneDrive-synced folder) — `npx expo run:android` succeeded
-  first try (`BUILD SUCCESSFUL in 3m 11s`). This is strong evidence for
-  the OneDrive/AV theory already documented in CLAUDE.md, though not
-  final proof (an AV exclusion on the OneDrive path itself was never
-  tried as a separate variable). **The owner still needs to decide**
-  whether `C:\dev\pet-app` becomes the primary checkout going forward, or
-  the OneDrive one stays primary with a sync/AV exclusion added instead —
-  neither this file nor CLAUDE.md has been rewritten to assume one or the
-  other yet.
+  first try (`BUILD SUCCESSFUL in 3m 11s`). **The owner has decided:
+  `C:\dev\pet-app` is now the project's one and only checkout, permanently
+  — no more OneDrive, full stop.** The old OneDrive folder
+  (`C:\Users\PC\OneDrive\Desktop\app`) no longer exists on this machine.
+  CLAUDE.md has been updated to describe `C:\dev\pet-app` as the project's
+  home throughout.
 - **The 7-item device checklist itself:** ran on the real phone from
   `C:\dev\pet-app` and every item passed — permission deny/grant, a real
   notification actually arriving (with a ~1-2 minute delivery lag that
@@ -236,7 +234,7 @@ Building from a git worktree nested under `.claude/worktrees/<name>` can
 fail with `ninja: error: ... Filename longer than 260 characters` during
 the native CMake build of `react-native-safe-area-context`/
 `react-native-screens` — Windows' MAX_PATH limit. **Fix: create SDD
-worktrees at a short path outside OneDrive from the start — `C:\dev\<plan-name>`,
+worktrees at a short path from the start — `C:\dev\<plan-name>`,
 not `.claude/worktrees/<name>`.** Plans 3, 4, and 5 all used this pattern
 with no build issues. Note: removing a worktree afterward can still fail
 with the same "Filename too long" error on deeply-nested `node_modules`
