@@ -6,6 +6,7 @@ import { subscribeToVaccines } from '../pets/vaccineService';
 import { subscribeToMedications } from '../pets/medicationService';
 import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { computeUpcoming } from '../reminders/computeUpcoming';
+import { REMINDERS_HORIZON_DAYS } from '../reminders/useUpcomingReminders';
 import { usePetSelection, reconcileSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
 import { Pet } from '../types/pet';
@@ -45,7 +46,7 @@ function PetCard({ pet, navigation }: { pet: Pet; navigation: any }) {
   const nextDue = computeUpcoming(
     { pets: [pet], vaccines, medications, vetVisits },
     Date.now(),
-    30
+    REMINDERS_HORIZON_DAYS
   )[0] ?? null;
 
   return (

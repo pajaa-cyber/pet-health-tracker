@@ -1,4 +1,5 @@
 import React from 'react';
+import './src/reminders/notificationSetup';
 import { AuthProvider } from './src/auth/AuthContext';
 import { HouseholdProvider } from './src/household/HouseholdContext';
 import { PetSelectionProvider } from './src/selection/PetSelectionContext';

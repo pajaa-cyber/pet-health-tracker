@@ -12,6 +12,8 @@ import { subscribeToVaccines } from '../pets/vaccineService';
 import { subscribeToMedications } from '../pets/medicationService';
 import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { rescheduleNotifications } from '../reminders/notificationScheduler';
+import { getSnoozes, isSnoozed } from '../reminders/snoozeStore';
+import { REMINDERS_HORIZON_DAYS } from '../reminders/useUpcomingReminders';
 import { Pet } from '../types/pet';
 import { Vaccine } from '../types/vaccine';
 import { Medication } from '../types/medication';
@@ -54,8 +56,11 @@ export function ReminderSettingsScreen() {
         const unsub = subscribeToVetVisits(firestore, household.id, p.id, (v) => { resolve(v); unsub(); });
       }))).then((lists) => lists.flat()),
     ]);
-    const reminders = computeUpcoming({ pets, vaccines, medications, vetVisits }, Date.now(), 30);
-    await rescheduleNotifications(reminders, settings);
+    const reminders = computeUpcoming({ pets, vaccines, medications, vetVisits }, Date.now(), REMINDERS_HORIZON_DAYS);
+    const snoozes = await getSnoozes();
+    const now = Date.now();
+    const visibleReminders = reminders.filter((r) => !isSnoozed(snoozes, r.id, now));
+    await rescheduleNotifications(visibleReminders, settings);
   };
 
   if (!loaded) {

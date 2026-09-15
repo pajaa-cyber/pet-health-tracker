@@ -13,7 +13,7 @@ import { computeUpcoming, UpcomingReminder } from './computeUpcoming';
 // How far ahead the in-app reminders list looks. Separate from a
 // notification's lead time (settingsStore.ts) — this just bounds how much
 // the list itself shows; overdue items are always included regardless.
-const REMINDERS_HORIZON_DAYS = 30;
+export const REMINDERS_HORIZON_DAYS = 30;
 
 export function useUpcomingReminders(pets: Pet[]): UpcomingReminder[] {
   const { household } = useHousehold();
@@ -42,7 +42,7 @@ export function useUpcomingReminders(pets: Pet[]): UpcomingReminder[] {
     // contents haven't changed, which would tear down and recreate every
     // listener needlessly.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [household, petIdsKey]);
+  }, [household?.id, petIdsKey]);
 
   return useMemo(() => {
     const allVaccines = pets.flatMap((p) => vaccinesByPet[p.id] ?? []);

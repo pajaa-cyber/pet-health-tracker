@@ -59,6 +59,11 @@ export function CalendarScreen({ navigation }: any) {
       )}
       <Title>Reminders</Title>
       <MutedText>Every vaccine, dose, and follow-up coming up across your pets.</MutedText>
+      <Button
+        title="Reminder settings"
+        variant="outline"
+        onPress={() => navigation.navigate('ReminderSettings')}
+      />
       <FlatList
         data={visibleReminders}
         keyExtractor={(r) => r.id}
