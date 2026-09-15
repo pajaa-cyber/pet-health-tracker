@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { View, BackHandler } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { createPet, updatePetPhoto, subscribeToPets, NewPetInput } from '../pets/petService';
 import { firestore } from '../firebase/config';
@@ -43,6 +43,21 @@ export function AddPetScreen({ navigation }: any) {
   const update = (patch: Partial<WizardData>) => setData((d) => ({ ...d, ...patch }));
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
+
+  // The hardware/gesture back button pops the whole screen by default,
+  // discarding every step's answers — intercept it so it steps the wizard
+  // backward instead, matching the in-app Back button, and only actually
+  // leaves the screen once the user is on step 0.
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step > 0) {
+        back();
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, [step]);
 
   const handleSave = async () => {
     if (!household) return;
