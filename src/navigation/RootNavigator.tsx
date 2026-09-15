@@ -8,6 +8,7 @@ import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
 import { MainTabs } from './MainTabs';
 import { ReminderSettingsScreen } from './ReminderSettingsScreen';
+import { ReminderRescheduler } from '../reminders/ReminderRescheduler';
 import { colors } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
@@ -21,6 +22,7 @@ export function RootNavigator() {
 
   return (
     <NavigationContainer>
+      {household && <ReminderRescheduler />}
       <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
         {!user ? (
           <>
