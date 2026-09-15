@@ -4,6 +4,25 @@ Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
 
+## ✅ Bolt-connected purple theme merged and verified on-device (2026-09-15) — Plan 7 is next
+
+After Plan 6 merged, the owner connected this GitHub repo to Bolt
+(bolt.new), which pushed three commits directly to `master` outside any
+Claude Code session: a purple color-theme rebrand (`src/theme/theme.ts`),
+an accessibility contrast fix (new `accentText` token so text on the
+orange accent surface isn't hardcoded white), and a `.gitignore` addition
+(`.env`). Merged cleanly into the Plan 6 branch with zero conflicts (the
+one shared file, `AddSheet.tsx`, had non-overlapping changes). Full detail
+in CLAUDE.md's "UI/Design system" section, "Palette (updated 2026-09-15)"
+paragraph.
+
+**Rebuilt from `master` and confirmed live on the real device**: purple
+header/buttons/accents, orange Calendar-tab icon and "+" button unchanged,
+all of Plan 6's layout fixes (no blank gap under the pet selector, "Add a
+pet" at the bottom) still holding correctly with the new palette. No code
+changes were needed beyond what Bolt already pushed — every screen reads
+colors by token name, so the rebrand took effect automatically.
+
 ## ✅ Plan 6's on-device checklist passed in full (2026-09-15) — Plan 7 is next
 
 Plan 6 ("Calendar") was built via `superpowers:subagent-driven-development`
