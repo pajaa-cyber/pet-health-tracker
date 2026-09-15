@@ -1,18 +1,23 @@
 import type { Firestore } from '@react-native-firebase/firestore';
 
 const mockCreatedDocRef = { id: 'vax-1' };
+const mockVaxDocRef = { id: 'vax-1-existing' };
 const mockCollectionRef = {};
 const mockSetDoc = jest.fn();
+const mockUpdateDoc = jest.fn();
 const mockOnSnapshot = jest.fn();
 
 jest.mock('@react-native-firebase/firestore', () => ({
   collection: jest.fn(() => mockCollectionRef),
-  doc: jest.fn(() => mockCreatedDocRef),
+  doc: jest.fn((_refOrDb: unknown, ...segments: string[]) =>
+    segments[segments.length - 1] === 'vax-1-existing' ? mockVaxDocRef : mockCreatedDocRef
+  ),
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
+  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
   onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
 }));
 
-import { createVaccine, subscribeToVaccines } from '../src/pets/vaccineService';
+import { createVaccine, subscribeToVaccines, updateVaccine } from '../src/pets/vaccineService';
 
 const fakeDb = {} as Firestore;
 
@@ -48,5 +53,13 @@ describe('vaccineService', () => {
     subscribeToVaccines(fakeDb, 'h1', 'pet-1', callback);
 
     expect(callback).toHaveBeenCalledWith([fakeVaccine]);
+  });
+
+  it('updates a vaccine, e.g. to clear nextDueDate after marking it done', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await updateVaccine(fakeDb, 'h1', 'pet-1', 'vax-1-existing', { nextDueDate: null });
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockVaxDocRef, { nextDueDate: null });
   });
 });

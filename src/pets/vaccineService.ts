@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   setDoc,
+  updateDoc,
   onSnapshot,
   type Firestore,
   type Unsubscribe,
@@ -39,4 +40,14 @@ export function subscribeToVaccines(
       callback([]);
     }
   );
+}
+
+export async function updateVaccine(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  vaccineId: string,
+  updates: Partial<Vaccine>
+): Promise<void> {
+  await updateDoc(doc(db, 'households', householdId, 'pets', petId, 'vaccines', vaccineId), updates);
 }
