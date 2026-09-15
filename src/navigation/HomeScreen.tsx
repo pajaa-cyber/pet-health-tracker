@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable, Image, View } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToPets } from '../pets/petService';
+import { subscribeToPets, activePets } from '../pets/petService';
 import { subscribeToVaccines } from '../pets/vaccineService';
 import { getNextDue } from '../pets/upcomingSummary';
 import { usePetSelection, reconcileSelection } from '../selection/PetSelectionContext';
@@ -67,9 +67,7 @@ export function HomeScreen({ navigation }: any) {
 
   useEffect(() => {
     if (!household) return;
-    return subscribeToPets(firestore, household.id, (all) =>
-      setPets(all.filter((p) => (p.status ?? 'active') === 'active'))
-    );
+    return subscribeToPets(firestore, household.id, (all) => setPets(activePets(all)));
   }, [household]);
 
   useEffect(() => {

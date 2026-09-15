@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToPets } from '../pets/petService';
+import { subscribeToPets, activePets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { Pet } from '../types/pet';
 import { ScreenContainer, Card, Subtitle, MutedText } from '../components/ui';
@@ -15,7 +15,7 @@ export function ChoosePetForAddScreen({ route, navigation }: any) {
 
   useEffect(() => {
     if (!household) return;
-    return subscribeToPets(firestore, household.id, setPets);
+    return subscribeToPets(firestore, household.id, (all) => setPets(activePets(all)));
   }, [household]);
 
   return (

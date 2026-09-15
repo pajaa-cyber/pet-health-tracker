@@ -63,6 +63,10 @@ export async function getPet(db: Firestore, householdId: string, petId: string):
   return snap.exists() ? (snap.data() as Pet) : null;
 }
 
+export function activePets(pets: Pet[]): Pet[] {
+  return pets.filter((p) => (p.status ?? 'active') === 'active');
+}
+
 export function subscribeToPets(
   db: Firestore,
   householdId: string,

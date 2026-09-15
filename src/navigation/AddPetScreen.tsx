@@ -237,6 +237,11 @@ export function AddPetScreen({ navigation }: any) {
                     onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
                   />
                 </View>
+                <Button
+                  title="Remove"
+                  variant="outline"
+                  onPress={() => update({ customFields: data.customFields.filter((_, j) => j !== i) })}
+                />
               </View>
             ))}
             <Button

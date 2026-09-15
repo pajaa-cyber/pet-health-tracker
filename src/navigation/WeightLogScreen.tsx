@@ -48,7 +48,7 @@ export function WeightLogScreen({ route }: any) {
           title="No weight logged yet"
           message="Track your pet's weight to spot health changes early."
           actionLabel="Log weight"
-          onAction={handleAdd}
+          onAction={() => {}}
         />
       ) : (
         <Card>
