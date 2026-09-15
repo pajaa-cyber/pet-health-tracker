@@ -6,6 +6,7 @@ export interface MedicationSchedule {
 export interface MedicationDoseLog {
   givenBy: string; // userId
   givenAt: number; // epoch millis
+  skipped?: boolean; // true if this entry records a skipped dose, not a given one
 }
 
 export interface Medication {

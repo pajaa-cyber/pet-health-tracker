@@ -5,4 +5,5 @@ export interface VetVisit {
   reason: string;
   notes: string;
   documentUrls: string[];
+  followUpDate: number | null; // "come back on/around this date" — null if none was set
 }
