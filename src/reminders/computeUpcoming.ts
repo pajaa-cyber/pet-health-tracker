@@ -29,8 +29,22 @@ export interface UpcomingInput {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Due dates come from a date-only picker (DateField.tsx) but are stored as
+// exact-millisecond timestamps that inherit whatever time-of-day the field
+// happened to be touched at, not midnight. Comparing those timestamps to
+// `now` directly would flip a "due today" reminder to overdue the moment
+// that incidental time-of-day passes, hours before the day is actually
+// over — so overdue is decided by calendar day, not raw millis.
+function startOfDay(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 export function computeUpcoming(input: UpcomingInput, now: number, horizonDays: number): UpcomingReminder[] {
   const horizonMs = now + horizonDays * DAY_MS;
+  const today = startOfDay(now);
+  const isOverdue = (dueDate: number) => startOfDay(dueDate) < today;
   const petName = (petId: string) => input.pets.find((p) => p.id === petId)?.name ?? 'Pet';
   const reminders: UpcomingReminder[] = [];
 
@@ -44,7 +58,7 @@ export function computeUpcoming(input: UpcomingInput, now: number, horizonDays: 
       sourceId: vax.id,
       label: `${vax.name} vaccine`,
       dueDate: vax.nextDueDate,
-      overdue: vax.nextDueDate < now,
+      overdue: isOverdue(vax.nextDueDate),
     });
   }
 
@@ -59,7 +73,7 @@ export function computeUpcoming(input: UpcomingInput, now: number, horizonDays: 
       sourceId: med.id,
       label: `${med.name} dose`,
       dueDate,
-      overdue: dueDate < now,
+      overdue: isOverdue(dueDate),
     });
   }
 
@@ -73,7 +87,7 @@ export function computeUpcoming(input: UpcomingInput, now: number, horizonDays: 
       sourceId: visit.id,
       label: visit.reason ? `Follow-up: ${visit.reason}` : 'Follow-up visit',
       dueDate: visit.followUpDate,
-      overdue: visit.followUpDate < now,
+      overdue: isOverdue(visit.followUpDate),
     });
   }
 

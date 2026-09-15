@@ -39,6 +39,30 @@ describe('computeUpcoming', () => {
     expect(result[0]).toMatchObject({ overdue: true, dueDate: NOW - 5 * DAY_MS, type: 'vaccine' });
   });
 
+  it('does not treat a due date earlier today as overdue just because its time-of-day has passed', () => {
+    // A date field's stored value carries whatever time-of-day it was picked at
+    // (see DateField.tsx), not midnight — so "due today" is often a due date
+    // whose timestamp is earlier than the current moment while still being
+    // the same calendar day. It must not flip to overdue until the day itself
+    // has passed, otherwise same-day reminders go overdue (and stop being
+    // eligible for a notification) within minutes of being created.
+    const today9am = new Date('2026-09-15T09:00:00').getTime();
+    const today5pm = new Date('2026-09-15T17:00:00').getTime();
+    const input = { ...emptyInput(), vaccines: [vaccine({ nextDueDate: today9am })] };
+    const result = computeUpcoming(input, today5pm, 30);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ overdue: false, dueDate: today9am });
+  });
+
+  it('treats a due date from an earlier calendar day as overdue even late in the current day', () => {
+    const yesterday11pm = new Date('2026-09-14T23:00:00').getTime();
+    const today1am = new Date('2026-09-15T01:00:00').getTime();
+    const input = { ...emptyInput(), vaccines: [vaccine({ nextDueDate: yesterday11pm })] };
+    const result = computeUpcoming(input, today1am, 30);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ overdue: true, dueDate: yesterday11pm });
+  });
+
   it('excludes a medication that has ended', () => {
     const input = { ...emptyInput(), medications: [medication({ endDate: NOW - DAY_MS })] };
     expect(computeUpcoming(input, NOW, 30)).toEqual([]);
