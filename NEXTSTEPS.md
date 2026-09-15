@@ -4,55 +4,72 @@ Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
 
-## ✅ Plan 5's on-device checklist passed in full (2026-09-15) — Plan 6 is unblocked
+## ✅ Plan 6's on-device checklist passed in full (2026-09-15) — Plan 7 is next
 
-All three earlier blockers are resolved:
+Plan 6 ("Calendar") was built via `superpowers:subagent-driven-development`
+in a dedicated worktree at `C:\dev\calendar` (branch `plan-6-calendar`),
+11 tasks plus a final whole-branch review (opus, "Ready to merge: With
+fixes" — 0 Critical, 4 Important) and one fix wave (re-reviewed clean).
+Merged into `master` after the full on-device checklist passed. Full
+build detail: CLAUDE.md's "Plan 6 device verification completed" note and
+its "Calendar (Plan 6)" architecture paragraph.
 
-- **adb/USB flakiness:** fixed by a physical cable unplug/replug (per the
-  usual fix, see "Other environment notes" below).
-- **The "Unable to delete directory" Gradle build failure:** did not
-  recur when building from a separate checkout at `C:\dev\pet-app`
-  (outside the OneDrive-synced folder) — `npx expo run:android` succeeded
-  first try (`BUILD SUCCESSFUL in 3m 11s`). **The owner has decided:
-  `C:\dev\pet-app` is now the project's one and only checkout, permanently
-  — no more OneDrive, full stop.** The old OneDrive folder
-  (`C:\Users\PC\OneDrive\Desktop\app`) no longer exists on this machine.
-  CLAUDE.md has been updated to describe `C:\dev\pet-app` as the project's
-  home throughout.
-- **The 7-item device checklist itself:** ran on the real phone from
-  `C:\dev\pet-app` and every item passed — permission deny/grant, a real
-  notification actually arriving (with a ~1-2 minute delivery lag that
-  turned out to be normal Android alarm-batching behavior, not a bug),
-  Skip showing "Last skipped" with an exact time, Done correctly clearing
-  a vaccine/vet-visit reminder vs. advancing a medication's schedule
-  forward, Snooze hiding a reminder immediately with no leftover alarm,
-  and live cross-listener sync (a newly-added vaccine appearing on the
-  Calendar tab with no manual refresh).
+**On-device checklist: every item passed**, most driven directly via `adb`
+(uiautomator layout dumps + simulated taps) rather than relying on the
+owner's eyes for each one — density (View full day gives a day its own
+full screen), pet-filter toggling, empty Week/Month/Overdue states,
+Skip/Done on real entries, "Add to Calendar" reaching the wizard from a
+different tab, Week/Month/Today navigation across a year boundary
+(Sept → Jan and back, confirmed correct leading/trailing dimmed days),
+and — once the owner added a second pet (Macmac, a cat) specifically to
+unblock this check — a real "Joint vet trip" event confirmed showing
+under "All Pets" with two distinct coloured dots, and still present when
+filtered to either pet individually.
 
-**Three real bugs were found and fixed along the way** (all committed and
-pushed to `master`, see CLAUDE.md's "Plan 5 device verification completed"
-note for full detail — this section is just the short version):
+**Eight real bugs found and fixed along the way** (all committed and
+pushed before merge — see CLAUDE.md's "Plan 6 device verification
+completed" note for full detail, this is the short version):
 
-1. A reminder due "today" could flip to overdue within minutes of being
-   set (exact-millisecond comparison instead of calendar-day comparison)
-   — fixed in `src/reminders/computeUpcoming.ts`, two new tests added.
-2. Firestore listener churn (notably on app foreground) could trigger a
-   redundant notification-reschedule cycle that cancelled a real,
-   about-to-fire alarm without rescheduling it — confirmed via
-   `adb shell dumpsys alarm` showing an alarm cancelled 17 seconds after
-   its own target time. Fixed in `src/reminders/ReminderRescheduler.tsx`
-   with a content-based dedup guard.
-3. The **live Firestore project's security rules were stale** — `vetVisits`
-   update failed with a real permission-denied error on-device even though
-   the local `firestore.rules` file correctly allows it. Fixed by running
-   `firebase deploy --only firestore:rules --project pet-tracker-app-63512`.
-   **There is no automated rules deployment in this project** — after any
-   future `firestore.rules` edit, redeploy by hand or this will recur.
+1. Week/Month grids and `entriesForDay` used fixed-millisecond day-offset
+   math that desyncs across a DST transition — fixed with a new
+   `addDays()` pure helper, calendar-field arithmetic instead, covered by
+   a regression test pinned to a real transition date.
+2. `EditEventScreen` re-synced its form from every Firestore snapshot, not
+   just the first, silently discarding whatever the user had typed if any
+   snapshot arrived while the form was open — fixed with a seed-once ref
+   guard.
+3. No way to navigate Week/Month to a different week/month — added
+   `‹ / Today / ›` controls, verified correct across a year boundary.
+4. `EntryCard` dropped the pet's name, showing only a colour dot —
+   regressed Plan 5's display and the design spec's own annotation; fixed
+   by rendering the name back in.
+5. `PetSelector`'s horizontal `ScrollView` silently expanded to fill its
+   flex column (a React Native default) — the real cause of a blank gap
+   the owner spotted on both the Pets and Calendar tabs, found via a live
+   `uiautomator` dump after a first, wrong theory (about the FlatLists
+   below it) was tried and disproven the same way.
+6. Month view's entries list rendered but was squeezed to zero visible
+   height by the 6-row grid — confirmed via an on-device screenshot after
+   selecting a day with a real entry; fixed with a "View full day" hint
+   in Month mode instead of an inline list that has no room to render.
+7. `AddPetScreen`'s hardware/gesture back button exited the whole wizard
+   instead of stepping it backward like its own in-app Back button —
+   fixed with a `BackHandler` listener, verified end-to-end on-device via
+   `adb` (step 3 → 2 → 1 → exits, exactly as intended).
+8. Reminder cards' three buttons (Done/Skip/Snooze) wrapped to two lines
+   in the narrow layout — the owner asked to drop Snooze from the UI
+   entirely rather than just fix the wrapping; the underlying snooze
+   storage/filtering is untouched and easily re-wired later if wanted.
+   The equivalent event-card crowding was fixed by moving completion to a
+   small checkbox, leaving just Skip/Edit — closer to the original design
+   spec anyway.
 
-**Next:** start Plan 6 ("Calendar", Phase 4 of the execution pack) — see
-"If resuming with an SDD-style process again" near the bottom of this file
-for the standing process, and CLAUDE.md's "Reminders and notifications
-(Plan 5)" paragraph for what the calendar view needs to build around.
+**Next:** start Plan 7 ("Vets directory and household members", Phase 5 of
+the execution pack) — see "If resuming with an SDD-style process again"
+near the bottom of this file for the standing process, and CLAUDE.md's
+"Calendar (Plan 6)" paragraph for what already exists to build around
+(the `usePetSelection()`/`<PetSelector>` primitive, the household-level
+collection pattern `events` established, etc.).
 
 ## What this is
 
@@ -62,10 +79,9 @@ Windows PC.
 
 - Original design spec: `docs/superpowers/specs/2026-09-11-pet-health-app-design.md`
 - Plans 1 ("Foundation & Auth"), 2 ("Pet Records Core"), 3 ("App shell and
-  home screen"), and 4 ("Pet profile depth") — **all complete, device-
-  verified, merged, on `master`.** Plan 5 ("Reminders and notifications")
-  — **code complete and merged, device verification outstanding (see top
-  of this file).**
+  home screen"), 4 ("Pet profile depth"), 5 ("Reminders and notifications"),
+  and 6 ("Calendar") — **all complete, device-verified, merged, on
+  `master`.**
 - The owner's roadmap for Plans 3-9 lives in two docs at
   `docs/superpowers/specs/2026-09-13-build-plan.md` (analysis/reasoning)
   and `docs/superpowers/specs/2026-09-13-execution-pack.md` (locked
@@ -73,11 +89,10 @@ Windows PC.
   center/authoritative documents for all future plan work**, not just
   background reading. If only one, read the execution pack. Plan numbering
   follows the execution pack's Phase→Plan mapping: Phase 1 = Plan 3 (done),
-  Phase 2 = Plan 4 (done), Phase 3 = Plan 5 (done, pending device check),
-  Phase 4 = Plan 6 "Calendar" (**next, once Plan 5 is device-verified**),
-  Phase 5 = Plan 7 "Vets directory and household members", Phase 6 =
-  Plan 8 "Medical records, documents, passport", Phase 7 = Plan 9
-  "Subscriptions and release."
+  Phase 2 = Plan 4 (done), Phase 3 = Plan 5 (done), Phase 4 = Plan 6
+  "Calendar" (done), Phase 5 = Plan 7 "Vets directory and household
+  members" (**next**), Phase 6 = Plan 8 "Medical records, documents,
+  passport", Phase 7 = Plan 9 "Subscriptions and release."
 
 ## ⚠️ Data-loss incident, 2026-09-14 — read this before starting any multi-task plan
 
@@ -97,7 +112,36 @@ freely, without asking first, for this project** — given the incident
 above. Applies to all future sessions on this project unless the owner
 says otherwise.
 
-## Plan 5 — code complete, merged to `master`, device verification outstanding
+## Plan 6 — complete, merged to `master`, device-verified
+
+Built via `superpowers:subagent-driven-development` in a dedicated
+worktree (`C:\dev\calendar`, branch `plan-6-calendar`), 11 tasks (9
+originally planned + Task 11 "DayDetailScreen" added mid-plan after
+on-device testing surfaced the need for it), each with its own
+task-scoped review, plus a final whole-branch review (opus, "Ready to
+merge: With fixes" — 4 Important findings, 0 Critical) and one fix wave
+(re-reviewed clean). Full detail, including the plan's own self-review
+catching a real bug (a snooze-key mismatch) before the plan was even
+committed: `docs/superpowers/plans/2026-09-15-calendar.md`. See
+CLAUDE.md's "Calendar (Plan 6)" paragraph for the permanent architecture
+reference, and this file's top section for the device-verification
+summary and the eight bugs it found and fixed.
+
+**What it built:** a real week/month calendar in the Calendar tab —
+`calendarEntries.ts` (a second pure module, matching Plan 5's
+`computeUpcoming.ts` discipline) merges reminders with a new hand-entered
+`events` collection; hand-rolled `WeekView`/`MonthView` grids (no new
+dependency); `EntryCard` as the one shared row component; a 3-step add
+wizard and a flat edit screen for events; `DayDetailScreen` as a
+full-day agenda reachable via "View full day"; Week/Month/Overdue filter
+pills with `‹ / Today / ›` navigation.
+
+**One thing parked, not fixed:** none blocking — see CLAUDE.md's Known
+gaps for the full list of Minor items (event-collection pagination,
+Done/Skip error surfacing, an `AddEventScreen` empty-household edge case,
+etc.), all deliberately deferred as genuine future work, not defects.
+
+## Plan 5 — complete, merged to `master`, device-verified
 
 Built via `superpowers:subagent-driven-development`, 14 tasks, each with
 its own task-scoped review, plus a final whole-branch review (opus,
@@ -306,12 +350,26 @@ syntax.
    case: one calendar day early/late, twice a year).
 10. **RESOLVED (2026-09-15): Plan 5's device verification ran and passed
     in full — see the top of this file.**
+11. Plan 6's logged-not-fixed Minors: no query limit/pagination on the
+    `events` collection; `events`' rules `allow delete` has no test
+    coverage (matches pre-existing `vetVisits`); Done/Skip/toggle-complete
+    on the Calendar screens have no error surface (extends Plan 5's same
+    gap to event writes); `AddEventScreen` dead-ends with a disabled
+    "Next" for a zero-pet household; `EditEventScreen` still shows
+    "Loading…" forever if the household's event list is genuinely empty
+    on first snapshot; `EntryCard`'s pet-names row needs
+    `accessible={true}` for its `accessibilityLabel` to work as intended;
+    `DayDetailScreen` adds a 4th screen's worth of listeners to the
+    already-logged fan-out gap (item 9 above).
+12. **RESOLVED (2026-09-15): Plan 6's device verification ran and passed
+    in full — see the top of this file.**
 
-## If resuming with an SDD-style process again (e.g. for Plan 6)
+## If resuming with an SDD-style process again (e.g. for Plan 7)
 
-Plan 6 can now start — Plan 5's device checklist (top of this file) has
-passed in full. Same pattern as Plans 1-5: dedicated worktree per plan at
-`C:\dev\<name>` (not `.claude/worktrees/<name>`), executed via
+Plan 7 ("Vets directory and household members") can now start — Plan 6's
+device checklist (top of this file) has passed in full. Same pattern as
+Plans 1-6: dedicated worktree per plan at `C:\dev\<name>` (not
+`.claude/worktrees/<name>`), executed via
 `superpowers:subagent-driven-development`, merged via
 `superpowers:finishing-a-development-branch` once complete and **actually
 seen working on the phone** — reviewed is not verified, per this
@@ -319,15 +377,18 @@ project's own repeated lesson (the join-household rules bug, the data-
 loss incident, and every plan's final review so far catching real
 user-visible bugs that no single task review had caught) all survived
 confident claims until someone actually ran the thing or looked at the
-whole branch at once. Plan 5's own device-verification session added yet
-another instance of this lesson: on-device testing itself (not any task
-review, not any final review) is what caught its three real bugs (see the
-top of this file) — code review and 115 automated tests had already
-passed clean.
+whole branch at once. Plan 6's own device-verification session added the
+most dramatic instance of this lesson yet: eight real bugs found via
+on-device testing (several self-driven via `adb` uiautomator dumps, not
+just asked of the owner) — code review and the full automated suite had
+already passed clean on all of them.
 
-**Read `CLAUDE.md`'s "Reminders and notifications (Plan 5)" paragraph
-before starting Plan 6** — the calendar's week/month views will read from
-`computeUpcoming` and are expected to grow around the existing reminders
-list in `CalendarScreen.tsx`, not replace it outright; reuse the shared
-`usePetSelection()`/`<PetSelector>` primitive again, per the execution
-pack's explicit requirement.
+**Read `CLAUDE.md`'s "Calendar (Plan 6)" paragraph before starting Plan
+7** — reuse the shared `usePetSelection()`/`<PetSelector>` primitive
+again, per the execution pack's explicit requirement, and follow the
+household-level-collection-with-a-`petIds`/similar-array pattern
+`events` established if vets need to reference multiple pets the same
+way. Also worth reading: the `addDays()` pure helper in
+`calendarEntries.ts` is the only DST-safe way to do day-boundary
+arithmetic in this codebase now — reuse it rather than reintroducing
+`+ n * DAY_MS` math anywhere new.

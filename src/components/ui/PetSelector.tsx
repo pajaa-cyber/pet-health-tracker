@@ -11,7 +11,12 @@ export function PetSelector({ pets }: { pets: Pet[] }) {
   const { selectedPetId, setSelectedPetId } = usePetSelection();
 
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0 }}
+      contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.xs }}
+    >
       <Pressable
         onPress={() => setSelectedPetId('all')}
         accessibilityRole="button"
