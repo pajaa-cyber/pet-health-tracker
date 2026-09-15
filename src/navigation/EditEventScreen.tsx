@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
@@ -24,6 +24,14 @@ export function EditEventScreen({ route, navigation }: any) {
   const [date, setDate] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  // Seeds the form once from the first snapshot that contains the event,
+  // then never again — without this, any later snapshot while the form is
+  // open (another member's write, that same write's local-then-server echo,
+  // or a slow-network double delivery) silently clobbers whatever the user
+  // has typed. A ref (not state) so the check inside the listener callback
+  // always sees the latest value without needing to be a dependency.
+  const loadedEventRef = useRef(false);
 
   useEffect(() => {
     if (!household) return;
@@ -33,14 +41,27 @@ export function EditEventScreen({ route, navigation }: any) {
   useEffect(() => {
     if (!household) return;
     return subscribeToEvents(firestore, household.id, (events) => {
+      if (loadedEventRef.current) return;
       const event = events.find((e) => e.id === eventId);
-      if (!event) return;
+      if (!event) {
+        // onSnapshot always delivers an initial snapshot synchronously (even
+        // from cache) — if that first snapshot has events but none match
+        // eventId, there's nothing to wait for: the event was deleted
+        // elsewhere or eventId is bad. Surface that instead of spinning on
+        // "Loading…" forever. A later snapshot could in principle still add
+        // a matching event, but once loadedEventRef is never set, we treat
+        // "any snapshot with no match" as not-found — simplest correct
+        // behavior for this edge case, not a full retry system.
+        if (events.length > 0) setNotFound(true);
+        return;
+      }
       setPetIds(event.petIds);
       setType(event.type);
       setTitle(event.title);
       setNotes(event.notes);
       setDate(event.date);
       setLoaded(true);
+      loadedEventRef.current = true;
     });
   }, [household, eventId]);
 
@@ -61,6 +82,15 @@ export function EditEventScreen({ route, navigation }: any) {
       setSaving(false);
     }
   };
+
+  if (notFound) {
+    return (
+      <ScreenContainer>
+        <ErrorText>Event not found.</ErrorText>
+        <Button title="Go back" onPress={() => navigation.goBack()} />
+      </ScreenContainer>
+    );
+  }
 
   if (!loaded) {
     return (

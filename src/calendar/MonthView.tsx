@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { CalendarEntry, daysWithEntries, startOfWeek } from './calendarEntries';
+import { CalendarEntry, daysWithEntries, startOfWeek, addDays } from './calendarEntries';
 import { MutedText, BodyText } from '../components/ui';
 import { colors, radii, spacing } from '../theme/theme';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const GRID_DAYS = 42; // 6 weeks — keeps the grid a fixed height across every month
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
@@ -17,8 +16,8 @@ interface MonthViewProps {
 
 export function MonthView({ monthStart, selectedDate, entries, onSelectDate }: MonthViewProps) {
   const gridStart = startOfWeek(monthStart);
-  const days = Array.from({ length: GRID_DAYS }, (_, i) => gridStart + i * DAY_MS);
-  const markedDays = new Set(daysWithEntries(entries, gridStart, gridStart + GRID_DAYS * DAY_MS));
+  const days = Array.from({ length: GRID_DAYS }, (_, i) => addDays(gridStart, i));
+  const markedDays = new Set(daysWithEntries(entries, gridStart, addDays(gridStart, GRID_DAYS)));
   const monthIndex = new Date(monthStart).getMonth();
 
   return (

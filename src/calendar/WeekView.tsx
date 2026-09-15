@@ -1,10 +1,9 @@
 import React from 'react';
 import { View, Pressable } from 'react-native';
-import { CalendarEntry, daysWithEntries } from './calendarEntries';
+import { CalendarEntry, daysWithEntries, addDays } from './calendarEntries';
 import { MutedText, BodyText } from '../components/ui';
 import { colors, radii, spacing } from '../theme/theme';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 interface WeekViewProps {
@@ -15,8 +14,8 @@ interface WeekViewProps {
 }
 
 export function WeekView({ weekStart, selectedDate, entries, onSelectDate }: WeekViewProps) {
-  const days = Array.from({ length: 7 }, (_, i) => weekStart + i * DAY_MS);
-  const markedDays = new Set(daysWithEntries(entries, weekStart, weekStart + 7 * DAY_MS));
+  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const markedDays = new Set(daysWithEntries(entries, weekStart, addDays(weekStart, 7)));
 
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

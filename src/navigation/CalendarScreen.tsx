@@ -12,7 +12,7 @@ import { useCalendarEvents } from '../calendar/useCalendarEvents';
 import { updateEvent } from '../calendar/eventService';
 import {
   mergeCalendarEntries, entriesForDay, entriesForPet, overdueEntries,
-  startOfWeek, startOfMonth, CalendarEntry,
+  startOfWeek, startOfMonth, addDays, CalendarEntry,
 } from '../calendar/calendarEntries';
 import { startOfDay } from '../reminders/computeUpcoming';
 import { EntryCard } from '../calendar/EntryCard';
@@ -21,12 +21,23 @@ import { MonthView } from '../calendar/MonthView';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { Pet } from '../types/pet';
 import {
-  ScreenContainer, Card, Button, Chip, Title, Subtitle, MutedText, PermissionBar, PetSelector, GuidedEmptyState,
+  ScreenContainer, Card, Button, Chip, Title, Subtitle, PermissionBar, PetSelector, GuidedEmptyState,
 } from '../components/ui';
-import { colors, spacing } from '../theme/theme';
+import { spacing } from '../theme/theme';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 type ViewMode = 'week' | 'month' | 'overdue';
+
+// One calendar month back/forward from `date`. Clamps to the 1st before
+// calling setMonth so a selectedDate on e.g. the 31st doesn't overflow into
+// the wrong month when the adjacent month is shorter (setMonth(-1) from
+// March 31st would otherwise land on ~March 3rd, not February at all) —
+// startOfMonth() re-derives the clean start-of-month timestamp afterward.
+function shiftMonth(date: number, delta: number): number {
+  const d = new Date(date);
+  d.setDate(1);
+  d.setMonth(d.getMonth() + delta);
+  return startOfMonth(d.getTime());
+}
 
 export function CalendarScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -95,6 +106,19 @@ export function CalendarScreen({ navigation }: any) {
     navigation.navigate('EditEvent', { eventId: entry.event.id });
   };
 
+  // Week mode pages by exactly 7 calendar days (DST-safe via addDays);
+  // Month mode pages by one calendar month. Only meaningful in week/month
+  // mode — the Overdue tab has no date grid to page through.
+  const handlePrev = () => {
+    setSelectedDate((prev) => (viewMode === 'month' ? shiftMonth(prev, -1) : addDays(prev, -7)));
+  };
+
+  const handleNext = () => {
+    setSelectedDate((prev) => (viewMode === 'month' ? shiftMonth(prev, 1) : addDays(prev, 7)));
+  };
+
+  const handleToday = () => setSelectedDate(startOfDay(Date.now()));
+
   const renderEntry = ({ item }: { item: CalendarEntry }) => (
     <EntryCard
       entry={item}
@@ -128,6 +152,13 @@ export function CalendarScreen({ navigation }: any) {
         variant="outline"
         onPress={() => navigation.navigate('ReminderSettings')}
       />
+      {viewMode !== 'overdue' && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <Button title="‹" variant="outline" onPress={handlePrev} style={{ paddingHorizontal: spacing.lg }} />
+          <Button title="Today" variant="outline" onPress={handleToday} style={{ flex: 1 }} />
+          <Button title="›" variant="outline" onPress={handleNext} style={{ paddingHorizontal: spacing.lg }} />
+        </View>
+      )}
       {viewMode === 'week' && (
         <Card>
           <WeekView

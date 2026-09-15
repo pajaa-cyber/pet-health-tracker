@@ -1,13 +1,14 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View } from 'react-native';
 import { CalendarEntry } from './calendarEntries';
 import { EVENT_TYPE_EMOJI } from './eventTypes';
+import { ReminderType } from '../reminders/computeUpcoming';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
 import { Card, Button, Subtitle, MutedText } from '../components/ui';
 import { colors, spacing, radii } from '../theme/theme';
 
-const REMINDER_EMOJI: Record<string, string> = {
+const REMINDER_EMOJI: Record<ReminderType, string> = {
   vaccine: '💉',
   medication: '💊',
   vetVisitFollowUp: '🩺',
@@ -24,7 +25,7 @@ interface EntryCardProps {
 }
 
 export function EntryCard({ entry, pets, onDone, onSkip, onSnooze, onToggleComplete, onEdit }: EntryCardProps) {
-  const emoji = entry.event ? EVENT_TYPE_EMOJI[entry.event.type] : REMINDER_EMOJI[entry.reminder?.type ?? ''] ?? '📌';
+  const emoji = entry.event ? EVENT_TYPE_EMOJI[entry.event.type] : entry.reminder ? REMINDER_EMOJI[entry.reminder.type] : '📌';
   const entryPets = pets.filter((p) => entry.petIds.includes(p.id));
 
   return (
@@ -37,9 +38,15 @@ export function EntryCard({ entry, pets, onDone, onSkip, onSnooze, onToggleCompl
       <MutedText style={entry.overdue ? { color: colors.danger, fontWeight: '600' } : undefined}>
         {new Date(entry.date).toLocaleDateString()} {entry.overdue ? '(overdue)' : ''}
       </MutedText>
-      <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+      <View
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}
+        accessibilityLabel={entryPets.length > 0 ? `For ${entryPets.map((p) => p.name).join(', ')}` : undefined}
+      >
         {entryPets.map((pet) => (
-          <View key={pet.id} style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: petColor(pet) }} />
+          <View key={pet.id} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: petColor(pet) }} />
+            <MutedText>{pet.name}</MutedText>
+          </View>
         ))}
       </View>
       {entry.source === 'reminder' ? (

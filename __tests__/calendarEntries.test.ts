@@ -1,6 +1,6 @@
 import {
   mergeCalendarEntries, entriesForDay, entriesForPet, overdueEntries, daysWithEntries,
-  startOfWeek, startOfMonth, CalendarEntry,
+  startOfWeek, startOfMonth, addDays, CalendarEntry,
 } from '../src/calendar/calendarEntries';
 import { UpcomingReminder } from '../src/reminders/computeUpcoming';
 import { CalendarEvent } from '../src/types/calendarEvent';
@@ -147,6 +147,57 @@ describe('startOfWeek', () => {
   it('is idempotent on a Sunday itself', () => {
     const sunday = new Date('2026-09-13T00:00:00').getTime();
     expect(startOfWeek(sunday)).toBe(sunday);
+  });
+});
+
+describe('addDays (DST safety)', () => {
+  // Europe/Belgrade is where the original DST desync bug (duplicate date
+  // numbers, vanishing entry dots, wrong day highlighted as selected) was
+  // reproduced — pin the timezone explicitly here rather than relying on
+  // whatever the machine running the suite happens to default to, so this
+  // regression test is meaningful on any CI/dev box. process.env.TZ is read
+  // fresh by Date on every call in Node, so setting/restoring it around
+  // just this describe block is safe and doesn't leak into other tests.
+  const originalTZ = process.env.TZ;
+
+  beforeAll(() => {
+    process.env.TZ = 'Europe/Belgrade';
+  });
+
+  afterAll(() => {
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
+  });
+
+  it('advances by exactly one calendar day across a spring-forward transition (clocks skip 02:00->03:00)', () => {
+    // 2026-03-29 is Europe/Belgrade's spring-forward date. A naive
+    // dayStart + 24h*ms add from this midnight lands at 01:00 the next day
+    // (one hour short of midnight), not 00:00 — this is what the old
+    // WeekView/MonthView/entriesForDay bug did.
+    const dayStart = new Date('2026-03-29T00:00:00').getTime();
+    const naiveNextDay = dayStart + 24 * 60 * 60 * 1000;
+    const result = addDays(dayStart, 1);
+    const resultDate = new Date(result);
+
+    expect(resultDate.getDate()).toBe(30);
+    expect(resultDate.getMonth()).toBe(2); // March, 0-indexed
+    expect(resultDate.getHours()).toBe(0);
+    expect(result).not.toBe(naiveNextDay); // proves this would have failed pre-fix
+  });
+
+  it('advances by exactly one calendar day across a fall-back transition (clocks repeat 02:00->01:00)', () => {
+    // 2026-10-25 is Europe/Belgrade's fall-back date. A naive
+    // dayStart + 24h*ms add from this midnight lands back at 23:00 the
+    // *same* day — the date doesn't even advance at all.
+    const dayStart = new Date('2026-10-25T00:00:00').getTime();
+    const naiveNextDay = dayStart + 24 * 60 * 60 * 1000;
+    const result = addDays(dayStart, 1);
+    const resultDate = new Date(result);
+
+    expect(resultDate.getDate()).toBe(26);
+    expect(resultDate.getMonth()).toBe(9); // October, 0-indexed
+    expect(resultDate.getHours()).toBe(0);
+    expect(result).not.toBe(naiveNextDay); // proves this would have failed pre-fix
   });
 });
 

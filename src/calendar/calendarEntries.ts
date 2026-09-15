@@ -6,8 +6,6 @@
 import { UpcomingReminder, startOfDay } from '../reminders/computeUpcoming';
 import { CalendarEvent } from '../types/calendarEvent';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 export type CalendarEntrySource = 'reminder' | 'event';
 
 export interface CalendarEntry {
@@ -56,8 +54,19 @@ export function mergeCalendarEntries(reminders: UpcomingReminder[], events: Cale
   return [...reminderEntries, ...eventEntries].sort((a, b) => a.date - b.date);
 }
 
+// Advances by exactly one calendar day, via Date field arithmetic rather
+// than a fixed 24h millisecond offset — DST-safe. A fixed-offset add drifts
+// by an hour across a DST transition (lands on the wrong hour, or in the
+// fall-back case doesn't even advance the date), which desyncs WeekView/
+// MonthView's day cells and entriesForDay's window from real calendar days.
+export function addDays(ms: number, n: number): number {
+  const d = new Date(startOfDay(ms));
+  d.setDate(d.getDate() + n);
+  return d.getTime();
+}
+
 export function entriesForDay(entries: CalendarEntry[], dayStart: number): CalendarEntry[] {
-  const dayEnd = dayStart + DAY_MS;
+  const dayEnd = addDays(dayStart, 1);
   return entries.filter((e) => e.date >= dayStart && e.date < dayEnd);
 }
 
