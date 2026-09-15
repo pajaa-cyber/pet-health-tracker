@@ -21,7 +21,7 @@ import { MonthView } from '../calendar/MonthView';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { Pet } from '../types/pet';
 import {
-  ScreenContainer, Card, Button, Chip, Title, Subtitle, PermissionBar, PetSelector, GuidedEmptyState,
+  ScreenContainer, Card, Button, Chip, Title, Subtitle, MutedText, PermissionBar, PetSelector, GuidedEmptyState,
 } from '../components/ui';
 import { spacing } from '../theme/theme';
 
@@ -176,26 +176,38 @@ export function CalendarScreen({ navigation }: any) {
           <Button title="View full day" variant="outline" onPress={() => navigation.navigate('DayDetail', { date: selectedDate })} />
         </View>
       )}
-      <FlatList
-        style={{ flex: 1 }}
-        data={listData}
-        keyExtractor={(e) => e.id}
-        contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
-        renderItem={renderEntry}
-        ListEmptyComponent={
-          <GuidedEmptyState
-            emoji={viewMode === 'overdue' ? '✅' : '🗓️'}
-            title={viewMode === 'overdue' ? 'Nothing overdue' : 'Nothing here'}
-            message={
-              viewMode === 'overdue'
-                ? 'Every reminder and event is on track.'
-                : 'Vaccines, doses, follow-ups, and anything you log will show up here on the day they fall.'
-            }
-            actionLabel="Reminder settings"
-            onAction={() => navigation.navigate('ReminderSettings')}
-          />
-        }
-      />
+      {viewMode === 'month' ? (
+        // The 6-row month grid already fills nearly the whole screen, leaving
+        // no room for an inline entries list below it (confirmed on-device —
+        // the list rendered but was squeezed to zero visible height). Month
+        // mode is a bird's-eye "which days have something" view; "View full
+        // day" above is the way to see what's actually on a given day, the
+        // same division Week mode doesn't need since it has room to spare.
+        <MutedText style={{ textAlign: 'center', paddingTop: spacing.md }}>
+          Tap a day, then "View full day" to see what's on it.
+        </MutedText>
+      ) : (
+        <FlatList
+          style={{ flex: 1 }}
+          data={listData}
+          keyExtractor={(e) => e.id}
+          contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
+          renderItem={renderEntry}
+          ListEmptyComponent={
+            <GuidedEmptyState
+              emoji={viewMode === 'overdue' ? '✅' : '🗓️'}
+              title={viewMode === 'overdue' ? 'Nothing overdue' : 'Nothing here'}
+              message={
+                viewMode === 'overdue'
+                  ? 'Every reminder and event is on track.'
+                  : 'Vaccines, doses, follow-ups, and anything you log will show up here on the day they fall.'
+              }
+              actionLabel="Reminder settings"
+              onAction={() => navigation.navigate('ReminderSettings')}
+            />
+          }
+        />
+      )}
     </ScreenContainer>
   );
 }
