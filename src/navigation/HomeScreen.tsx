@@ -3,11 +3,15 @@ import { FlatList, Pressable, Image, View } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
 import { subscribeToVaccines } from '../pets/vaccineService';
-import { getNextDue } from '../pets/upcomingSummary';
+import { subscribeToMedications } from '../pets/medicationService';
+import { subscribeToVetVisits } from '../pets/vetVisitService';
+import { computeUpcoming } from '../reminders/computeUpcoming';
 import { usePetSelection, reconcileSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
 import { Pet } from '../types/pet';
 import { Vaccine } from '../types/vaccine';
+import { Medication } from '../types/medication';
+import { VetVisit } from '../types/vetVisit';
 import { ScreenContainer, Card, Button, Subtitle, BodyText, MutedText, PetSelector } from '../components/ui';
 import { colors, spacing } from '../theme/theme';
 import { petColor } from '../theme/petColors';
@@ -22,14 +26,27 @@ function speciesAndAge(pet: Pet): string {
 
 function PetCard({ pet, navigation }: { pet: Pet; navigation: any }) {
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [vetVisits, setVetVisits] = useState<VetVisit[]>([]);
   const { household } = useHousehold();
 
   useEffect(() => {
     if (!household) return;
-    return subscribeToVaccines(firestore, household.id, pet.id, setVaccines);
+    const unsubVaccines = subscribeToVaccines(firestore, household.id, pet.id, setVaccines);
+    const unsubMedications = subscribeToMedications(firestore, household.id, pet.id, setMedications);
+    const unsubVetVisits = subscribeToVetVisits(firestore, household.id, pet.id, setVetVisits);
+    return () => {
+      unsubVaccines();
+      unsubMedications();
+      unsubVetVisits();
+    };
   }, [household, pet.id]);
 
-  const nextDue = getNextDue(vaccines, Date.now());
+  const nextDue = computeUpcoming(
+    { pets: [pet], vaccines, medications, vetVisits },
+    Date.now(),
+    30
+  )[0] ?? null;
 
   return (
     <Pressable
@@ -49,7 +66,7 @@ function PetCard({ pet, navigation }: { pet: Pet; navigation: any }) {
           <MutedText>{speciesAndAge(pet)}</MutedText>
           {nextDue ? (
             <BodyText style={{ color: nextDue.overdue ? colors.danger : colors.primaryDark, fontWeight: '600' }}>
-              {nextDue.label}
+              {nextDue.label} {nextDue.overdue ? 'overdue' : 'due'}
             </BodyText>
           ) : (
             <MutedText>Nothing due</MutedText>
