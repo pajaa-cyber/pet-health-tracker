@@ -4,85 +4,57 @@ Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
 
-## ⚠️ TOP PRIORITY — Plan 5's on-device checklist still hasn't run (now blocked by a build failure, not adb)
+## ✅ Plan 5's on-device checklist passed in full (2026-09-15) — Plan 6 is unblocked
 
-Plan 5 ("Reminders and notifications") is **merged to `master` but not
-device-verified.** Everything that could be checked without a phone
-passed (`tsc` clean, 115 automated tests, a fresh independent
-re-verification that the reminder calculation module is genuinely
-Firebase/React-free, one real integration bug found by the final review
-and fixed) — but nothing has confirmed the feature actually works on a
-real phone.
+All three earlier blockers are resolved:
 
-**Session 1** was blocked by the phone's ADB Interface stuck in Windows'
-"Unknown" USB status (`adb devices` returned nothing) — fixed itself once
-the owner physically reconnected the phone (confirmed `adb devices` showed
-it again).
+- **adb/USB flakiness:** fixed by a physical cable unplug/replug (per the
+  usual fix, see "Other environment notes" below).
+- **The "Unable to delete directory" Gradle build failure:** did not
+  recur when building from a separate checkout at `C:\dev\pet-app`
+  (outside the OneDrive-synced folder) — `npx expo run:android` succeeded
+  first try (`BUILD SUCCESSFUL in 3m 11s`). This is strong evidence for
+  the OneDrive/AV theory already documented in CLAUDE.md, though not
+  final proof (an AV exclusion on the OneDrive path itself was never
+  tried as a separate variable). **The owner still needs to decide**
+  whether `C:\dev\pet-app` becomes the primary checkout going forward, or
+  the OneDrive one stays primary with a sync/AV exclusion added instead —
+  neither this file nor CLAUDE.md has been rewritten to assume one or the
+  other yet.
+- **The 7-item device checklist itself:** ran on the real phone from
+  `C:\dev\pet-app` and every item passed — permission deny/grant, a real
+  notification actually arriving (with a ~1-2 minute delivery lag that
+  turned out to be normal Android alarm-batching behavior, not a bug),
+  Skip showing "Last skipped" with an exact time, Done correctly clearing
+  a vaccine/vet-visit reminder vs. advancing a medication's schedule
+  forward, Snooze hiding a reminder immediately with no leftover alarm,
+  and live cross-listener sync (a newly-added vaccine appearing on the
+  Calendar tab with no manual refresh).
 
-**Session 2** (same day, phone reconnected) got past that but hit a new,
-different, and so far unresolved problem: **the on-device build itself
-fails**, every time, with a Gradle `Unable to delete directory
-'...\node_modules\<module>\...\build\<folder>'` error — a different
-module/folder each retry (tried 6 times: with/without `ANDROID_HOME` set,
-after killing stray `java.exe`/Gradle daemons, after `gradlew --stop` +
-deleting all the affected `build/` directories, and with Gradle's build
-cache and daemon both explicitly disabled — none of it changed the
-failure pattern). This looks like something on the machine (most likely
-one of the four AV products CLAUDE.md documents, possibly compounded by
-OneDrive syncing this folder live) briefly locking freshly-written build
-output before Gradle can delete it. See CLAUDE.md's "Local device build
-environment" section (the new entry right after the adb-flakiness one)
-for the full diagnostic detail — don't re-run the same troubleshooting
-that's already ruled out there.
+**Three real bugs were found and fixed along the way** (all committed and
+pushed to `master`, see CLAUDE.md's "Plan 5 device verification completed"
+note for full detail — this section is just the short version):
 
-**Do this before starting Plan 6:**
+1. A reminder due "today" could flip to overdue within minutes of being
+   set (exact-millisecond comparison instead of calendar-day comparison)
+   — fixed in `src/reminders/computeUpcoming.ts`, two new tests added.
+2. Firestore listener churn (notably on app foreground) could trigger a
+   redundant notification-reschedule cycle that cancelled a real,
+   about-to-fire alarm without rescheduling it — confirmed via
+   `adb shell dumpsys alarm` showing an alarm cancelled 17 seconds after
+   its own target time. Fixed in `src/reminders/ReminderRescheduler.tsx`
+   with a content-based dedup guard.
+3. The **live Firestore project's security rules were stale** — `vetVisits`
+   update failed with a real permission-denied error on-device even though
+   the local `firestore.rules` file correctly allows it. Fixed by running
+   `firebase deploy --only firestore:rules --project pet-tracker-app-63512`.
+   **There is no automated rules deployment in this project** — after any
+   future `firestore.rules` edit, redeploy by hand or this will recur.
 
-1. Confirm the phone is still connected: `adb devices` should show it. If
-   not, unplug/replug the USB cable, unlock the phone's screen, or toggle
-   USB debugging off/on in Developer Options.
-2. **Before attempting another build**, try one of: (a) add a real-time-
-   scanning exclusion for `C:\Users\PC\OneDrive\Desktop\app` (or at least
-   its `node_modules` and `android\build` subfolders) in whichever AV
-   product actually does real-time protection on this machine, or (b)
-   pause OneDrive sync temporarily. Either needs the machine owner's
-   action — not something a shell session can do on its own.
-3. Run `npx expo run:android` from the repo root (no worktree needed —
-   this is already on `master`; `ANDROID_HOME`/`ANDROID_SDK_ROOT` should
-   be set to `C:\Android\Sdk` and platform-tools on `PATH` for the install
-   step to find `adb`) to confirm the app builds and launches with the
-   reminders feature included.
-4. Run through this checklist on the phone (from Plan 5's Task 14 device
-   step, with one wording correction — see the note after it):
-   - Deny the notification permission deliberately. The app must stay
-     usable; the permission bar (Calendar tab) must explain how to fix it,
-     and tapping it must re-request.
-   - Grant the permission. Add a vaccine with a due date a day or two out.
-     Confirm it appears in the Calendar tab's reminders list, not overdue.
-   - In Reminder Settings (now reachable via a persistent button on the
-     Calendar tab, not just the empty state), set a lead time/time of day
-     that puts the trigger a minute or two out, save, and confirm a real
-     system notification arrives — **with the app in the foreground**,
-     since that's the scenario `notificationSetup.ts`'s handler exists for.
-   - Skip a medication dose from `MedicationListScreen`. Confirm "Last
-     skipped" appears (not deleted, not styled as an error).
-   - Mark a reminder Done from the Calendar tab. For a vaccine or vet-visit
-     follow-up, confirm it disappears from the list. **For a medication,
-     confirm it instead reappears with a new due date** — Done logs a
-     dose and advances the schedule, it doesn't remove the reminder; the
-     original checklist wording ("confirm it disappears") is wrong for
-     medications specifically, caught by the final review.
-   - Snooze a reminder. Confirm it disappears from the list immediately
-     and does NOT still fire a notification later (this was Important
-     finding #2 from the final review, now fixed — worth double-checking
-     on-device since it's exactly the kind of thing only a phone catches).
-   - With two phones/accounts in the same household (or one phone, checked
-     before/after), add a vaccine on one and confirm the other's reminders
-     list updates live.
-5. Once the checklist passes, update this file's top section to say so
-   and move on to Plan 6. If something fails, it's a real bug in already-
-   merged `master` code — fix it directly on `master` (small, targeted
-   commits, per the standing commit/push-freely authorization) rather than
-   opening a new worktree for what should be a quick fix.
+**Next:** start Plan 6 ("Calendar", Phase 4 of the execution pack) — see
+"If resuming with an SDD-style process again" near the bottom of this file
+for the standing process, and CLAUDE.md's "Reminders and notifications
+(Plan 5)" paragraph for what the calendar view needs to build around.
 
 ## What this is
 
@@ -334,26 +306,26 @@ syntax.
    worth a shared provider like `PetSelectionContext`'s precedent
    whenever it hurts); a DST edge case in notification-time math (worst
    case: one calendar day early/late, twice a year).
-10. **Plan 5's device verification — see the top of this file. The
-    single most important open item in the project right now.**
+10. **RESOLVED (2026-09-15): Plan 5's device verification ran and passed
+    in full — see the top of this file.**
 
 ## If resuming with an SDD-style process again (e.g. for Plan 6)
 
-**Do not start Plan 6 before Plan 5's device checklist (top of this file)
-has actually run.** Once it has, same pattern as Plans 1-5: dedicated
-worktree per plan at `C:\dev\<name>` (not `.claude/worktrees/<name>`),
-executed via `superpowers:subagent-driven-development`, merged via
+Plan 6 can now start — Plan 5's device checklist (top of this file) has
+passed in full. Same pattern as Plans 1-5: dedicated worktree per plan at
+`C:\dev\<name>` (not `.claude/worktrees/<name>`), executed via
+`superpowers:subagent-driven-development`, merged via
 `superpowers:finishing-a-development-branch` once complete and **actually
 seen working on the phone** — reviewed is not verified, per this
 project's own repeated lesson (the join-household rules bug, the data-
 loss incident, and every plan's final review so far catching real
 user-visible bugs that no single task review had caught) all survived
 confident claims until someone actually ran the thing or looked at the
-whole branch at once. Plan 5 adds a new instance of this lesson: the
-final review itself (not a task review) caught two bugs — unreachable
-settings, silently-swallowed foreground notifications — that only a
-five-minute phone session would otherwise have surfaced, and that phone
-session still hasn't happened.
+whole branch at once. Plan 5's own device-verification session added yet
+another instance of this lesson: on-device testing itself (not any task
+review, not any final review) is what caught its three real bugs (see the
+top of this file) — code review and 115 automated tests had already
+passed clean.
 
 **Read `CLAUDE.md`'s "Reminders and notifications (Plan 5)" paragraph
 before starting Plan 6** — the calendar's week/month views will read from
