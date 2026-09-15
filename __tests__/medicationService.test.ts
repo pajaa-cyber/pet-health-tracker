@@ -19,7 +19,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
   arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
 }));
 
-import { createMedication, subscribeToMedications, logMedicationDose } from '../src/pets/medicationService';
+import { createMedication, subscribeToMedications, logMedicationDose, skipMedicationDose } from '../src/pets/medicationService';
 
 const fakeDb = {} as Firestore;
 
@@ -72,6 +72,19 @@ describe('medicationService', () => {
     );
     expect(mockUpdateDoc).toHaveBeenCalledWith(mockMedDocRef, {
       log: { __arrayUnion: [expect.objectContaining({ givenBy: 'user-1' })] },
+    });
+  });
+
+  it('logs a skipped dose via arrayUnion, distinct from a given one', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await skipMedicationDose(fakeDb, 'h1', 'pet-1', 'med-1-existing', 'user-1');
+
+    expect(mockArrayUnion).toHaveBeenCalledWith(
+      expect.objectContaining({ givenBy: 'user-1', skipped: true })
+    );
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockMedDocRef, {
+      log: { __arrayUnion: [expect.objectContaining({ givenBy: 'user-1', skipped: true })] },
     });
   });
 });

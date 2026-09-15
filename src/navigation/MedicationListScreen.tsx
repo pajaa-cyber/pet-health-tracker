@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList } from 'react-native';
+import { FlatList, View } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToMedications, logMedicationDose } from '../pets/medicationService';
+import { subscribeToMedications, logMedicationDose, skipMedicationDose } from '../pets/medicationService';
 import { firestore } from '../firebase/config';
 import { Medication } from '../types/medication';
 import { ScreenContainer, Card, Button, Subtitle, MutedText, ErrorText } from '../components/ui';
@@ -30,6 +30,16 @@ export function MedicationListScreen({ route, navigation }: any) {
     }
   };
 
+  const handleSkip = async (medicationId: string) => {
+    if (!household || !user) return;
+    setError(null);
+    try {
+      await skipMedicationDose(firestore, household.id, petId, medicationId, user.uid);
+    } catch (e: any) {
+      setError(e.message);
+    }
+  };
+
   const displayNameFor = (userId: string) =>
     household?.members.find((m) => m.userId === userId)?.displayName ?? userId;
 
@@ -42,7 +52,7 @@ export function MedicationListScreen({ route, navigation }: any) {
         keyExtractor={(m) => m.id}
         contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => {
-          const lastDose = item.log.length > 0 ? item.log[item.log.length - 1] : null;
+          const lastAction = item.log.length > 0 ? item.log[item.log.length - 1] : null;
           return (
             <Card style={{ gap: spacing.xs }}>
               <Subtitle>{item.name} — {item.dosage}</Subtitle>
@@ -50,12 +60,14 @@ export function MedicationListScreen({ route, navigation }: any) {
                 {item.schedule.timesPerDay}x/day, every {item.schedule.intervalDays}d
               </MutedText>
               <MutedText>
-                Last given:{' '}
-                {lastDose
-                  ? `${new Date(lastDose.givenAt).toLocaleString()} by ${displayNameFor(lastDose.givenBy)}`
-                  : 'never'}
+                {lastAction
+                  ? `${lastAction.skipped ? 'Last skipped' : 'Last given'}: ${new Date(lastAction.givenAt).toLocaleString()} by ${displayNameFor(lastAction.givenBy)}`
+                  : 'No doses logged yet'}
               </MutedText>
-              <Button title="Mark dose as given" variant="accent" onPress={() => handleMarkGiven(item.id)} />
+              <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                <Button title="Mark dose as given" variant="accent" onPress={() => handleMarkGiven(item.id)} style={{ flex: 1 }} />
+                <Button title="Skip this dose" variant="outline" onPress={() => handleSkip(item.id)} style={{ flex: 1 }} />
+              </View>
             </Card>
           );
         }}

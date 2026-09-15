@@ -56,3 +56,16 @@ export async function logMedicationDose(
     { log: arrayUnion({ givenBy, givenAt: Date.now() }) }
   );
 }
+
+export async function skipMedicationDose(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  medicationId: string,
+  skippedBy: string
+): Promise<void> {
+  await updateDoc(
+    doc(db, 'households', householdId, 'pets', petId, 'medications', medicationId),
+    { log: arrayUnion({ givenBy: skippedBy, givenAt: Date.now(), skipped: true }) }
+  );
+}
