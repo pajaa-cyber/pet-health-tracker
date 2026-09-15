@@ -99,6 +99,7 @@ export function HomeScreen({ navigation }: any) {
       <Button title="Add a pet" onPress={() => navigation.navigate('AddPet')} />
       {pets.length > 0 && <PetSelector pets={pets} />}
       <FlatList
+        style={{ flex: 1 }}
         data={visiblePets}
         keyExtractor={(p) => p.id}
         contentContainerStyle={{ gap: spacing.sm }}
