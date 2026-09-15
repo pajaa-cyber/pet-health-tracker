@@ -10,6 +10,7 @@ import { MainTabs } from './MainTabs';
 import { ReminderSettingsScreen } from './ReminderSettingsScreen';
 import { AddEventScreen } from './AddEventScreen';
 import { EditEventScreen } from './EditEventScreen';
+import { DayDetailScreen } from './DayDetailScreen';
 import { ReminderRescheduler } from '../reminders/ReminderRescheduler';
 import { colors } from '../theme/theme';
 
@@ -48,6 +49,11 @@ export function RootNavigator() {
               name="EditEvent"
               component={EditEventScreen}
               options={{ headerShown: true, title: 'Edit event', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
+            />
+            <Stack.Screen
+              name="DayDetail"
+              component={DayDetailScreen}
+              options={{ headerShown: true, title: '', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
             />
           </>
         ) : (

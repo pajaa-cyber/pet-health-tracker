@@ -180,9 +180,13 @@ export function CalendarScreen({ navigation }: any) {
         </Card>
       )}
       {viewMode !== 'overdue' && (
-        <Subtitle>{new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Subtitle>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Subtitle>{new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Subtitle>
+          <Button title="View full day" variant="outline" onPress={() => navigation.navigate('DayDetail', { date: selectedDate })} />
+        </View>
       )}
       <FlatList
+        style={{ flex: 1 }}
         data={listData}
         keyExtractor={(e) => e.id}
         contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
