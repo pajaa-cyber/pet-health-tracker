@@ -35,7 +35,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // `now` directly would flip a "due today" reminder to overdue the moment
 // that incidental time-of-day passes, hours before the day is actually
 // over — so overdue is decided by calendar day, not raw millis.
-function startOfDay(ms: number): number {
+export function startOfDay(ms: number): number {
   const d = new Date(ms);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
