@@ -26,6 +26,20 @@ export function ReminderRescheduler(): null {
   // write — this is what prevents two overlapping runs from interleaving
   // their cancel-all/reschedule calls and leaving stale data scheduled.
   const runToken = useRef(0);
+  // Firestore's onSnapshot listeners (one per pet per collection, see
+  // useUpcomingReminders) re-announce their current data on every
+  // reconnect — most visibly when the app returns to the foreground,
+  // which is exactly when someone is checking whether a notification
+  // fired. Each announcement gives `pets`/the per-collection state a new
+  // object reference even when the content is unchanged, which recomputes
+  // `reminders` and re-fires the effect below. Without this guard, that
+  // re-fire calls cancelAllScheduledNotificationsAsync() and rebuilds
+  // every alarm from scratch for no reason — if it happens to land at or
+  // after a reminder's trigger time, the alarm the OS was about to
+  // deliver gets cancelled and, since its recomputed trigger is now in
+  // the past, never rescheduled. Skipping a cycle whose outcome would be
+  // identical to the last one actually scheduled avoids that entirely.
+  const lastScheduledKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (!household) return;
@@ -52,6 +66,12 @@ export function ReminderRescheduler(): null {
       const now = Date.now();
       const visibleReminders = reminders.filter((r) => !isSnoozed(snoozes, r.id, now));
       if (token !== runToken.current) return;
+      const key = JSON.stringify({
+        settings,
+        reminders: visibleReminders.map((r) => `${r.id}:${r.dueDate}`),
+      });
+      if (key === lastScheduledKey.current) return;
+      lastScheduledKey.current = key;
       await rescheduleNotifications(visibleReminders, settings);
     })();
   }, [granted, petsLoaded, reminders]);
