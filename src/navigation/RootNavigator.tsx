@@ -7,6 +7,7 @@ import { SignInScreen } from '../auth/SignInScreen';
 import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
 import { MainTabs } from './MainTabs';
+import { ReminderSettingsScreen } from './ReminderSettingsScreen';
 import { colors } from '../theme/theme';
 
 const Stack = createNativeStackNavigator();
@@ -27,7 +28,14 @@ export function RootNavigator() {
             <Stack.Screen name="SignUp" component={SignUpScreen} />
           </>
         ) : household ? (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen
+              name="ReminderSettings"
+              component={ReminderSettingsScreen}
+              options={{ headerShown: true, title: 'Reminder settings', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
+            />
+          </>
         ) : (
           <Stack.Screen name="HouseholdSetup" component={HouseholdSetupScreen} />
         )}
