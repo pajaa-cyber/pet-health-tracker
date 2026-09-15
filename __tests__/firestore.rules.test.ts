@@ -543,4 +543,68 @@ describe('household security rules', () => {
       })
     );
   });
+
+  // events is household-level (not nested under pets) — a single calendar
+  // entry can span multiple pets via petIds. seedPetHousehold is reused
+  // even though it doesn't seed a pet doc; events don't need one.
+  const validEvent = {
+    id: 'evt-1', householdId: 'h1', petIds: ['pet-1'], type: 'grooming',
+    title: 'Bath', notes: '', date: 0, status: 'upcoming',
+  };
+
+  it('allows a household member to create an event', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'events', 'evt-1'), validEvent)
+    );
+  });
+
+  it('denies a non-member from creating an event', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1'), validEvent)
+    );
+  });
+
+  it('allows a household member to read an event', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'events', 'evt-1'), validEvent);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(getDoc(doc(memberDb, 'households', 'h1', 'events', 'evt-1')));
+  });
+
+  it('denies a non-member from reading an event', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'events', 'evt-1'), validEvent);
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1')));
+  });
+
+  it('allows a household member to update an event, e.g. to mark it completed', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'events', 'evt-1'), validEvent);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1', 'events', 'evt-1'), { status: 'completed' })
+    );
+  });
+
+  it('denies a non-member from updating an event', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'events', 'evt-1'), validEvent);
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1'), { status: 'completed' })
+    );
+  });
 });
