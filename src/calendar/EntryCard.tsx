@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Pressable } from 'react-native';
 import { CalendarEntry } from './calendarEntries';
 import { EVENT_TYPE_EMOJI } from './eventTypes';
 import { ReminderType } from '../reminders/computeUpcoming';
@@ -30,6 +30,23 @@ export function EntryCard({ entry, pets, onDone, onSkip, onToggleComplete, onEdi
   return (
     <Card style={{ gap: spacing.xs }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        {entry.source === 'event' && (
+          <Pressable
+            onPress={onToggleComplete}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: entry.completed }}
+            accessibilityLabel={entry.completed ? 'Mark as not done' : 'Mark as done'}
+            hitSlop={8}
+            style={{
+              width: 22, height: 22, borderRadius: 11, borderWidth: 2,
+              borderColor: entry.completed ? colors.success : colors.border,
+              backgroundColor: entry.completed ? colors.success : 'transparent',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {entry.completed && <MutedText style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>✓</MutedText>}
+          </Pressable>
+        )}
         <Subtitle>{emoji} {entry.label}</Subtitle>
         {entry.completed && <StatusBadge label="Completed" color={colors.success} />}
         {entry.skipped && <StatusBadge label="Skipped" color={colors.textMuted} />}
@@ -55,12 +72,6 @@ export function EntryCard({ entry, pets, onDone, onSkip, onToggleComplete, onEdi
         </View>
       ) : (
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <Button
-            title={entry.completed ? 'Mark not done' : 'Mark done'}
-            variant="accent"
-            onPress={onToggleComplete}
-            style={{ flex: 1 }}
-          />
           <Button title="Skip" variant="outline" onPress={onSkip} style={{ flex: 1 }} />
           <Button title="Edit" variant="outline" onPress={onEdit} style={{ flex: 1 }} />
         </View>
