@@ -54,3 +54,4 @@ firestore-debug.log
 metro.log
 screen.png
 *.log
+.env
