@@ -16,10 +16,11 @@ export async function createVetVisit(
   petId: string,
   date: number,
   reason: string,
-  notes: string
+  notes: string,
+  followUpDate: number | null
 ): Promise<VetVisit> {
   const docRef = doc(collection(db, 'households', householdId, 'pets', petId, 'vetVisits'));
-  const visit: VetVisit = { id: docRef.id, petId, date, reason, notes, documentUrls: [] };
+  const visit: VetVisit = { id: docRef.id, petId, date, reason, notes, documentUrls: [], followUpDate };
   await setDoc(docRef, visit);
   return visit;
 }
@@ -53,4 +54,14 @@ export async function addVetVisitDocument(
     doc(db, 'households', householdId, 'pets', petId, 'vetVisits', visitId),
     { documentUrls: arrayUnion(documentUrl) }
   );
+}
+
+export async function updateVetVisit(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  visitId: string,
+  updates: Partial<VetVisit>
+): Promise<void> {
+  await updateDoc(doc(db, 'households', householdId, 'pets', petId, 'vetVisits', visitId), updates);
 }

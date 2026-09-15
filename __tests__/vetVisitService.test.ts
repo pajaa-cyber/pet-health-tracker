@@ -19,7 +19,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
   arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
 }));
 
-import { createVetVisit, subscribeToVetVisits, addVetVisitDocument } from '../src/pets/vetVisitService';
+import { createVetVisit, subscribeToVetVisits, addVetVisitDocument, updateVetVisit } from '../src/pets/vetVisitService';
 
 const fakeDb = {} as Firestore;
 
@@ -28,15 +28,24 @@ beforeEach(() => {
 });
 
 describe('vetVisitService', () => {
-  it('creates a vet visit with an empty documentUrls array', async () => {
+  it('creates a vet visit with an empty documentUrls array and an optional follow-up date', async () => {
     mockSetDoc.mockResolvedValue(undefined);
 
-    const visit = await createVetVisit(fakeDb, 'h1', 'pet-1', 1000, 'Annual checkup', 'All healthy');
+    const visit = await createVetVisit(fakeDb, 'h1', 'pet-1', 1000, 'Annual checkup', 'All healthy', 2000);
 
     expect(visit).toEqual({
-      id: 'visit-1', petId: 'pet-1', date: 1000, reason: 'Annual checkup', notes: 'All healthy', documentUrls: [],
+      id: 'visit-1', petId: 'pet-1', date: 1000, reason: 'Annual checkup', notes: 'All healthy',
+      documentUrls: [], followUpDate: 2000,
     });
     expect(mockSetDoc).toHaveBeenCalledWith(mockCreatedDocRef, visit);
+  });
+
+  it('updates a vet visit, e.g. to clear a follow-up date', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await updateVetVisit(fakeDb, 'h1', 'pet-1', 'visit-1-existing', { followUpDate: null });
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockVisitDocRef, { followUpDate: null });
   });
 
   it('subscribes to a pet\'s vet visits and maps snapshots to VetVisit[]', () => {
