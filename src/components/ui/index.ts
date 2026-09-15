@@ -9,3 +9,4 @@ export { Title, Subtitle, BodyText, MutedText, ErrorText } from './Typography';
 export { PetSelector } from './PetSelector';
 export { BreedPicker } from './BreedPicker';
 export { GuidedEmptyState } from './GuidedEmptyState';
+export { PermissionBar } from './PermissionBar';
