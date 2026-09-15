@@ -5,7 +5,7 @@ import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { useUpcomingReminders } from '../reminders/useUpcomingReminders';
-import { markDone, skip, snooze } from '../reminders/reminderActions';
+import { markDone, skip } from '../reminders/reminderActions';
 import { getSnoozes, isSnoozed } from '../reminders/snoozeStore';
 import { useCalendarEvents } from '../calendar/useCalendarEvents';
 import { updateEvent } from '../calendar/eventService';
@@ -56,12 +56,6 @@ export function DayDetailScreen({ route, navigation }: any) {
     }
   };
 
-  const handleSnooze = async (entry: CalendarEntry) => {
-    if (!entry.reminder) return;
-    await snooze(entry.reminder, 3);
-    getSnoozes().then(setSnoozes);
-  };
-
   const handleToggleComplete = async (entry: CalendarEntry) => {
     if (!household || !entry.event) return;
     await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
@@ -91,7 +85,6 @@ export function DayDetailScreen({ route, navigation }: any) {
                 pets={pets}
                 onDone={item.source === 'reminder' ? () => handleDone(item) : undefined}
                 onSkip={() => handleSkip(item)}
-                onSnooze={item.source === 'reminder' ? () => handleSnooze(item) : undefined}
                 onToggleComplete={item.source === 'event' ? () => handleToggleComplete(item) : undefined}
                 onEdit={item.source === 'event' ? () => handleEdit(item) : undefined}
               />

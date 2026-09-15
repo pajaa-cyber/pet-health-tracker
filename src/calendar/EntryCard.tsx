@@ -19,12 +19,11 @@ interface EntryCardProps {
   pets: Pet[];
   onDone?: () => void;
   onSkip: () => void;
-  onSnooze?: () => void;
   onToggleComplete?: () => void;
   onEdit?: () => void;
 }
 
-export function EntryCard({ entry, pets, onDone, onSkip, onSnooze, onToggleComplete, onEdit }: EntryCardProps) {
+export function EntryCard({ entry, pets, onDone, onSkip, onToggleComplete, onEdit }: EntryCardProps) {
   const emoji = entry.event ? EVENT_TYPE_EMOJI[entry.event.type] : entry.reminder ? REMINDER_EMOJI[entry.reminder.type] : '📌';
   const entryPets = pets.filter((p) => entry.petIds.includes(p.id));
 
@@ -53,7 +52,6 @@ export function EntryCard({ entry, pets, onDone, onSkip, onSnooze, onToggleCompl
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>
           <Button title="Done" variant="accent" onPress={onDone} style={{ flex: 1 }} />
           <Button title="Skip" variant="outline" onPress={onSkip} style={{ flex: 1 }} />
-          <Button title="Snooze 3d" variant="outline" onPress={onSnooze} style={{ flex: 1 }} />
         </View>
       ) : (
         <View style={{ flexDirection: 'row', gap: spacing.sm }}>

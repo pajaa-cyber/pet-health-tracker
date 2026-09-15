@@ -6,7 +6,7 @@ import { subscribeToPets, activePets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { useUpcomingReminders } from '../reminders/useUpcomingReminders';
 import { useNotificationPermission } from '../reminders/useNotificationPermission';
-import { markDone, skip, snooze } from '../reminders/reminderActions';
+import { markDone, skip } from '../reminders/reminderActions';
 import { getSnoozes, isSnoozed } from '../reminders/snoozeStore';
 import { useCalendarEvents } from '../calendar/useCalendarEvents';
 import { updateEvent } from '../calendar/eventService';
@@ -74,8 +74,6 @@ export function CalendarScreen({ navigation }: any) {
     .filter((e) => e.reminder == null || !isSnoozed(snoozes, e.reminder.id, now));
   const petFilteredEntries = entriesForPet(allEntries, selectedPetId);
 
-  const refreshSnoozes = () => getSnoozes().then(setSnoozes);
-
   const handleDone = async (entry: CalendarEntry) => {
     if (!household || !user || !entry.reminder) return;
     await markDone(firestore, household.id, entry.reminder, user.uid);
@@ -88,12 +86,6 @@ export function CalendarScreen({ navigation }: any) {
     } else if (entry.event) {
       await updateEvent(firestore, household.id, entry.event.id, { status: 'skipped' });
     }
-  };
-
-  const handleSnooze = async (entry: CalendarEntry) => {
-    if (!entry.reminder) return;
-    await snooze(entry.reminder, 3);
-    refreshSnoozes();
   };
 
   const handleToggleComplete = async (entry: CalendarEntry) => {
@@ -125,7 +117,6 @@ export function CalendarScreen({ navigation }: any) {
       pets={pets}
       onDone={item.source === 'reminder' ? () => handleDone(item) : undefined}
       onSkip={() => handleSkip(item)}
-      onSnooze={item.source === 'reminder' ? () => handleSnooze(item) : undefined}
       onToggleComplete={item.source === 'event' ? () => handleToggleComplete(item) : undefined}
       onEdit={item.source === 'event' ? () => handleEdit(item) : undefined}
     />
