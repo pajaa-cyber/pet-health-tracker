@@ -4,7 +4,7 @@ Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
 
-## ⚠️ TOP PRIORITY — Plan 5's on-device checklist has never run
+## ⚠️ TOP PRIORITY — Plan 5's on-device checklist still hasn't run (now blocked by a build failure, not adb)
 
 Plan 5 ("Reminders and notifications") is **merged to `master` but not
 device-verified.** Everything that could be checked without a phone
@@ -12,19 +12,46 @@ passed (`tsc` clean, 115 automated tests, a fresh independent
 re-verification that the reminder calculation module is genuinely
 Firebase/React-free, one real integration bug found by the final review
 and fixed) — but nothing has confirmed the feature actually works on a
-real phone. Two device sessions were blocked back-to-back by the same
-cause: the phone's ADB Interface stuck in Windows' "Unknown" USB status
-(`adb devices` returns nothing), which no amount of software-side
-troubleshooting fixed — it needs a physical cable unplug/replug plus
-unlocking the phone. **Do this before starting Plan 6:**
+real phone.
 
-1. Unplug and replug the phone's USB cable. If `adb devices` still shows
-   nothing: unlock the phone's screen; if still nothing: toggle USB
-   debugging off/on in Developer Options and re-accept the prompt.
-2. Run `npx expo run:android` from the repo root (no worktree needed —
-   this is already on `master`) to confirm the app builds and launches
-   with the reminders feature included.
-3. Run through this checklist on the phone (from Plan 5's Task 14 device
+**Session 1** was blocked by the phone's ADB Interface stuck in Windows'
+"Unknown" USB status (`adb devices` returned nothing) — fixed itself once
+the owner physically reconnected the phone (confirmed `adb devices` showed
+it again).
+
+**Session 2** (same day, phone reconnected) got past that but hit a new,
+different, and so far unresolved problem: **the on-device build itself
+fails**, every time, with a Gradle `Unable to delete directory
+'...\node_modules\<module>\...\build\<folder>'` error — a different
+module/folder each retry (tried 6 times: with/without `ANDROID_HOME` set,
+after killing stray `java.exe`/Gradle daemons, after `gradlew --stop` +
+deleting all the affected `build/` directories, and with Gradle's build
+cache and daemon both explicitly disabled — none of it changed the
+failure pattern). This looks like something on the machine (most likely
+one of the four AV products CLAUDE.md documents, possibly compounded by
+OneDrive syncing this folder live) briefly locking freshly-written build
+output before Gradle can delete it. See CLAUDE.md's "Local device build
+environment" section (the new entry right after the adb-flakiness one)
+for the full diagnostic detail — don't re-run the same troubleshooting
+that's already ruled out there.
+
+**Do this before starting Plan 6:**
+
+1. Confirm the phone is still connected: `adb devices` should show it. If
+   not, unplug/replug the USB cable, unlock the phone's screen, or toggle
+   USB debugging off/on in Developer Options.
+2. **Before attempting another build**, try one of: (a) add a real-time-
+   scanning exclusion for `C:\Users\PC\OneDrive\Desktop\app` (or at least
+   its `node_modules` and `android\build` subfolders) in whichever AV
+   product actually does real-time protection on this machine, or (b)
+   pause OneDrive sync temporarily. Either needs the machine owner's
+   action — not something a shell session can do on its own.
+3. Run `npx expo run:android` from the repo root (no worktree needed —
+   this is already on `master`; `ANDROID_HOME`/`ANDROID_SDK_ROOT` should
+   be set to `C:\Android\Sdk` and platform-tools on `PATH` for the install
+   step to find `adb`) to confirm the app builds and launches with the
+   reminders feature included.
+4. Run through this checklist on the phone (from Plan 5's Task 14 device
    step, with one wording correction — see the note after it):
    - Deny the notification permission deliberately. The app must stay
      usable; the permission bar (Calendar tab) must explain how to fix it,
@@ -51,7 +78,7 @@ unlocking the phone. **Do this before starting Plan 6:**
    - With two phones/accounts in the same household (or one phone, checked
      before/after), add a vaccine on one and confirm the other's reminders
      list updates live.
-4. Once the checklist passes, update this file's top section to say so
+5. Once the checklist passes, update this file's top section to say so
    and move on to Plan 6. If something fails, it's a real bug in already-
    merged `master` code — fix it directly on `master` (small, targeted
    commits, per the standing commit/push-freely authorization) rather than
