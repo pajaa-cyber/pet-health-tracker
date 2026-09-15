@@ -5,13 +5,14 @@ import { usePetSelection } from '../selection/PetSelectionContext';
 import { BodyText, Title } from '../components/ui';
 import { colors, spacing, radii } from '../theme/theme';
 
-const ADD_ACTIONS: { label: string; route: string; needsPet: boolean }[] = [
+const ADD_ACTIONS: { label: string; route: string; needsPet: boolean; topLevel?: boolean }[] = [
   { label: 'Add a Pet', route: 'AddPet', needsPet: false },
   { label: 'Add a Vaccine', route: 'AddVaccine', needsPet: true },
   { label: 'Add a Medication', route: 'AddMedication', needsPet: true },
   { label: 'Log a Weight', route: 'WeightLog', needsPet: true },
   { label: 'Add a Vet Visit', route: 'AddVetVisit', needsPet: true },
   { label: 'Add an Expense', route: 'AddExpense', needsPet: true },
+  { label: 'Add to Calendar', route: 'AddEvent', needsPet: false, topLevel: true },
 ];
 
 export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -20,6 +21,10 @@ export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () =
 
   const handlePress = (action: (typeof ADD_ACTIONS)[number]) => {
     onClose();
+    if (action.topLevel) {
+      navigation.navigate(action.route);
+      return;
+    }
     // Push onto the Pets tab's nested stack (named "PetsTab" in MainTabs)
     // regardless of which tab is currently focused, so the target screen's
     // existing header/back behavior works unchanged.

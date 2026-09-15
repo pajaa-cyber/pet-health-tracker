@@ -8,6 +8,7 @@ import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
 import { MainTabs } from './MainTabs';
 import { ReminderSettingsScreen } from './ReminderSettingsScreen';
+import { AddEventScreen } from './AddEventScreen';
 import { ReminderRescheduler } from '../reminders/ReminderRescheduler';
 import { colors } from '../theme/theme';
 
@@ -36,6 +37,11 @@ export function RootNavigator() {
               name="ReminderSettings"
               component={ReminderSettingsScreen}
               options={{ headerShown: true, title: 'Reminder settings', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
+            />
+            <Stack.Screen
+              name="AddEvent"
+              component={AddEventScreen}
+              options={{ headerShown: true, title: 'Add to calendar', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
             />
           </>
         ) : (
