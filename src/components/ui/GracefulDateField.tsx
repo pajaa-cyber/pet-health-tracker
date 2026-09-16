@@ -30,10 +30,14 @@ interface GracefulDateFieldProps {
   date: number | null;
   approximateAgeMonths: number | null;
   onChange: (result: { precision: DatePrecision; date: number | null; approximateAgeMonths: number | null }) => void;
+  // Wizard-only: recolours the label/explanation text and the precision
+  // Chip row for a coloured step background. undefined = today's exact
+  // light styling, used by every non-wizard caller.
+  tint?: string;
 }
 
 export function GracefulDateField({
-  label, explanation, options, precision, date, approximateAgeMonths, onChange,
+  label, explanation, options, precision, date, approximateAgeMonths, onChange, tint,
 }: GracefulDateFieldProps) {
   const selectPrecision = (p: DatePrecision) => {
     if (p === 'exact' || p === 'roughly') {
@@ -45,16 +49,27 @@ export function GracefulDateField({
     }
   };
 
+  const labelStyle = tint ? { color: 'rgba(255,255,255,0.85)' } : undefined;
+
   return (
     <View style={{ gap: spacing.sm }}>
-      <MutedText style={{ fontWeight: '600', color: undefined }}>{label}</MutedText>
-      {explanation && <MutedText>{explanation}</MutedText>}
+      <MutedText style={[{ fontWeight: '600' as const }, labelStyle]}>{label}</MutedText>
+      {explanation && <MutedText style={labelStyle}>{explanation}</MutedText>}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
         {options.map((p) => (
-          <Chip key={p} label={PRECISION_LABEL[p]} selected={precision === p} onPress={() => selectPrecision(p)} />
+          <Chip
+            key={p}
+            label={PRECISION_LABEL[p]}
+            selected={precision === p}
+            onPress={() => selectPrecision(p)}
+            selectedBg={tint ? '#FFFFFF' : undefined}
+            selectedColor={tint}
+            unselectedBg={tint ? 'rgba(255,255,255,0.18)' : undefined}
+            unselectedColor={tint ? '#FFFFFF' : undefined}
+          />
         ))}
       </View>
-      {precision && PRECISION_REASSURANCE[precision] && <MutedText>{PRECISION_REASSURANCE[precision]}</MutedText>}
+      {precision && PRECISION_REASSURANCE[precision] && <MutedText style={labelStyle}>{PRECISION_REASSURANCE[precision]}</MutedText>}
       {(precision === 'exact' || precision === 'roughly') && (
         <DateField
           label={precision === 'exact' ? 'Date' : 'Approximate date'}

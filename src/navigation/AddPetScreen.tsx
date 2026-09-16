@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, BackHandler } from 'react-native';
+import { View, BackHandler, Pressable, Text, TextInput } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { createPet, updatePetPhoto, subscribeToPets, NewPetInput } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { Pet, PetSpecies, DatePrecision, ArrivalPrecision } from '../types/pet';
 import { SPECIES_LIST, SPECIES_LABEL, SPECIES_EMOJI } from '../pets/species';
-import {
-  ScreenContainer, TextField, Button, ErrorText, Chip, AvatarPicker,
-  Title, MutedText, GracefulDateField, BreedPicker,
-} from '../components/ui';
-import { spacing } from '../theme/theme';
+import { ScreenContainer, ErrorText, Chip, AvatarPicker, GracefulDateField, BreedPicker } from '../components/ui';
+import { shell, spacing } from '../theme/theme';
 import { canAddCustomField, customFieldLimitMessage } from '../limits/limits';
 import { DateField } from '../components/DateField';
 
@@ -24,7 +21,51 @@ const INITIAL: WizardData = {
   customFields: [], status: 'active', photoDataUri: null,
 };
 
-const TOTAL_STEPS = 9; // 0-indexed steps 0..8; Task 9 adds the final review step (index 8)
+const TOTAL_STEPS = 9;
+const WIZARD_TINTS = ['#5B4BE8', '#EC1E63', '#F97316', '#14B8A6', '#7C3AED', '#0EA5E9', '#F43F5E', '#0F9D58', '#5B4BE8'];
+
+// A local, wizard-only outline button — the shared `Button` component's
+// variants don't have a "white outline on an arbitrary coloured
+// background" option, and adding one there for a single screen isn't
+// worth widening that component's API. Used for every wizard "secondary"
+// action: the breed-picker trigger, Skip, and the custom-fields Remove/Add
+// buttons.
+function WizardButton({ title, onPress, disabled }: { title: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      style={{
+        minHeight: 44, borderRadius: 999, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)',
+        alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, opacity: disabled ? 0.5 : 1,
+      }}
+    >
+      <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>{title}</Text>
+    </Pressable>
+  );
+}
+
+// The wizard's dark text-input treatment — rgba(255,255,255,0.18) fill, no
+// border, white text. Hand-rolled rather than extending the shared
+// `TextField` (bordered, white-bg, dark text) because the two look nothing
+// alike; `TextField` stays exactly as it is for every other screen.
+function WizardTextField({ label, value, onChangeText, placeholder, keyboardType }: {
+  label?: string; value: string; onChangeText: (t: string) => void; placeholder?: string; keyboardType?: 'default' | 'number-pad';
+}) {
+  return (
+    <View style={{ gap: spacing.xs }}>
+      {label && <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{label}</Text>}
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="rgba(255,255,255,0.45)"
+        keyboardType={keyboardType}
+        style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, padding: 14, fontSize: 16, fontWeight: '600', color: '#FFFFFF', minHeight: 48 }}
+      />
+    </View>
+  );
+}
 
 export function AddPetScreen({ navigation }: any) {
   const { household } = useHousehold();
@@ -43,11 +84,8 @@ export function AddPetScreen({ navigation }: any) {
   const update = (patch: Partial<WizardData>) => setData((d) => ({ ...d, ...patch }));
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
+  const tint = WIZARD_TINTS[step];
 
-  // The hardware/gesture back button pops the whole screen by default,
-  // discarding every step's answers — intercept it so it steps the wizard
-  // backward instead, matching the in-app Back button, and only actually
-  // leaves the screen once the user is on step 0.
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (step > 0) {
@@ -69,7 +107,9 @@ export function AddPetScreen({ navigation }: any) {
       if (photoDataUri) {
         await updatePetPhoto(firestore, household.id, pet.id, photoDataUri);
       }
-      navigation.goBack();
+      // Lands on the new pet's hub (Part A's design decision) rather than
+      // going back — shows off the just-assigned identity colour immediately.
+      navigation.replace('PetHome', { petId: pet.id });
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -79,20 +119,45 @@ export function AddPetScreen({ navigation }: any) {
 
   const petName = data.name.trim() || 'your pet';
 
+  // Every chip on every step uses the same selected/unselected colour pair —
+  // Chip itself already branches on each chip's own `selected` prop, so this
+  // is a plain constant, not a function of any individual chip's state.
+  const stepChip = { selectedBg: '#FFFFFF', selectedColor: tint, unselectedBg: 'rgba(255,255,255,0.18)', unselectedColor: '#FFFFFF' };
+
   const renderStep = () => {
     switch (step) {
       case 0:
         return (
           <>
-            <Title>Let's add a pet</Title>
-            <AvatarPicker photoUri={data.photoDataUri} onPicked={(uri) => update({ photoDataUri: uri })} />
-            <TextField label="Name" placeholder="Pet's name" value={data.name} onChangeText={(t) => update({ name: t })} />
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Let's add a pet</Text>
+            <AvatarPicker
+              photoUri={data.photoDataUri}
+              onPicked={(uri) => update({ photoDataUri: uri })}
+              size={116}
+              emojiSize={34}
+              backgroundColor="rgba(255,255,255,0.2)"
+              borderColor="rgba(255,255,255,0.55)"
+              borderWidth={3}
+              borderStyle="dashed"
+              caption="mono"
+              captionColor="rgba(255,255,255,0.85)"
+            />
+            <TextInput
+              value={data.name}
+              onChangeText={(t) => update({ name: t })}
+              placeholder="Pet's name"
+              placeholderTextColor="rgba(255,255,255,0.5)"
+              style={{
+                fontSize: 26, fontWeight: '800', color: '#FFFFFF', textAlign: 'center',
+                borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.5)', paddingBottom: 8, backgroundColor: 'transparent',
+              }}
+            />
           </>
         );
       case 1:
         return (
           <>
-            <Title>{`What kind of animal is ${petName}?`}</Title>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`What kind of animal is ${petName}?`}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               {SPECIES_LIST.map((s) => (
                 <Chip
@@ -100,11 +165,12 @@ export function AddPetScreen({ navigation }: any) {
                   label={`${SPECIES_EMOJI[s]} ${SPECIES_LABEL[s]}`}
                   selected={data.species === s}
                   onPress={() => update({ species: s, speciesOther: s === 'other' ? data.speciesOther : null })}
+                  {...stepChip}
                 />
               ))}
             </View>
             {data.species === 'other' && (
-              <TextField
+              <WizardTextField
                 label="What kind?"
                 placeholder="e.g. Guinea pig, tortoise..."
                 value={data.speciesOther ?? ''}
@@ -116,13 +182,11 @@ export function AddPetScreen({ navigation }: any) {
       case 2:
         return (
           <>
-            <Title>{`${petName}'s breed`}</Title>
-            <MutedText>Not sure, or not a specific breed? That's completely fine — pick Mixed, Stray or rescued, or Don't know.</MutedText>
-            <Button
-              title={data.breed || 'Choose a breed (optional)'}
-              variant="outline"
-              onPress={() => setBreedPickerOpen(true)}
-            />
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`${petName}'s breed`}</Text>
+            <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>
+              Not sure, or not a specific breed? That's completely fine — pick Mixed, Stray or rescued, or Don't know.
+            </Text>
+            <WizardButton title={data.breed || 'Choose a breed (optional)'} onPress={() => setBreedPickerOpen(true)} />
             <BreedPicker
               visible={breedPickerOpen}
               species={data.species}
@@ -135,7 +199,7 @@ export function AddPetScreen({ navigation }: any) {
       case 3:
         return (
           <>
-            <Title>{`When was ${petName} born?`}</Title>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`When was ${petName} born?`}</Text>
             <GracefulDateField
               label="Birth date"
               options={['exact', 'roughly', 'approxAge', 'unknown']}
@@ -145,14 +209,15 @@ export function AddPetScreen({ navigation }: any) {
               onChange={({ precision, date, approximateAgeMonths }) =>
                 update({ birthDatePrecision: precision as DatePrecision, birthDate: date, approximateAgeMonths })
               }
+              tint={tint}
             />
           </>
         );
       case 4:
         return (
           <>
-            <Title>{`When did ${petName} join your care?`}</Title>
-            <MutedText>Optional — skip this if you'd rather not answer.</MutedText>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`When did ${petName} join your care?`}</Text>
+            <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Optional — skip this if you'd rather not answer.</Text>
             <GracefulDateField
               label="Arrival date"
               options={['exact', 'roughly', 'unknown']}
@@ -162,47 +227,48 @@ export function AddPetScreen({ navigation }: any) {
               onChange={({ precision, date }) =>
                 update({ arrivalDatePrecision: precision as ArrivalPrecision, arrivalDate: date })
               }
+              tint={tint}
             />
-            <Button
-              title="Skip"
-              variant="outline"
-              onPress={() => update({ arrivalDatePrecision: null, arrivalDate: null })}
-            />
+            <WizardButton title="Skip" onPress={() => update({ arrivalDatePrecision: null, arrivalDate: null })} />
           </>
         );
       case 5:
         return (
           <>
-            <Title>{`About ${petName}`}</Title>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`About ${petName}`}</Text>
             <View style={{ gap: spacing.xs }}>
-              <MutedText>Sex — helps tailor care reminders.</MutedText>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>Sex — helps tailor care reminders.</Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                 {(['male', 'female', 'unknown'] as const).map((s) => (
-                  <Chip key={s} label={s} selected={data.sex === s} onPress={() => update({ sex: s })} />
+                  <Chip key={s} label={s} selected={data.sex === s} onPress={() => update({ sex: s })} {...stepChip} />
                 ))}
               </View>
             </View>
             <View style={{ gap: spacing.xs }}>
-              <MutedText>Neutered / spayed — some vaccines and medications are dosed differently.</MutedText>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>Neutered / spayed — some vaccines and medications are dosed differently.</Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                <Chip label="Yes" selected={data.neutered === true} onPress={() => update({ neutered: true })} />
-                <Chip label="No" selected={data.neutered === false} onPress={() => update({ neutered: false })} />
-                <Chip label="Don't know" selected={data.neutered === null} onPress={() => update({ neutered: null })} />
+                <Chip label="Yes" selected={data.neutered === true} onPress={() => update({ neutered: true })} {...stepChip} />
+                <Chip label="No" selected={data.neutered === false} onPress={() => update({ neutered: false })} {...stepChip} />
+                <Chip label="Don't know" selected={data.neutered === null} onPress={() => update({ neutered: null })} {...stepChip} />
               </View>
             </View>
             <View style={{ gap: spacing.xs }}>
-              <MutedText>Helps identify your pet if they're ever lost, and confirms it's them for vets or a microchip registry.</MutedText>
-              <TextField
+              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>
+                Helps identify your pet if they're ever lost, and confirms it's them for vets or a microchip registry.
+              </Text>
+              <WizardTextField
                 label="Colour / markings (optional)"
                 value={data.colorMarkings}
                 onChangeText={(t) => update({ colorMarkings: t })}
               />
             </View>
             <View style={{ gap: spacing.xs }}>
-              <MutedText>Where do they spend their time? This changes flea/tick/worm risk, so protection can be tailored to match.</MutedText>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>
+                Where do they spend their time? This changes flea/tick/worm risk, so protection can be tailored to match.
+              </Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                 {(['indoor', 'outdoor', 'both'] as const).map((e) => (
-                  <Chip key={e} label={e} selected={data.livingEnvironment === e} onPress={() => update({ livingEnvironment: e })} />
+                  <Chip key={e} label={e} selected={data.livingEnvironment === e} onPress={() => update({ livingEnvironment: e })} {...stepChip} />
                 ))}
               </View>
             </View>
@@ -211,57 +277,55 @@ export function AddPetScreen({ navigation }: any) {
       case 6:
         return (
           <>
-            <Title>Microchip</Title>
-            <MutedText>Optional — add this now or anytime from the pet's profile.</MutedText>
-            <TextField label="Provider" value={data.microchipProvider} onChangeText={(t) => update({ microchipProvider: t })} />
-            <TextField label="Chip number" value={data.microchipNumber} onChangeText={(t) => update({ microchipNumber: t })} />
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Microchip</Text>
+            <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Optional — add this now or anytime from the pet's profile.</Text>
+            <WizardTextField label="Provider" value={data.microchipProvider} onChangeText={(t) => update({ microchipProvider: t })} />
+            <WizardTextField label="Chip number" value={data.microchipNumber} onChangeText={(t) => update({ microchipNumber: t })} />
             <DateField
               label="Date implanted"
               value={data.microchipDate}
               onChange={(v) => update({ microchipDate: v })}
               onClear={() => update({ microchipDate: null })}
             />
-            <TextField label="Registry" value={data.microchipRegistry} onChangeText={(t) => update({ microchipRegistry: t })} />
+            <WizardTextField label="Registry" value={data.microchipRegistry} onChangeText={(t) => update({ microchipRegistry: t })} />
           </>
         );
       case 7: {
         const atLimit = !canAddCustomField(data);
         return (
           <>
-            <Title>Custom fields</Title>
-            <MutedText>Add your own fields — favourite food, walking route, anything you want to remember.</MutedText>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Custom fields</Text>
+            <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>
+              Add your own fields — favourite food, walking route, anything you want to remember.
+            </Text>
             {data.customFields.map((f, i) => (
-              <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>
-                {/* TextField's `style` prop only reaches the inner TextInput, not its
-                    outer wrapper View — flex:1 there has no effect on width since the
-                    wrapper is a plain column View. Wrapping each TextField in its own
-                    flex:1 View lets the wrapper stretch (default alignItems: 'stretch')
-                    to fill this row's cell, which is what actually makes these inputs
-                    usable width instead of collapsing to a ~14px box. */}
+              <View key={i} style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' }}>
                 <View style={{ flex: 1 }}>
-                  <TextField
+                  <WizardTextField
                     label="Label"
                     value={f.label}
                     onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <TextField
+                  <WizardTextField
                     label="Value"
                     value={f.value}
                     onChangeText={(t) => update({ customFields: data.customFields.map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
                   />
                 </View>
-                <Button
-                  title="Remove"
-                  variant="outline"
+                <Pressable
                   onPress={() => update({ customFields: data.customFields.filter((_, j) => j !== i) })}
-                />
+                  accessibilityRole="button"
+                  accessibilityLabel="Remove custom field"
+                  style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>×</Text>
+                </Pressable>
               </View>
             ))}
-            <Button
+            <WizardButton
               title={atLimit ? customFieldLimitMessage() : 'Add a custom field'}
-              variant="outline"
               disabled={atLimit}
               onPress={() => update({ customFields: [...data.customFields, { label: '', value: '' }] })}
             />
@@ -270,12 +334,19 @@ export function AddPetScreen({ navigation }: any) {
       }
       case 8: {
         const Row = ({ label, value, jumpTo }: { label: string; value: string; jumpTo: number }) => (
-          <Chip label={`${label}: ${value || '—'}`} selected={false} onPress={() => setStep(jumpTo)} />
+          <Pressable
+            onPress={() => setStep(jumpTo)}
+            accessibilityRole="button"
+            style={{ borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between' }}
+          >
+            <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{label}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>{value || '—'}</Text>
+          </Pressable>
         );
         return (
           <>
-            <Title>Review</Title>
-            <MutedText>Tap anything to change it.</MutedText>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Review</Text>
+            <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Tap anything to change it.</Text>
             <View style={{ gap: spacing.xs }}>
               <Row label="Name" value={data.name} jumpTo={0} />
               <Row label="Species" value={data.species === 'other' ? (data.speciesOther ?? '') : SPECIES_LABEL[data.species]} jumpTo={1} />
@@ -298,17 +369,46 @@ export function AddPetScreen({ navigation }: any) {
   };
 
   return (
-    <ScreenContainer scroll>
-      <MutedText>{`Step ${step + 1} of ${TOTAL_STEPS}`}</MutedText>
+    <ScreenContainer scroll background={tint} style={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: 26, gap: 18 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)' }}>
+          Step {step + 1} of {TOTAL_STEPS}
+        </Text>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 8, paddingHorizontal: 14 }}
+        >
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>Close</Text>
+        </Pressable>
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+          <View key={i} style={{ flex: 1, height: 5, borderRadius: 99, backgroundColor: i <= step ? '#FFFFFF' : 'rgba(255,255,255,0.3)' }} />
+        ))}
+      </View>
+
       {renderStep()}
-      {error && <ErrorText>{error}</ErrorText>}
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        {step > 0 && <Button title="Back" variant="outline" onPress={back} style={{ flex: 1 }} />}
-        {step < TOTAL_STEPS - 1 ? (
-          <Button title="Next" onPress={next} style={{ flex: 1 }} />
-        ) : (
-          <Button title="Add pet" onPress={handleSave} loading={loading} style={{ flex: 1 }} />
-        )}
+      {error && <ErrorText style={{ color: '#FFFFFF', backgroundColor: 'rgba(0,0,0,0.25)', padding: spacing.sm, borderRadius: 12 }}>{error}</ErrorText>}
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Pressable onPress={step > 0 ? back : () => navigation.goBack()} accessibilityRole="button">
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>{step > 0 ? 'Back' : 'Cancel'}</Text>
+        </Pressable>
+        <Pressable
+          onPress={step < TOTAL_STEPS - 1 ? next : handleSave}
+          disabled={loading}
+          accessibilityRole="button"
+          style={{
+            backgroundColor: '#FFFFFF', borderRadius: 999, minHeight: 56, paddingVertical: 16, paddingHorizontal: 26,
+            flexDirection: 'row', alignItems: 'center', gap: 6, opacity: loading ? 0.7 : 1,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: '800', color: tint }}>{step === TOTAL_STEPS - 1 ? 'Add pet' : 'Next'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '800', color: tint }}>›</Text>
+        </Pressable>
       </View>
     </ScreenContainer>
   );
