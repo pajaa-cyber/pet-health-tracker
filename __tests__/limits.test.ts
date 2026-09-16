@@ -4,6 +4,8 @@ import {
   canAddCustomField,
   canAddHouseholdMember,
   customFieldLimitMessage,
+  isHouseholdFull,
+  householdMemberLimitMessage,
 } from '../src/limits/limits';
 
 describe('limits', () => {
@@ -37,5 +39,14 @@ describe('limits', () => {
 
   it('denies another household member at the limit', () => {
     expect(canAddHouseholdMember({ members: [1, 2, 3, 4] })).toBe(false);
+  });
+
+  it('reports a household as full at exactly the free member limit', () => {
+    expect(isHouseholdFull(4)).toBe(true);
+    expect(isHouseholdFull(3)).toBe(false);
+  });
+
+  it('returns an explanatory household-limit message, not a bare refusal', () => {
+    expect(householdMemberLimitMessage()).toContain('4 household members');
   });
 });

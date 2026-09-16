@@ -286,8 +286,27 @@ service cloud.firestore {
       // rule semantics against a real emulator before attempting to close
       // this further.
       allow create: if request.auth != null &&
-        request.resource.data.keys().hasOnly(['householdId']);
-      allow update, delete: if false;
+        request.resource.data.keys().hasOnly(['householdId', 'memberCount']);
+
+      // memberCount is a denormalized mirror of the household's member
+      // count (Plan 7), read here by a non-member client (joinHousehold)
+      // specifically so it can show a friendly "household is full" message
+      // BEFORE attempting to join — the joining client has no read grant on
+      // the household document itself (see the comment above), so this is
+      // the only place that count can come from. This is intentionally an
+      // advisory-only soft cap, the same tier as Plan 4's custom-field
+      // limit (also not rules-enforced): a signed-in user could in
+      // principle write an inaccurate count here, but that only affects
+      // what gets DISPLAYED before a join attempt, not who can actually
+      // join a household they don't belong to — isMember/isJoining on the
+      // household document itself are the real access-control boundary and
+      // are completely unaffected by this field. householdId is kept
+      // immutable so this rule can never be used to repoint a code at a
+      // different household.
+      allow update: if request.auth != null &&
+        request.resource.data.householdId == resource.data.householdId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount']);
+      allow delete: if false;
     }
 
     // Maps a signed-in user to the household they belong to, so the app can

@@ -331,6 +331,33 @@ describe('household security rules', () => {
     );
   });
 
+  it('allows creating an invite-code entry with householdId and memberCount', async () => {
+    const creatorDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(creatorDb, 'inviteCodes', 'ZZZ999'), { householdId: 'h2', memberCount: 1 })
+    );
+  });
+
+  it("allows any signed-in user to update an invite code's memberCount", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: 2 })
+    );
+  });
+
+  it('denies repointing an invite code at a different household via a memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { householdId: 'h-hijacked', memberCount: 2 })
+    );
+  });
+
   it('allows a user to create their own users/{uid} household pointer', async () => {
     const userDb = testEnv.authenticatedContext('user-1').firestore();
     await assertSucceeds(

@@ -1,5 +1,6 @@
-import { collection, doc, getDoc, arrayUnion, writeBatch, type Firestore } from '@react-native-firebase/firestore';
+import { collection, doc, getDoc, arrayUnion, arrayRemove, increment, writeBatch, type Firestore } from '@react-native-firebase/firestore';
 import { Household, HouseholdMember } from '../types/household';
+import { isHouseholdFull, householdMemberLimitMessage } from '../limits/limits';
 
 function generateInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I ambiguity
@@ -60,7 +61,7 @@ export async function createHousehold(
 
     const batch = writeBatch(db);
     batch.set(docRef, household);
-    batch.set(doc(db, 'inviteCodes', inviteCode), { householdId: docRef.id });
+    batch.set(doc(db, 'inviteCodes', inviteCode), { householdId: docRef.id, memberCount: 1 });
     // users/{uid} -> { householdId } lets the app find "which household am
     // I in" on a fresh launch via a single-document get() (see
     // HouseholdContext.tsx) instead of a query Firestore would reject (same
@@ -96,41 +97,33 @@ export async function joinHousehold(
     throw new Error('Invite code not found');
   }
 
-  const { householdId } = inviteSnap.data() as { householdId: string };
+  const { householdId, memberCount } = inviteSnap.data() as { householdId: string; memberCount?: number };
+
+  // memberCount is a denormalized mirror of the household's member count
+  // (see firestore.rules) — the only way a non-member client can see it,
+  // since it has no read access to the household document itself. Checking
+  // it here, before attempting the join write at all, is what lets this
+  // throw a friendly, specific message instead of a bare permission-denied
+  // error surfacing from a rules rejection. A missing memberCount (a
+  // household created before this field existed) is treated as 0 — the
+  // safe, fail-open direction.
+  if (isHouseholdFull(memberCount ?? 0)) {
+    throw new Error(householdMemberLimitMessage());
+  }
+
   const newMember: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
 
-  // Batched with the users/{uid} pointer write below so both succeed or
-  // fail together — a user must never end up a household member without
-  // the pointer that lets the app find that household again on relaunch,
-  // or vice versa. This does NOT change any existing join security
-  // property: it's still a single `update` on the household doc with
-  // exactly the same members/joinCodeUsed shape isJoining() validates.
+  // Batched with the users/{uid} pointer write and the inviteCodes
+  // memberCount increment below so all three succeed or fail together.
   const batch = writeBatch(db);
   batch.update(doc(db, 'households', householdId), {
     members: arrayUnion(newMember),
-    // Kept in exact lockstep with `members` above — same write, same
-    // arrayUnion semantics (append-only, idempotent). isJoining() in
-    // firestore.rules requires BOTH arrays to grow by exactly one and to
-    // still contain all prior entries, and requires the requester's own
-    // uid to be the one added to memberIds; a join write that updated
-    // only one of the two arrays is rejected.
     memberIds: arrayUnion(userId),
-    // Ties this write to proof the caller actually knows the household's
-    // invite code — firestore.rules' isJoining() requires this to equal
-    // the household's own stored inviteCode. Without it, anyone who learns
-    // a household's document ID could join via arrayUnion alone, with zero
-    // knowledge of the real code (see firestore.rules for the full
-    // rationale). This value is intentionally the code the user typed in,
-    // not a derived/looked-up one, so a wrong or stale code fails the
-    // rule's equality check rather than silently succeeding.
     joinCodeUsed: inviteCode,
   });
-  // See createHousehold's users/{uid} write above: same pointer doc, same
-  // reason. firestore.rules only allows this as a `create`, so a user who
-  // already belongs to a household (and thus already has this doc) has the
-  // WHOLE batch rejected if they attempt to join another — an intentional
-  // defense-in-depth backstop for "one household per user" in this plan's
-  // scope, not a bug (RootNavigator is the primary UX gate).
+  batch.update(doc(db, 'inviteCodes', inviteCode), {
+    memberCount: increment(1),
+  });
   batch.set(doc(db, 'users', userId), { householdId });
   await batch.commit();
 }

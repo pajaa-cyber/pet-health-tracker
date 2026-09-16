@@ -7,6 +7,8 @@ const mockUsersDocRef = { id: 'users-ref' };
 const mockCollectionRef = {};
 const mockGetDoc = jest.fn();
 const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
+const mockArrayRemove = jest.fn((value: unknown) => ({ __arrayRemove: [value] }));
+const mockIncrement = jest.fn((value: number) => ({ __increment: value }));
 const mockBatchSet = jest.fn();
 const mockBatchUpdate = jest.fn();
 const mockBatchCommit = jest.fn();
@@ -26,6 +28,8 @@ jest.mock('@react-native-firebase/firestore', () => ({
   }),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
   arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
+  arrayRemove: (...args: unknown[]) => mockArrayRemove(args[0]),
+  increment: (...args: unknown[]) => mockIncrement(args[0] as number),
   writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }));
 
@@ -39,21 +43,18 @@ beforeEach(() => {
 });
 
 describe('householdService', () => {
-  it('creates a household, its invite code, and a users/{uid} pointer in one batch', async () => {
+  it('creates a household, its invite code (with a starting memberCount of 1), and a users/{uid} pointer in one batch', async () => {
     const household = await createHousehold(fakeDb, 'user-1', 'Ana', "Ana's Household");
 
     expect(household.id).toBe('generated-id');
     expect(household.members).toEqual([
       expect.objectContaining({ userId: 'user-1', displayName: 'Ana' }),
     ]);
-    // memberIds is the array firestore.rules/storage.rules authorize
-    // against (`request.auth.uid in memberIds`); it must be written in the
-    // same document as members, never derived client-side at read time.
     expect(household.memberIds).toEqual(['user-1']);
     expect(household.inviteCode).toHaveLength(6);
     expect(mockWriteBatch).toHaveBeenCalledWith(fakeDb);
     expect(mockBatchSet).toHaveBeenCalledWith(mockCreatedDocRef, household);
-    expect(mockBatchSet).toHaveBeenCalledWith(mockInviteDocRef, { householdId: 'generated-id' });
+    expect(mockBatchSet).toHaveBeenCalledWith(mockInviteDocRef, { householdId: 'generated-id', memberCount: 1 });
     expect(mockBatchSet).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'generated-id' });
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);
   });
@@ -67,10 +68,6 @@ describe('householdService', () => {
 
     expect(household.id).toBe('generated-id');
     expect(household.inviteCode).toHaveLength(6);
-    // One batch per attempt, and the household+invite+pointer writes are
-    // re-set on the retry's batch (the first attempt's batch committed
-    // nothing, so the household doc still doesn't exist and can be `set`
-    // again).
     expect(mockWriteBatch).toHaveBeenCalledTimes(2);
     expect(mockBatchCommit).toHaveBeenCalledTimes(2);
     expect(mockBatchSet).toHaveBeenCalledWith(mockCreatedDocRef, household);
@@ -84,12 +81,11 @@ describe('householdService', () => {
       createHousehold(fakeDb, 'user-1', 'Ana', "Ana's Household")
     ).rejects.toThrow(failure.message);
 
-    // MAX_INVITE_CODE_ATTEMPTS in householdService.ts
     expect(mockBatchCommit).toHaveBeenCalledTimes(5);
   });
 
-  it('joins a household and writes the users/{uid} pointer in the same batch', async () => {
-    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1' }) });
+  it('joins a household and writes the users/{uid} pointer and an inviteCodes memberCount increment in the same batch', async () => {
+    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1', memberCount: 1 }) });
 
     await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
 
@@ -97,17 +93,33 @@ describe('householdService', () => {
     expect(mockArrayUnion).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-2', displayName: 'Marko' })
     );
-    // memberIds must be arrayUnion'd in the SAME update as members —
-    // firestore.rules' isJoining() requires both arrays to grow by exactly
-    // one in a single write, so a join that updated only one of them is
-    // rejected outright.
     expect(mockArrayUnion).toHaveBeenCalledWith('user-2');
     expect(mockBatchUpdate).toHaveBeenCalledWith(mockHouseholdDocRef, {
       members: { __arrayUnion: [expect.objectContaining({ userId: 'user-2' })] },
       memberIds: { __arrayUnion: ['user-2'] },
       joinCodeUsed: 'ABC123',
     });
+    expect(mockIncrement).toHaveBeenCalledWith(1);
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: { __increment: 1 } });
     expect(mockBatchSet).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'h1' });
+    expect(mockBatchCommit).toHaveBeenCalled();
+  });
+
+  it('throws a friendly message and writes nothing when the household is already at the free member limit', async () => {
+    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1', memberCount: 4 }) });
+
+    await expect(
+      joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123')
+    ).rejects.toThrow('4 household members');
+    expect(mockWriteBatch).not.toHaveBeenCalled();
+    expect(mockBatchCommit).not.toHaveBeenCalled();
+  });
+
+  it('treats a missing memberCount (a household created before this field existed) as under the limit', async () => {
+    mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1' }) });
+
+    await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
+
     expect(mockBatchCommit).toHaveBeenCalled();
   });
 
