@@ -11,6 +11,7 @@ import { ReminderSettingsScreen } from './ReminderSettingsScreen';
 import { AddEventScreen } from './AddEventScreen';
 import { EditEventScreen } from './EditEventScreen';
 import { DayDetailScreen } from './DayDetailScreen';
+import { AddVetScreen } from './AddVetScreen';
 import { ReminderRescheduler } from '../reminders/ReminderRescheduler';
 import { colors } from '../theme/theme';
 
@@ -54,6 +55,11 @@ export function RootNavigator() {
               name="DayDetail"
               component={DayDetailScreen}
               options={{ headerShown: true, title: '', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
+            />
+            <Stack.Screen
+              name="AddVet"
+              component={AddVetScreen}
+              options={{ headerShown: true, title: 'Add a vet', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
             />
           </>
         ) : (

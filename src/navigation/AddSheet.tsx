@@ -12,6 +12,7 @@ const ADD_ACTIONS: { label: string; route: string; needsPet: boolean; topLevel?:
   { label: 'Log a Weight', route: 'WeightLog', needsPet: true },
   { label: 'Add a Vet Visit', route: 'AddVetVisit', needsPet: true },
   { label: 'Add an Expense', route: 'AddExpense', needsPet: true },
+  { label: 'Add a Vet', route: 'AddVet', needsPet: false, topLevel: true },
   { label: 'Add to Calendar', route: 'AddEvent', needsPet: false, topLevel: true },
 ];
 
