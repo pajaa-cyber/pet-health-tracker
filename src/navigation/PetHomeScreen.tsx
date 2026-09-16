@@ -69,7 +69,7 @@ export function PetHomeScreen({ route, navigation }: any) {
         <Button title="Edit" variant="outline" onPress={() => navigation.navigate('EditPet', { petId })} />
       )}
       <Card>
-        <WeightTrendChart logs={weightLogs} />
+        <WeightTrendChart logs={weightLogs} color={pet ? petColor(pet) : colors.primary} />
       </Card>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
         {SECTIONS.map((s) => (

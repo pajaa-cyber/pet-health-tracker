@@ -6,6 +6,7 @@ import { WeightLog } from '../types/weightLog';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { DateField } from '../components/DateField';
 import { ScreenContainer, Card, TextField, Button, ErrorText, GuidedEmptyState } from '../components/ui';
+import { colors } from '../theme/theme';
 
 export function WeightLogScreen({ route }: any) {
   const { petId } = route.params;
@@ -52,7 +53,7 @@ export function WeightLogScreen({ route }: any) {
         />
       ) : (
         <Card>
-          <WeightTrendChart logs={logs} />
+          <WeightTrendChart logs={logs} color={colors.primary} />
         </Card>
       )}
       <TextField label="Weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />

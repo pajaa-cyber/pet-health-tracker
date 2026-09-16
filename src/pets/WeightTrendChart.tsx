@@ -1,12 +1,14 @@
-import React from 'react';
-import { View } from 'react-native';
+import React, { useState } from 'react';
+import { View, Pressable, Text } from 'react-native';
 import { WeightLog } from '../types/weightLog';
 import { MutedText } from '../components/ui';
-import { colors, radii, spacing } from '../theme/theme';
+import { spacing } from '../theme/theme';
 
-const CHART_HEIGHT = 120;
+const CHART_HEIGHT = 124;
 
-export function WeightTrendChart({ logs }: { logs: WeightLog[] }) {
+export function WeightTrendChart({ logs, color }: { logs: WeightLog[]; color: string }) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
   if (logs.length === 0) {
     return <MutedText>No weight entries yet.</MutedText>;
   }
@@ -19,20 +21,33 @@ export function WeightTrendChart({ logs }: { logs: WeightLog[] }) {
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: CHART_HEIGHT, gap: spacing.xs }}>
-      {sorted.map((log) => {
-        const barHeight = 8 + ((log.weight - min) / range) * (CHART_HEIGHT - 8);
+      {sorted.map((log, i) => {
+        const barHeight = 26 + ((log.weight - min) / range) * 70;
+        const selected = selectedIdx === i;
         return (
-          <View key={log.id} style={{ alignItems: 'center', gap: spacing.xs }}>
+          <Pressable
+            key={log.id}
+            onPress={() => setSelectedIdx(selected ? null : i)}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}
+          >
+            {selected && (
+              <Text style={{ fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.75)' }}>{log.weight} kg</Text>
+            )}
             <View
               style={{
-                width: 14,
+                width: '100%',
                 height: barHeight,
-                backgroundColor: colors.primary,
-                borderRadius: radii.sm,
+                backgroundColor: selected ? '#FFFFFF' : color,
+                borderTopLeftRadius: 10,
+                borderTopRightRadius: 10,
+                borderBottomLeftRadius: 4,
+                borderBottomRightRadius: 4,
               }}
             />
-            <MutedText style={{ fontSize: 10 }}>{log.weight}</MutedText>
-          </View>
+            <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace' }}>
+              {new Date(log.date).toLocaleDateString(undefined, { month: 'short' })}
+            </Text>
+          </Pressable>
         );
       })}
     </View>
