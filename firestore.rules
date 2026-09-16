@@ -325,12 +325,32 @@ service cloud.firestore {
       // Only fires when the document does not yet exist (Firestore classifies
       // a write to an existing doc as `update`, not `create`) — so a user who
       // already belongs to a household cannot overwrite their pointer via this
-      // rule. Changing households (leaving one, joining another) is out of
-      // scope for this plan; that needs its own explicit "leave household"
-      // design, parked as a future task.
+      // rule. A STILL-ACTIVE member still can't overwrite their pointer this
+      // way either (see `allow update` below) — only a removed member can,
+      // via the recovery-path rule this plan adds.
       allow create: if request.auth != null && request.auth.uid == userId &&
         request.resource.data.keys().hasOnly(['householdId']);
-      allow update, delete: if false;
+
+      // Recovery path (Plan 7) for the standing "a removed household member
+      // has no way back in" gap: a removed member's pointer still names
+      // their OLD household. `resource` below is that EXISTING document
+      // (pre-write) — this rule lets a user overwrite their OWN pointer
+      // only once they are no longer in the memberIds of the household it
+      // currently names, so a still-active member cannot touch their own
+      // pointer this way (they'd have to actually be removed first). This
+      // depends only on the CURRENT committed state of the household
+      // document being read, never on any other write in the same batch —
+      // removeMember (householdService.ts) does not touch this document at
+      // all; the removed user's own next createHousehold/joinHousehold call
+      // is what exercises this rule, driven by the exact same
+      // batch.set(doc(db,'users',userId), {householdId}) call those
+      // functions already make (Firestore classifies a write to an existing
+      // doc as `update` regardless of set() vs update(), so no client code
+      // change was needed for this — see the comment on `allow get` above).
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly(['householdId']) &&
+        !(request.auth.uid in get(/databases/$(database)/documents/households/$(resource.data.householdId)).data.memberIds);
+      allow delete: if false;
     }
   }
 }

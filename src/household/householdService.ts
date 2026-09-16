@@ -128,6 +128,32 @@ export async function joinHousehold(
   await batch.commit();
 }
 
+export async function removeMember(
+  db: Firestore,
+  householdId: string,
+  inviteCode: string,
+  member: HouseholdMember
+): Promise<void> {
+  // No new rules permission is needed for this write — isMember(resource.data)
+  // already allows any current member to update members/memberIds with no
+  // field-shape restriction (see the big isMember/isJoining comment block at
+  // the top of firestore.rules). The actual fix this plan makes is the
+  // users/{userId} recovery-path rule below, which lets the REMOVED member's
+  // own client repair their stale pointer the next time they try to create
+  // or join a household — this function does not touch users/{removedUid}
+  // at all, deliberately avoiding any dependency on write ordering within
+  // this batch.
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'households', householdId), {
+    members: arrayRemove(member),
+    memberIds: arrayRemove(member.userId),
+  });
+  batch.update(doc(db, 'inviteCodes', inviteCode), {
+    memberCount: increment(-1),
+  });
+  await batch.commit();
+}
+
 export async function getHousehold(
   db: Firestore,
   householdId: string

@@ -4,7 +4,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import * as fs from 'fs';
 
 let testEnv: RulesTestEnvironment;
@@ -379,6 +379,58 @@ describe('household security rules', () => {
     const userDb = testEnv.authenticatedContext('user-1').firestore();
     await assertFails(
       setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('lets a removed member overwrite their stale household pointer', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      // user-1's pointer still names h1, but h1's memberIds no longer
+      // includes them (they were removed, or never actually re-added after
+      // seedHousehold — either way, the rule only cares about the CURRENT
+      // memberIds of the household the stale pointer names).
+      await setDoc(doc(context.firestore(), 'users', 'user-1'), { householdId: 'h1' });
+      await setDoc(doc(context.firestore(), 'households', 'h1'), {
+        id: 'h1', name: 'Test Household',
+        members: [{ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }],
+        memberIds: ['user-2'],
+        inviteCode: 'ABC123', createdAt: 0,
+      });
+    });
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('still denies a current member from overwriting their own pointer', async () => {
+    await seedHousehold(); // user-1 is a member of h1
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', 'user-1'), { householdId: 'h1' });
+    });
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('allows a member to remove another member from the household', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1'), {
+        id: 'h1', name: 'Test Household',
+        members: [
+          { userId: 'user-1', displayName: 'Ana', joinedAt: 0 },
+          { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
+        ],
+        memberIds: ['user-1', 'user-2'],
+        inviteCode: 'ABC123', createdAt: 0,
+      });
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1'), {
+        members: arrayRemove({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        memberIds: arrayRemove('user-2'),
+      })
     );
   });
 

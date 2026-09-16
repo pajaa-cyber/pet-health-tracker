@@ -33,7 +33,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
   writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }));
 
-import { createHousehold, joinHousehold, getHousehold } from '../src/household/householdService';
+import { createHousehold, joinHousehold, getHousehold, removeMember } from '../src/household/householdService';
 
 const fakeDb = {} as Firestore;
 
@@ -136,5 +136,21 @@ describe('householdService', () => {
 
     const result = await getHousehold(fakeDb, 'missing-id');
     expect(result).toBeNull();
+  });
+
+  it('removes a member from both members and memberIds, and decrements the invite code memberCount, in one batch', async () => {
+    const member = { userId: 'user-2', displayName: 'Marko', joinedAt: 0 };
+
+    await removeMember(fakeDb, 'h1', 'ABC123', member);
+
+    expect(mockArrayRemove).toHaveBeenCalledWith(member);
+    expect(mockArrayRemove).toHaveBeenCalledWith('user-2');
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockHouseholdDocRef, {
+      members: { __arrayRemove: [member] },
+      memberIds: { __arrayRemove: ['user-2'] },
+    });
+    expect(mockIncrement).toHaveBeenCalledWith(-1);
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: { __increment: -1 } });
+    expect(mockBatchCommit).toHaveBeenCalledTimes(1);
   });
 });
