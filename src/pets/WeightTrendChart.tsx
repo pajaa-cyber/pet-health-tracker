@@ -6,7 +6,18 @@ import { spacing } from '../theme/theme';
 
 const CHART_HEIGHT = 124;
 
-export function WeightTrendChart({ logs, color }: { logs: WeightLog[]; color: string }) {
+export function WeightTrendChart({
+  logs, color,
+  labelColor = 'rgba(255,255,255,0.45)',
+  valueLabelColor = 'rgba(255,255,255,0.75)',
+  selectedBarColor = '#FFFFFF',
+}: {
+  logs: WeightLog[];
+  color: string;
+  labelColor?: string;
+  valueLabelColor?: string;
+  selectedBarColor?: string;
+}) {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   if (logs.length === 0) {
@@ -31,20 +42,20 @@ export function WeightTrendChart({ logs, color }: { logs: WeightLog[]; color: st
             style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}
           >
             {selected && (
-              <Text style={{ fontSize: 10, fontWeight: '700', color: 'rgba(255,255,255,0.75)' }}>{log.weight} kg</Text>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: valueLabelColor }}>{log.weight} kg</Text>
             )}
             <View
               style={{
                 width: '100%',
                 height: barHeight,
-                backgroundColor: selected ? '#FFFFFF' : color,
+                backgroundColor: selected ? selectedBarColor : color,
                 borderTopLeftRadius: 10,
                 borderTopRightRadius: 10,
                 borderBottomLeftRadius: 4,
                 borderBottomRightRadius: 4,
               }}
             />
-            <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: 'rgba(255,255,255,0.45)', fontFamily: 'monospace' }}>
+            <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: labelColor, fontFamily: 'monospace' }}>
               {new Date(log.date).toLocaleDateString(undefined, { month: 'short' })}
             </Text>
           </Pressable>

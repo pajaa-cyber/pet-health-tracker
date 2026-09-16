@@ -31,9 +31,9 @@ const screenOptions = {
 export function MainNavigator() {
   return (
     <Stack.Navigator screenOptions={screenOptions}>
-      <Stack.Screen name="PetList" component={HomeScreen} options={{ title: 'My Pets' }} />
-      <Stack.Screen name="AddPet" component={AddPetScreen} options={{ title: 'Add Pet' }} />
-      <Stack.Screen name="PetHome" component={PetHomeScreen} options={{ title: 'Pet Home' }} />
+      <Stack.Screen name="PetList" component={HomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="AddPet" component={AddPetScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PetHome" component={PetHomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditPet" component={EditPetScreen} options={{ title: 'Edit Pet' }} />
       <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ title: 'Vaccines' }} />
       <Stack.Screen name="AddVaccine" component={AddVaccineScreen} options={{ title: 'Add Vaccine' }} />

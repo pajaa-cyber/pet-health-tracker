@@ -3,6 +3,7 @@ import { View, Pressable } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MainNavigator } from './MainNavigator';
 import { CalendarScreen } from './CalendarScreen';
 import { VetsScreen } from './VetsScreen';
@@ -41,16 +42,24 @@ function RaisedAddButton(props: BottomTabBarButtonProps) {
   );
 }
 
-const BASE_TAB_BAR_STYLE = { backgroundColor: shell.tabBar, borderTopColor: 'rgba(255,255,255,0.08)', borderTopWidth: 1, paddingTop: 8, paddingHorizontal: 10, paddingBottom: 10, height: 64 };
-
 export function MainTabs() {
+  const insets = useSafeAreaInsets();
+  const baseTabBarStyle = {
+    backgroundColor: shell.tabBar,
+    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopWidth: 1,
+    paddingTop: 8,
+    paddingHorizontal: 10,
+    paddingBottom: 10 + insets.bottom,
+    height: 64 + insets.bottom,
+  };
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: text.primary,
         tabBarInactiveTintColor: text.faint,
-        tabBarStyle: BASE_TAB_BAR_STYLE,
+        tabBarStyle: baseTabBarStyle,
         tabBarLabelStyle: { fontWeight: '700', fontSize: 10 },
       }}
     >
@@ -59,7 +68,7 @@ export function MainTabs() {
         component={MainNavigator}
         options={({ route }) => ({
           title: 'Pets',
-          tabBarStyle: [BASE_TAB_BAR_STYLE, petsTabBarStyle(route)],
+          tabBarStyle: [baseTabBarStyle, petsTabBarStyle(route)],
           tabBarIcon: ({ color, size }) => <Ionicons name="paw" size={size} color={color} />,
         })}
       />

@@ -19,7 +19,7 @@ import { WeightLog } from '../types/weightLog';
 import { Expense } from '../types/expense';
 import { ScreenContainer, Button, PetSelector } from '../components/ui';
 import { shell, text, accentLavender, spacing, radii } from '../theme/theme';
-import { petColor } from '../theme/petColors';
+import { petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 
 function formatEuros(cents: number): string {
@@ -34,14 +34,15 @@ function daysUntil(dueDate: number): number {
 
 function DueStripCard({ reminder, pet }: { reminder: ReturnType<typeof useUpcomingReminders>[number]; pet: Pet }) {
   const bg = reminder.overdue ? '#DC2626' : petColor(pet);
+  const ink = onPetColorInk(bg);
   const n = daysUntil(reminder.dueDate);
   return (
     <View style={{ minWidth: 168, borderRadius: 18, padding: 12, paddingTop: 14, backgroundColor: bg, gap: 4 }}>
-      <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>
+      <Text style={{ fontSize: 10, fontWeight: '800', letterSpacing: 2, textTransform: 'uppercase', color: ink, opacity: 0.8 }}>
         {reminder.overdue ? 'OVERDUE' : `IN ${n} DAY${n === 1 ? '' : 'S'}`}
       </Text>
-      <Text style={{ fontSize: 15, fontWeight: '800', color: '#FFFFFF' }}>{reminder.label}</Text>
-      <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{pet.name}</Text>
+      <Text style={{ fontSize: 15, fontWeight: '800', color: ink }}>{reminder.label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: ink, opacity: 0.85 }}>{pet.name}</Text>
     </View>
   );
 }
@@ -119,7 +120,7 @@ function PetCard({ pet, navigation, nextDue }: { pet: Pet; navigation: any; next
                 backgroundColor: nextDue == null ? shell.onColour : overdue ? '#FFFFFF' : color,
               }}
             >
-              <Text style={{ fontSize: 13, fontWeight: '700', color: nextDue == null ? text.primary : overdue ? '#DC2626' : '#FFFFFF' }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: nextDue == null ? text.primary : overdue ? '#DC2626' : onPetColorInk(color) }}>
                 {nextDue == null ? '✅ Nothing due — all clear' : overdue ? `⚠️ ${nextDue.label} overdue` : `⏰ ${nextDue.label} in ${daysUntil(nextDue.dueDate)} days`}
               </Text>
             </View>

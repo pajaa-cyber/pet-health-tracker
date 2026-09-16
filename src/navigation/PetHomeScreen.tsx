@@ -1,6 +1,6 @@
 // src/navigation/PetHomeScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, Image, Text, FlatList } from 'react-native';
+import { View, Pressable, Text, FlatList } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs } from '../pets/weightLogService';
 import { subscribeToVaccines } from '../pets/vaccineService';
@@ -17,9 +17,9 @@ import { VetVisit } from '../types/vetVisit';
 import { Expense, ExpenseCategory } from '../types/expense';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
-import { ScreenContainer } from '../components/ui';
+import { ScreenContainer, AvatarPicker } from '../components/ui';
 import { shell, text, spacing, colors } from '../theme/theme';
-import { PET_COLORS, petColor } from '../theme/petColors';
+import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 
 interface SectionTile {
@@ -59,10 +59,10 @@ function formatEuros(cents: number): string {
   return Number.isInteger(value) ? `€${value}` : `€${value.toFixed(2)}`;
 }
 
-function TagChip({ label }: { label: string }) {
+function TagChip({ label, ink }: { label: string; ink: string }) {
   return (
     <View style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.24)', paddingVertical: 5, paddingHorizontal: 11 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: '#FFFFFF' }}>{label}</Text>
+      <Text style={{ fontSize: 11, fontWeight: '700', color: ink }}>{label}</Text>
     </View>
   );
 }
@@ -106,6 +106,7 @@ export function PetHomeScreen({ route, navigation }: any) {
   }
 
   const color = petColor(pet);
+  const ink = onPetColorInk(color);
   const hubData: HubData = { vaccines, medications, vetVisits, weightLogs, expenses };
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
   const yearExpenses = expenses.filter((e) => e.date >= yearStart);
@@ -145,49 +146,51 @@ export function PetHomeScreen({ route, navigation }: any) {
             accessibilityLabel="Back"
             style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text style={{ fontSize: 18, color: '#FFFFFF' }}>←</Text>
+            <Text style={{ fontSize: 18, color: text.primary }}>←</Text>
           </Pressable>
           <View style={{ flexDirection: 'row', gap: spacing.xs }}>
             <Pressable
               onPress={() => navigation.navigate('EditPet', { petId })}
               accessibilityRole="button"
               accessibilityLabel="Edit"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 8, paddingHorizontal: 14 }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }}>Edit</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: text.primary }}>Edit</Text>
             </Pressable>
             <Pressable
               onPress={toggleRemembered}
               disabled={statusSaving}
               accessibilityRole="button"
               accessibilityLabel={isRemembered ? 'Bring back' : 'Mark remembered'}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 8, paddingHorizontal: 14 }}
             >
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }}>{isRemembered ? 'Bring back' : 'Mark remembered'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: text.primary }}>{isRemembered ? 'Bring back' : 'Mark remembered'}</Text>
             </Pressable>
           </View>
         </View>
         <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.md }}>
-          <Pressable
-            onPress={() => {}}
-            style={{ width: 82, height: 82, borderRadius: 41, backgroundColor: 'rgba(255,255,255,0.30)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
-          >
-            {pet.photoUrl ? (
-              <Image source={{ uri: pet.photoUrl }} style={{ width: 82, height: 82 }} resizeMode="cover" />
-            ) : (
-              <Text style={{ fontSize: 40 }}>{SPECIES_EMOJI[pet.species] ?? '🐾'}</Text>
-            )}
-          </Pressable>
-          <Text style={{ fontSize: 30, fontWeight: '800', color: '#FFFFFF' }}>{pet.name}</Text>
+          <AvatarPicker
+            photoUri={pet.photoUrl}
+            onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
+            size={82}
+            emojiSize={40}
+            fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
+            backgroundColor="rgba(255,255,255,0.30)"
+            borderWidth={0}
+            caption="none"
+          />
+          <Text style={{ fontSize: 30, fontWeight: '800', color: ink }}>{pet.name}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' }}>
-            <TagChip label={`${speciesDisplay(pet)}${age != null ? ` · ${age} yr` : ''}`} />
-            <TagChip label={pet.breed || 'No breed set'} />
-            <TagChip label={neuteredLabel} />
-            <TagChip label={pet.livingEnvironment ? pet.livingEnvironment.charAt(0).toUpperCase() + pet.livingEnvironment.slice(1) : 'Environment not set'} />
+            <TagChip label={`${speciesDisplay(pet)}${age != null ? ` · ${age} yr` : ''}`} ink={ink} />
+            <TagChip label={pet.breed || 'No breed set'} ink={ink} />
+            <TagChip label={neuteredLabel} ink={ink} />
+            <TagChip label={pet.livingEnvironment ? pet.livingEnvironment.charAt(0).toUpperCase() + pet.livingEnvironment.slice(1) : 'Environment not set'} ink={ink} />
           </View>
         </View>
         <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
-          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.85)', textAlign: 'center' }}>
+          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', color: text.onColourMuted, textAlign: 'center' }}>
             Identity colour
           </Text>
           <View style={{ flexDirection: 'row', gap: spacing.xs, justifyContent: 'center' }}>
@@ -197,6 +200,7 @@ export function PetHomeScreen({ route, navigation }: any) {
                 onPress={() => updatePetColor(firestore, household.id, petId, c)}
                 accessibilityRole="button"
                 accessibilityLabel={`Set colour to ${c}`}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c, borderWidth: color === c ? 3 : 0, borderColor: '#FFFFFF' }}
               />
             ))}

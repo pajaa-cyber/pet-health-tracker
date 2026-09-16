@@ -53,7 +53,13 @@ export function WeightLogScreen({ route }: any) {
         />
       ) : (
         <Card>
-          <WeightTrendChart logs={logs} color={colors.primary} />
+          <WeightTrendChart
+            logs={logs}
+            color={colors.primary}
+            labelColor={colors.textMuted}
+            valueLabelColor={colors.text}
+            selectedBarColor={colors.primaryDark}
+          />
         </Card>
       )}
       <TextField label="Weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />

@@ -69,6 +69,19 @@ function WizardTextField({ label, value, onChangeText, placeholder, keyboardType
   );
 }
 
+function ReviewRow({ label, value, jumpTo, onJump }: { label: string; value: string; jumpTo: number; onJump: (step: number) => void }) {
+  return (
+    <Pressable
+      onPress={() => onJump(jumpTo)}
+      accessibilityRole="button"
+      style={{ borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between' }}
+    >
+      <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: text.primary }}>{value || '—'}</Text>
+    </Pressable>
+  );
+}
+
 export function AddPetScreen({ navigation }: any) {
   const { household } = useHousehold();
   const [step, setStep] = useState(0);
@@ -339,32 +352,22 @@ export function AddPetScreen({ navigation }: any) {
         );
       }
       case 8: {
-        const Row = ({ label, value, jumpTo }: { label: string; value: string; jumpTo: number }) => (
-          <Pressable
-            onPress={() => setStep(jumpTo)}
-            accessibilityRole="button"
-            style={{ borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between' }}
-          >
-            <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{label}</Text>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: text.primary }}>{value || '—'}</Text>
-          </Pressable>
-        );
         return (
           <>
             <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>Review</Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Tap anything to change it.</Text>
             <View style={{ gap: spacing.xs }}>
-              <Row label="Name" value={data.name} jumpTo={0} />
-              <Row label="Species" value={data.species === 'other' ? (data.speciesOther ?? '') : SPECIES_LABEL[data.species]} jumpTo={1} />
-              <Row label="Breed" value={data.breed} jumpTo={2} />
-              <Row label="Birth date" value={data.birthDate ? new Date(data.birthDate).toLocaleDateString() : "Don't know"} jumpTo={3} />
-              <Row label="Arrival date" value={data.arrivalDate ? new Date(data.arrivalDate).toLocaleDateString() : 'Not set'} jumpTo={4} />
-              <Row label="Sex" value={data.sex} jumpTo={5} />
-              <Row label="Neutered" value={data.neutered === null ? "Don't know" : data.neutered ? 'Yes' : 'No'} jumpTo={5} />
-              <Row label="Colour / markings" value={data.colorMarkings} jumpTo={5} />
-              <Row label="Environment" value={data.livingEnvironment ?? 'Not set'} jumpTo={5} />
-              <Row label="Microchip" value={data.microchipNumber} jumpTo={6} />
-              <Row label="Custom fields" value={String(data.customFields.length)} jumpTo={7} />
+              <ReviewRow label="Name" value={data.name} jumpTo={0} onJump={setStep} />
+              <ReviewRow label="Species" value={data.species === 'other' ? (data.speciesOther ?? '') : SPECIES_LABEL[data.species]} jumpTo={1} onJump={setStep} />
+              <ReviewRow label="Breed" value={data.breed} jumpTo={2} onJump={setStep} />
+              <ReviewRow label="Birth date" value={data.birthDate ? new Date(data.birthDate).toLocaleDateString() : "Don't know"} jumpTo={3} onJump={setStep} />
+              <ReviewRow label="Arrival date" value={data.arrivalDate ? new Date(data.arrivalDate).toLocaleDateString() : 'Not set'} jumpTo={4} onJump={setStep} />
+              <ReviewRow label="Sex" value={data.sex} jumpTo={5} onJump={setStep} />
+              <ReviewRow label="Neutered" value={data.neutered === null ? "Don't know" : data.neutered ? 'Yes' : 'No'} jumpTo={5} onJump={setStep} />
+              <ReviewRow label="Colour / markings" value={data.colorMarkings} jumpTo={5} onJump={setStep} />
+              <ReviewRow label="Environment" value={data.livingEnvironment ?? 'Not set'} jumpTo={5} onJump={setStep} />
+              <ReviewRow label="Microchip" value={data.microchipNumber} jumpTo={6} onJump={setStep} />
+              <ReviewRow label="Custom fields" value={String(data.customFields.length)} jumpTo={7} onJump={setStep} />
             </View>
           </>
         );

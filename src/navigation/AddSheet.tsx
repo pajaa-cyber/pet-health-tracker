@@ -72,6 +72,7 @@ export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () =
               onPress={onClose}
               accessibilityRole="button"
               accessibilityLabel="Close"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
               style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: shell.control, alignItems: 'center', justifyContent: 'center' }}
             >
               <Text style={{ fontSize: 16, color: text.primary, fontWeight: '700' }}>×</Text>
