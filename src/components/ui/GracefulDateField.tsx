@@ -4,7 +4,7 @@ import { DateField } from '../DateField';
 import { TextField } from './TextField';
 import { Chip } from './Chip';
 import { MutedText } from './Typography';
-import { spacing } from '../../theme/theme';
+import { spacing, text } from '../../theme/theme';
 import { monthsToApproxBirthDate } from '../../pets/dateGrace';
 import type { DatePrecision } from '../../types/pet';
 
@@ -49,7 +49,7 @@ export function GracefulDateField({
     }
   };
 
-  const labelStyle = tint ? { color: 'rgba(255,255,255,0.85)' } : undefined;
+  const labelStyle = tint ? { color: text.onColourMuted } : undefined;
 
   return (
     <View style={{ gap: spacing.sm }}>

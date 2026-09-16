@@ -6,7 +6,7 @@ import { firestore } from '../firebase/config';
 import { Pet, PetSpecies, DatePrecision, ArrivalPrecision } from '../types/pet';
 import { SPECIES_LIST, SPECIES_LABEL, SPECIES_EMOJI } from '../pets/species';
 import { ScreenContainer, ErrorText, Chip, AvatarPicker, GracefulDateField, BreedPicker } from '../components/ui';
-import { shell, spacing } from '../theme/theme';
+import { text, spacing } from '../theme/theme';
 import { canAddCustomField, customFieldLimitMessage } from '../limits/limits';
 import { DateField } from '../components/DateField';
 
@@ -35,12 +35,14 @@ function WizardButton({ title, onPress, disabled }: { title: string; onPress: ()
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={title}
       style={{
         minHeight: 44, borderRadius: 999, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.5)',
         alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.md, opacity: disabled ? 0.5 : 1,
       }}
     >
-      <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>{title}</Text>
+      <Text style={{ color: text.primary, fontWeight: '700', fontSize: 14 }}>{title}</Text>
     </Pressable>
   );
 }
@@ -54,14 +56,14 @@ function WizardTextField({ label, value, onChangeText, placeholder, keyboardType
 }) {
   return (
     <View style={{ gap: spacing.xs }}>
-      {label && <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.85)' }}>{label}</Text>}
+      {label && <Text style={{ fontSize: 13, fontWeight: '600', color: text.onColourMuted }}>{label}</Text>}
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor="rgba(255,255,255,0.45)"
         keyboardType={keyboardType}
-        style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, padding: 14, fontSize: 16, fontWeight: '600', color: '#FFFFFF', minHeight: 48 }}
+        style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 14, padding: 14, fontSize: 16, fontWeight: '600', color: text.primary, minHeight: 48 }}
       />
     </View>
   );
@@ -86,6 +88,10 @@ export function AddPetScreen({ navigation }: any) {
   const back = () => setStep((s) => Math.max(s - 1, 0));
   const tint = WIZARD_TINTS[step];
 
+  // The hardware/gesture back button pops the whole screen by default,
+  // discarding every step's answers — intercept it so it steps the wizard
+  // backward instead, matching the in-app Back button, and only actually
+  // leaves the screen once the user is on step 0.
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       if (step > 0) {
@@ -122,14 +128,14 @@ export function AddPetScreen({ navigation }: any) {
   // Every chip on every step uses the same selected/unselected colour pair —
   // Chip itself already branches on each chip's own `selected` prop, so this
   // is a plain constant, not a function of any individual chip's state.
-  const stepChip = { selectedBg: '#FFFFFF', selectedColor: tint, unselectedBg: 'rgba(255,255,255,0.18)', unselectedColor: '#FFFFFF' };
+  const stepChip = { selectedBg: '#FFFFFF', selectedColor: tint, unselectedBg: 'rgba(255,255,255,0.18)', unselectedColor: text.primary };
 
   const renderStep = () => {
     switch (step) {
       case 0:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Let's add a pet</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>Let's add a pet</Text>
             <AvatarPicker
               photoUri={data.photoDataUri}
               onPicked={(uri) => update({ photoDataUri: uri })}
@@ -140,7 +146,7 @@ export function AddPetScreen({ navigation }: any) {
               borderWidth={3}
               borderStyle="dashed"
               caption="mono"
-              captionColor="rgba(255,255,255,0.85)"
+              captionColor={text.onColourMuted}
             />
             <TextInput
               value={data.name}
@@ -148,7 +154,7 @@ export function AddPetScreen({ navigation }: any) {
               placeholder="Pet's name"
               placeholderTextColor="rgba(255,255,255,0.5)"
               style={{
-                fontSize: 26, fontWeight: '800', color: '#FFFFFF', textAlign: 'center',
+                fontSize: 26, fontWeight: '800', color: text.primary, textAlign: 'center',
                 borderBottomWidth: 2, borderBottomColor: 'rgba(255,255,255,0.5)', paddingBottom: 8, backgroundColor: 'transparent',
               }}
             />
@@ -157,7 +163,7 @@ export function AddPetScreen({ navigation }: any) {
       case 1:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`What kind of animal is ${petName}?`}</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>{`What kind of animal is ${petName}?`}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
               {SPECIES_LIST.map((s) => (
                 <Chip
@@ -182,7 +188,7 @@ export function AddPetScreen({ navigation }: any) {
       case 2:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`${petName}'s breed`}</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>{`${petName}'s breed`}</Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>
               Not sure, or not a specific breed? That's completely fine — pick Mixed, Stray or rescued, or Don't know.
             </Text>
@@ -199,7 +205,7 @@ export function AddPetScreen({ navigation }: any) {
       case 3:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`When was ${petName} born?`}</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>{`When was ${petName} born?`}</Text>
             <GracefulDateField
               label="Birth date"
               options={['exact', 'roughly', 'approxAge', 'unknown']}
@@ -216,7 +222,7 @@ export function AddPetScreen({ navigation }: any) {
       case 4:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`When did ${petName} join your care?`}</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>{`When did ${petName} join your care?`}</Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Optional — skip this if you'd rather not answer.</Text>
             <GracefulDateField
               label="Arrival date"
@@ -235,9 +241,9 @@ export function AddPetScreen({ navigation }: any) {
       case 5:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>{`About ${petName}`}</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>{`About ${petName}`}</Text>
             <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>Sex — helps tailor care reminders.</Text>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: text.onColourMuted }}>Sex — helps tailor care reminders.</Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                 {(['male', 'female', 'unknown'] as const).map((s) => (
                   <Chip key={s} label={s} selected={data.sex === s} onPress={() => update({ sex: s })} {...stepChip} />
@@ -245,7 +251,7 @@ export function AddPetScreen({ navigation }: any) {
               </View>
             </View>
             <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>Neutered / spayed — some vaccines and medications are dosed differently.</Text>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: text.onColourMuted }}>Neutered / spayed — some vaccines and medications are dosed differently.</Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                 <Chip label="Yes" selected={data.neutered === true} onPress={() => update({ neutered: true })} {...stepChip} />
                 <Chip label="No" selected={data.neutered === false} onPress={() => update({ neutered: false })} {...stepChip} />
@@ -253,7 +259,7 @@ export function AddPetScreen({ navigation }: any) {
               </View>
             </View>
             <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: text.onColourMuted }}>
                 Helps identify your pet if they're ever lost, and confirms it's them for vets or a microchip registry.
               </Text>
               <WizardTextField
@@ -263,7 +269,7 @@ export function AddPetScreen({ navigation }: any) {
               />
             </View>
             <View style={{ gap: spacing.xs }}>
-              <Text style={{ fontSize: 12, lineHeight: 17, color: 'rgba(255,255,255,0.85)' }}>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: text.onColourMuted }}>
                 Where do they spend their time? This changes flea/tick/worm risk, so protection can be tailored to match.
               </Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -277,7 +283,7 @@ export function AddPetScreen({ navigation }: any) {
       case 6:
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Microchip</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>Microchip</Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Optional — add this now or anytime from the pet's profile.</Text>
             <WizardTextField label="Provider" value={data.microchipProvider} onChangeText={(t) => update({ microchipProvider: t })} />
             <WizardTextField label="Chip number" value={data.microchipNumber} onChangeText={(t) => update({ microchipNumber: t })} />
@@ -294,7 +300,7 @@ export function AddPetScreen({ navigation }: any) {
         const atLimit = !canAddCustomField(data);
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Custom fields</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>Custom fields</Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>
               Add your own fields — favourite food, walking route, anything you want to remember.
             </Text>
@@ -320,7 +326,7 @@ export function AddPetScreen({ navigation }: any) {
                   accessibilityLabel="Remove custom field"
                   style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' }}
                 >
-                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '700' }}>×</Text>
+                  <Text style={{ color: text.primary, fontSize: 18, fontWeight: '700' }}>×</Text>
                 </Pressable>
               </View>
             ))}
@@ -340,12 +346,12 @@ export function AddPetScreen({ navigation }: any) {
             style={{ borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.16)', paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', justifyContent: 'space-between' }}
           >
             <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.7)' }}>{label}</Text>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>{value || '—'}</Text>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: text.primary }}>{value || '—'}</Text>
           </Pressable>
         );
         return (
           <>
-            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: '#FFFFFF' }}>Review</Text>
+            <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>Review</Text>
             <Text style={{ fontSize: 14, lineHeight: 21, color: 'rgba(255,255,255,0.8)', maxWidth: 300 }}>Tap anything to change it.</Text>
             <View style={{ gap: spacing.xs }}>
               <Row label="Name" value={data.name} jumpTo={0} />
@@ -378,9 +384,10 @@ export function AddPetScreen({ navigation }: any) {
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
           accessibilityLabel="Close"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.18)', paddingVertical: 8, paddingHorizontal: 14 }}
         >
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#FFFFFF' }}>Close</Text>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: text.primary }}>Close</Text>
         </Pressable>
       </View>
 
@@ -391,11 +398,15 @@ export function AddPetScreen({ navigation }: any) {
       </View>
 
       {renderStep()}
-      {error && <ErrorText style={{ color: '#FFFFFF', backgroundColor: 'rgba(0,0,0,0.25)', padding: spacing.sm, borderRadius: 12 }}>{error}</ErrorText>}
+      {error && <ErrorText style={{ color: text.primary, backgroundColor: 'rgba(0,0,0,0.25)', padding: spacing.sm, borderRadius: 12 }}>{error}</ErrorText>}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Pressable onPress={step > 0 ? back : () => navigation.goBack()} accessibilityRole="button">
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>{step > 0 ? 'Back' : 'Cancel'}</Text>
+        <Pressable
+          onPress={step > 0 ? back : () => navigation.goBack()}
+          accessibilityRole="button"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        >
+          <Text style={{ fontSize: 15, fontWeight: '700', color: text.primary }}>{step > 0 ? 'Back' : 'Cancel'}</Text>
         </Pressable>
         <Pressable
           onPress={step < TOTAL_STEPS - 1 ? next : handleSave}
