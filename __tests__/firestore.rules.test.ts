@@ -607,4 +607,48 @@ describe('household security rules', () => {
       updateDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1'), { status: 'completed' })
     );
   });
+
+  // vets is household-level (not nested under pets), matching events'
+  // precedent — a clinic can serve multiple pets in the household via petIds.
+  const validVet = {
+    id: 'vet-1', householdId: 'h1', clinicName: 'Riverside Vet Clinic', doctorName: 'Dr. Novak',
+    address: '12 River Rd', phone: '555-0100', openingHours: 'Mon-Fri 9am-6pm',
+    speciality: 'General practice', isEmergency24h: false, notes: '', petIds: ['pet-1'],
+  };
+
+  it('allows a member to create a vet', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), validVet)
+    );
+  });
+
+  it('denies a non-member from creating a vet', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'vets', 'vet-1'), validVet)
+    );
+  });
+
+  it('denies creating a vet with a field outside the allowlist', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), { ...validVet, vetIdOnVisit: 'sneaky' })
+    );
+  });
+
+  it('allows a member to read and update a vet', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'vets', 'vet-1'), validVet);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(getDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1')));
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), { clinicName: 'Renamed Clinic' })
+    );
+  });
 });
