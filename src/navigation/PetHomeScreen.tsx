@@ -35,6 +35,7 @@ interface HubData {
   medications: Medication[];
   vetVisits: VetVisit[];
   weightLogs: WeightLog[];
+  expenses: Expense[];
 }
 
 function recordsLabel(n: number): string {
@@ -46,6 +47,7 @@ const SECTIONS: SectionTile[] = [
   { key: 'MedicationList', label: 'Medications', emoji: '💊', color: '#3B82F6', count: (d) => recordsLabel(d.medications.length) },
   { key: 'VetVisitList', label: 'Vet visits', emoji: '🩺', color: '#14B8A6', count: (d) => recordsLabel(d.vetVisits.length) },
   { key: 'WeightLog', label: 'Weight', emoji: '⚖️', color: '#84CC16', count: (d) => recordsLabel(d.weightLogs.length) },
+  { key: 'ExpenseList', label: 'Expenses', emoji: '💰', color: '#F97316', count: (d) => recordsLabel(d.expenses.length) },
 ];
 
 const EXPENSE_CATEGORY_LABEL: Record<ExpenseCategory, string> = {
@@ -104,7 +106,7 @@ export function PetHomeScreen({ route, navigation }: any) {
   }
 
   const color = petColor(pet);
-  const hubData: HubData = { vaccines, medications, vetVisits, weightLogs };
+  const hubData: HubData = { vaccines, medications, vetVisits, weightLogs, expenses };
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
   const yearExpenses = expenses.filter((e) => e.date >= yearStart);
   const totalCents = yearExpenses.reduce((sum, e) => sum + e.amountCents, 0);
@@ -145,15 +147,25 @@ export function PetHomeScreen({ route, navigation }: any) {
           >
             <Text style={{ fontSize: 18, color: '#FFFFFF' }}>←</Text>
           </Pressable>
-          <Pressable
-            onPress={toggleRemembered}
-            disabled={statusSaving}
-            accessibilityRole="button"
-            accessibilityLabel={isRemembered ? 'Bring back' : 'Mark remembered'}
-            style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 8, paddingHorizontal: 14 }}
-          >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }}>{isRemembered ? 'Bring back' : 'Mark remembered'}</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+            <Pressable
+              onPress={() => navigation.navigate('EditPet', { petId })}
+              accessibilityRole="button"
+              accessibilityLabel="Edit"
+              style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 8, paddingHorizontal: 14 }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }}>Edit</Text>
+            </Pressable>
+            <Pressable
+              onPress={toggleRemembered}
+              disabled={statusSaving}
+              accessibilityRole="button"
+              accessibilityLabel={isRemembered ? 'Bring back' : 'Mark remembered'}
+              style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 8, paddingHorizontal: 14 }}
+            >
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#FFFFFF' }}>{isRemembered ? 'Bring back' : 'Mark remembered'}</Text>
+            </Pressable>
+          </View>
         </View>
         <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.md }}>
           <Pressable
