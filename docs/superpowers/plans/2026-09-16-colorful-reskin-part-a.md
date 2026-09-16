@@ -2001,7 +2001,7 @@ Build and launch from this worktree (`npx expo run:android`) and check, on the r
 - Header shows the household name eyebrow and "Hey {name} 👋".
 - Pet selector (dark variant) — switching between "All Pets" and a specific pet filters the due strip and pet-card list correctly.
 - A pet with something due shows a due-strip card and a due pill on its own card; a pet with nothing due shows "✅ Nothing due — all clear".
-- An overdue item shows the white-background/red-text overdue treatment on both the due strip and the card's pill.
+- An overdue item shows a red (`#DC2626`) background on its due-strip card, and — a deliberately different treatment on the pet card's own pill, per the design handoff — a white background with red text there instead.
 - Stat boxes show real numbers — weight, records count, and a real year-to-date spend total (add a test expense first if the seeded data has none).
 - Cards visibly animate in (fade + slight rise) on screen load, not a hard cut.
 - Delete every pet (or filter to a household with none) and confirm the empty state renders — dashed border, "No pets here yet", the accent "Add a pet" pill button.
