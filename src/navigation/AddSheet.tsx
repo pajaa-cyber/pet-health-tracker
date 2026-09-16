@@ -1,33 +1,51 @@
-import React from 'react';
-import { Modal, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { Modal, Pressable, View, FlatList, Text } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { usePetSelection } from '../selection/PetSelectionContext';
-import { BodyText, Title } from '../components/ui';
-import { colors, spacing, radii } from '../theme/theme';
+import { useHousehold } from '../household/HouseholdContext';
+import { subscribeToPets, activePets } from '../pets/petService';
+import { firestore } from '../firebase/config';
+import { Pet } from '../types/pet';
+import { spacing, shell, text } from '../theme/theme';
 
-const ADD_ACTIONS: { label: string; route: string; needsPet: boolean; topLevel?: boolean }[] = [
-  { label: 'Add a Pet', route: 'AddPet', needsPet: false },
-  { label: 'Add a Vaccine', route: 'AddVaccine', needsPet: true },
-  { label: 'Add a Medication', route: 'AddMedication', needsPet: true },
-  { label: 'Log a Weight', route: 'WeightLog', needsPet: true },
-  { label: 'Add a Vet Visit', route: 'AddVetVisit', needsPet: true },
-  { label: 'Add an Expense', route: 'AddExpense', needsPet: true },
-  { label: 'Add to Calendar', route: 'AddEvent', needsPet: false, topLevel: true },
+interface AddAction {
+  label: string;
+  emoji: string;
+  color: string;
+  route: string;
+  needsPet: boolean;
+  topLevel?: boolean;
+}
+
+const ADD_ACTIONS: AddAction[] = [
+  { label: 'Add a Pet', emoji: '🐾', color: '#7C3AED', route: 'AddPet', needsPet: false },
+  { label: 'Add a Vaccine', emoji: '💉', color: '#EF4444', route: 'AddVaccine', needsPet: true },
+  { label: 'Add a Medication', emoji: '💊', color: '#3B82F6', route: 'AddMedication', needsPet: true },
+  { label: 'Log a Weight', emoji: '⚖️', color: '#84CC16', route: 'WeightLog', needsPet: true },
+  { label: 'Add a Vet Visit', emoji: '🩺', color: '#14B8A6', route: 'AddVetVisit', needsPet: true },
+  { label: 'Add an Expense', emoji: '💰', color: '#F97316', route: 'AddExpense', needsPet: true },
+  { label: 'Add to Calendar', emoji: '📅', color: '#EC4899', route: 'AddEvent', needsPet: false, topLevel: true },
 ];
 
 export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const navigation = useNavigation<any>();
   const { selectedPetId } = usePetSelection();
+  const { household } = useHousehold();
+  const [pets, setPets] = useState<Pet[]>([]);
 
-  const handlePress = (action: (typeof ADD_ACTIONS)[number]) => {
+  useEffect(() => {
+    if (!household) return;
+    return subscribeToPets(firestore, household.id, (all) => setPets(activePets(all)));
+  }, [household]);
+
+  const selectedPet = selectedPetId === 'all' ? null : pets.find((p) => p.id === selectedPetId) ?? null;
+
+  const handlePress = (action: AddAction) => {
     onClose();
     if (action.topLevel) {
       navigation.navigate(action.route);
       return;
     }
-    // Push onto the Pets tab's nested stack (named "PetsTab" in MainTabs)
-    // regardless of which tab is currently focused, so the target screen's
-    // existing header/back behavior works unchanged.
     if (!action.needsPet) {
       navigation.navigate('PetsTab', { screen: action.route });
       return;
@@ -41,19 +59,49 @@ export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () =
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={{ flex: 1, backgroundColor: 'rgba(30,27,46,0.4)', justifyContent: 'flex-end' }} onPress={onClose}>
-        <Pressable style={{ backgroundColor: colors.surface, borderTopLeftRadius: radii.lg, borderTopRightRadius: radii.lg, padding: spacing.lg, gap: spacing.sm }}>
-          <Title style={{ marginBottom: spacing.sm }}>Add</Title>
-          {ADD_ACTIONS.map((action) => (
+      <Pressable style={{ flex: 1, backgroundColor: shell.scrim, justifyContent: 'flex-end' }} onPress={onClose}>
+        <Pressable
+          style={{
+            backgroundColor: shell.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+            paddingTop: 18, paddingHorizontal: 18, paddingBottom: 14, gap: spacing.md,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: text.primary }}>What are we adding?</Text>
             <Pressable
-              key={action.route}
-              onPress={() => handlePress(action)}
+              onPress={onClose}
               accessibilityRole="button"
-              accessibilityLabel={action.label}
-              style={{ paddingVertical: spacing.sm }}>
-              <BodyText>{action.label}</BodyText>
+              accessibilityLabel="Close"
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: shell.control, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ fontSize: 16, color: text.primary, fontWeight: '700' }}>×</Text>
             </Pressable>
-          ))}
+          </View>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
+            {selectedPet ? `Adding to ${selectedPet.name}.` : 'No pet selected — we will ask which one.'}
+          </Text>
+          <FlatList
+            data={ADD_ACTIONS}
+            numColumns={2}
+            keyExtractor={(a) => a.route}
+            scrollEnabled={false}
+            columnWrapperStyle={{ gap: 10 }}
+            contentContainerStyle={{ gap: 10 }}
+            renderItem={({ item }) => (
+              <Pressable
+                onPress={() => handlePress(item)}
+                accessibilityRole="button"
+                accessibilityLabel={item.label}
+                style={{
+                  flex: 1, minHeight: 88, borderRadius: 18, padding: 13, justifyContent: 'flex-end',
+                  backgroundColor: item.color + '26', // ~15% alpha tint, consistent with the section-tile treatment (Task 6)
+                }}
+              >
+                <Text style={{ fontSize: 21, marginBottom: 6 }}>{item.emoji}</Text>
+                <Text style={{ fontSize: 14, fontWeight: '800', lineHeight: 17, color: text.primary }}>{item.label}</Text>
+              </Pressable>
+            )}
+          />
         </Pressable>
       </Pressable>
     </Modal>

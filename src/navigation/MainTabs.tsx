@@ -8,13 +8,13 @@ import { CalendarScreen } from './CalendarScreen';
 import { VetsScreen } from './VetsScreen';
 import { HouseholdScreen } from './HouseholdScreen';
 import { AddSheet } from './AddSheet';
-import { colors } from '../theme/theme';
+import { colors, shell, text } from '../theme/theme';
 
 const Tab = createBottomTabNavigator();
 
 // Only the Pets tab has a nested stack with sub-screens the tab bar should
-// hide behind. Its root route is named 'PetList' (Task 5) — anything else
-// focused means we've pushed deeper and the tab bar should disappear.
+// hide behind. Its root route is named 'PetList' — anything else focused
+// means we've pushed deeper and the tab bar should disappear.
 function petsTabBarStyle(route: RouteProp<any, any>) {
   const focusedRoute = getFocusedRouteNameFromRoute(route) ?? 'PetList';
   return focusedRoute === 'PetList' ? undefined : { display: 'none' as const };
@@ -27,28 +27,31 @@ function RaisedAddButton(props: BottomTabBarButtonProps) {
       <Pressable
         onPress={() => setSheetVisible(true)}
         style={{
-          top: -16, alignSelf: 'center', width: 56, height: 56, borderRadius: 28,
+          top: -16, alignSelf: 'center', width: 60, height: 60, borderRadius: 30,
           backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center',
-          shadowColor: '#1E1B2E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 6, elevation: 6,
+          shadowColor: '#000000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.45, shadowRadius: 24, elevation: 10,
         }}
         accessibilityRole="button"
         accessibilityLabel="Add"
       >
-        <Ionicons name="add" size={32} color="#FFFFFF" />
+        <Ionicons name="add" size={30} color={colors.accentText} />
       </Pressable>
       <AddSheet visible={sheetVisible} onClose={() => setSheetVisible(false)} />
     </>
   );
 }
 
+const BASE_TAB_BAR_STYLE = { backgroundColor: shell.tabBar, borderTopColor: 'rgba(255,255,255,0.08)', borderTopWidth: 1, paddingTop: 8, paddingHorizontal: 10, paddingBottom: 10, height: 64 };
+
 export function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
+        tabBarActiveTintColor: text.primary,
+        tabBarInactiveTintColor: text.faint,
+        tabBarStyle: BASE_TAB_BAR_STYLE,
+        tabBarLabelStyle: { fontWeight: '700', fontSize: 10 },
       }}
     >
       <Tab.Screen
@@ -56,7 +59,7 @@ export function MainTabs() {
         component={MainNavigator}
         options={({ route }) => ({
           title: 'Pets',
-          tabBarStyle: [{ backgroundColor: colors.surface, borderTopColor: colors.border }, petsTabBarStyle(route)],
+          tabBarStyle: [BASE_TAB_BAR_STYLE, petsTabBarStyle(route)],
           tabBarIcon: ({ color, size }) => <Ionicons name="paw" size={size} color={color} />,
         })}
       />
