@@ -1,3 +1,13 @@
+jest.mock('react-native', () => ({
+  View: 'View',
+  Text: 'Text',
+  Pressable: 'Pressable',
+  ScrollView: 'ScrollView',
+  StyleSheet: {
+    create: (styles: any) => styles,
+  },
+}));
+
 import { resolveChipBg, resolveChipColor } from '../src/components/ui/Chip';
 import { colors } from '../src/theme/theme';
 
