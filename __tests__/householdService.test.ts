@@ -6,6 +6,7 @@ const mockHouseholdDocRef = { id: 'h1' };
 const mockUsersDocRef = { id: 'users-ref' };
 const mockCollectionRef = {};
 const mockGetDoc = jest.fn();
+const mockUpdateDoc = jest.fn();
 const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
 const mockArrayRemove = jest.fn((value: unknown) => ({ __arrayRemove: [value] }));
 const mockIncrement = jest.fn((value: number) => ({ __increment: value }));
@@ -27,13 +28,14 @@ jest.mock('@react-native-firebase/firestore', () => ({
     return mockCreatedDocRef; // doc(collectionRef) auto-id case, used by createHousehold
   }),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
+  updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
   arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
   arrayRemove: (...args: unknown[]) => mockArrayRemove(args[0]),
   increment: (...args: unknown[]) => mockIncrement(args[0] as number),
   writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }));
 
-import { createHousehold, joinHousehold, getHousehold, removeMember } from '../src/household/householdService';
+import { createHousehold, joinHousehold, getHousehold, removeMember, reconcileMemberCount } from '../src/household/householdService';
 
 const fakeDb = {} as Firestore;
 
@@ -138,10 +140,10 @@ describe('householdService', () => {
     expect(result).toBeNull();
   });
 
-  it('removes a member from both members and memberIds, and decrements the invite code memberCount, in one batch', async () => {
+  it('removes a member from both members and memberIds, and writes the caller-supplied absolute remaining memberCount, in one batch', async () => {
     const member = { userId: 'user-2', displayName: 'Marko', joinedAt: 0 };
 
-    await removeMember(fakeDb, 'h1', 'ABC123', member);
+    await removeMember(fakeDb, 'h1', 'ABC123', member, 2);
 
     expect(mockArrayRemove).toHaveBeenCalledWith(member);
     expect(mockArrayRemove).toHaveBeenCalledWith('user-2');
@@ -149,8 +151,13 @@ describe('householdService', () => {
       members: { __arrayRemove: [member] },
       memberIds: { __arrayRemove: ['user-2'] },
     });
-    expect(mockIncrement).toHaveBeenCalledWith(-1);
-    expect(mockBatchUpdate).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: { __increment: -1 } });
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: 2 });
     expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it('reconciles an invite code memberCount to an absolute value via updateDoc', async () => {
+    await reconcileMemberCount(fakeDb, 'ABC123', 3);
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: 3 });
   });
 });

@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, arrayUnion, arrayRemove, increment, writeBatch, type Firestore } from '@react-native-firebase/firestore';
+import { collection, doc, getDoc, updateDoc, arrayUnion, arrayRemove, increment, writeBatch, type Firestore } from '@react-native-firebase/firestore';
 import { Household, HouseholdMember } from '../types/household';
 import { isHouseholdFull, householdMemberLimitMessage } from '../limits/limits';
 
@@ -106,7 +106,8 @@ export async function joinHousehold(
   // throw a friendly, specific message instead of a bare permission-denied
   // error surfacing from a rules rejection. A missing memberCount (a
   // household created before this field existed) is treated as 0 — the
-  // safe, fail-open direction.
+  // safe, fail-open direction. HouseholdScreen's reconcileMemberCount
+  // self-heals this the first time any member opens the Household tab.
   if (isHouseholdFull(memberCount ?? 0)) {
     throw new Error(householdMemberLimitMessage());
   }
@@ -114,16 +115,46 @@ export async function joinHousehold(
   const newMember: HouseholdMember = { userId, displayName, joinedAt: Date.now() };
 
   // Batched with the users/{uid} pointer write and the inviteCodes
-  // memberCount increment below so all three succeed or fail together.
+  // memberCount increment below so all three succeed or fail together — a
+  // user must never end up a household member without the pointer that
+  // lets the app find that household again on relaunch, or vice versa.
+  // This does NOT change any existing join security property: it's still
+  // a single `update` on the household doc with exactly the same
+  // members/joinCodeUsed shape isJoining() validates.
   const batch = writeBatch(db);
   batch.update(doc(db, 'households', householdId), {
     members: arrayUnion(newMember),
+    // Kept in exact lockstep with `members` above — same write, same
+    // arrayUnion semantics (append-only, idempotent). isJoining() in
+    // firestore.rules requires BOTH arrays to grow by exactly one and to
+    // still contain all prior entries, and requires the requester's own
+    // uid to be the one added to memberIds; a join write that updated
+    // only one of the two arrays is rejected.
     memberIds: arrayUnion(userId),
+    // Ties this write to proof the caller actually knows the household's
+    // invite code — firestore.rules' isJoining() requires this to equal
+    // the household's own stored inviteCode. Without it, anyone who learns
+    // a household's document ID could join via arrayUnion alone, with zero
+    // knowledge of the real invite code (see firestore.rules for the full
+    // rationale). This value is intentionally the code the user typed in,
+    // not a derived/looked-up one, so a wrong or stale code fails the
+    // rule's equality check rather than silently succeeding.
     joinCodeUsed: inviteCode,
   });
   batch.update(doc(db, 'inviteCodes', inviteCode), {
     memberCount: increment(1),
   });
+  // See createHousehold's users/{uid} write above: same pointer doc, same
+  // reason. firestore.rules only allows this as a `create` when the
+  // pointer doesn't already exist, so a user who already belongs to a
+  // household (and thus already has this doc) has the WHOLE batch rejected
+  // if they attempt to join another — an intentional defense-in-depth
+  // backstop for "one household per user" in this plan's original scope
+  // (RootNavigator is the primary UX gate), not a bug. Plan 7 partially
+  // relaxes this: the backstop is now "one CURRENT household per user" —
+  // a REMOVED member's pointer can be overwritten (via the users/{userId}
+  // recovery rule), since Firestore classifies that as an `update`, not a
+  // `create`, and this same batch.set call is what exercises that rule.
   batch.set(doc(db, 'users', userId), { householdId });
   await batch.commit();
 }
@@ -132,7 +163,8 @@ export async function removeMember(
   db: Firestore,
   householdId: string,
   inviteCode: string,
-  member: HouseholdMember
+  member: HouseholdMember,
+  remainingMemberCount: number
 ): Promise<void> {
   // No new rules permission is needed for this write — isMember(resource.data)
   // already allows any current member to update members/memberIds with no
@@ -143,15 +175,38 @@ export async function removeMember(
   // or join a household — this function does not touch users/{removedUid}
   // at all, deliberately avoiding any dependency on write ordering within
   // this batch.
+  //
+  // memberCount is written here as the caller-supplied ABSOLUTE remaining
+  // count, not an increment(-1) — increment() can never correct an already-
+  // wrong stored value, and a pre-existing (pre-Plan-7) household's
+  // inviteCodes doc has no memberCount field at all, so a naive decrement
+  // would drift permanently (a double-removal from two phones would double-
+  // decrement; a removed member who still holds the invite code could also
+  // write an inflated count directly, permanently blocking future joins).
+  // reconcileMemberCount below additionally self-heals this value against
+  // the true `members.length` every time any member opens the Household tab.
   const batch = writeBatch(db);
   batch.update(doc(db, 'households', householdId), {
     members: arrayRemove(member),
     memberIds: arrayRemove(member.userId),
   });
   batch.update(doc(db, 'inviteCodes', inviteCode), {
-    memberCount: increment(-1),
+    memberCount: remainingMemberCount,
   });
   await batch.commit();
+}
+
+// Self-healing correction for `inviteCodes/{code}`'s memberCount mirror —
+// called whenever any member opens the Household tab (see HouseholdScreen)
+// so a missing/stale/tampered value converges on the real `members.length`
+// without requiring every membership-changing code path to get the math
+// exactly right on its own.
+export async function reconcileMemberCount(
+  db: Firestore,
+  inviteCode: string,
+  actualCount: number
+): Promise<void> {
+  await updateDoc(doc(db, 'inviteCodes', inviteCode), { memberCount: actualCount });
 }
 
 export async function getHousehold(

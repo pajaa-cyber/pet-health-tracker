@@ -303,9 +303,19 @@ service cloud.firestore {
       // are completely unaffected by this field. householdId is kept
       // immutable so this rule can never be used to repoint a code at a
       // different household.
+      // The memberCount is int / >= 0 checks (final-review fix wave) are a
+      // cheap complement, not a replacement, for the real fix to memberCount
+      // drift: removeMember (householdService.ts) now writes the caller-
+      // supplied absolute remaining count instead of increment(-1), and
+      // HouseholdScreen's reconcileMemberCount self-heals the stored value
+      // against the true `members.length` every time any member opens the
+      // Household tab. This rule-level floor just rejects the most obviously
+      // malformed writes (a negative or non-integer value) outright.
       allow update: if request.auth != null &&
         request.resource.data.householdId == resource.data.householdId &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount']);
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount']) &&
+        request.resource.data.memberCount is int &&
+        request.resource.data.memberCount >= 0;
       allow delete: if false;
     }
 

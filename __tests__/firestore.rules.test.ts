@@ -4,7 +4,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import * as fs from 'fs';
 
 let testEnv: RulesTestEnvironment;
@@ -338,13 +338,33 @@ describe('household security rules', () => {
     );
   });
 
-  it("allows any signed-in user to update an invite code's memberCount", async () => {
+  it("allows any signed-in user to update an invite code's memberCount via increment()", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
     });
     const someUserDb = testEnv.authenticatedContext('user-2').firestore();
     await assertSucceeds(
-      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: 2 })
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: increment(1) })
+    );
+  });
+
+  it('allows incrementing memberCount on an invite code that predates the field', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1' });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: increment(1) })
+    );
+  });
+
+  it('denies an unauthenticated memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const anonDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(
+      updateDoc(doc(anonDb, 'inviteCodes', 'ABC123'), { memberCount: increment(1) })
     );
   });
 
@@ -355,6 +375,26 @@ describe('household security rules', () => {
     const someUserDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(
       updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { householdId: 'h-hijacked', memberCount: 2 })
+    );
+  });
+
+  it('denies a negative memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: -1 })
+    );
+  });
+
+  it('denies a non-integer memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: 'three' })
     );
   });
 
@@ -729,5 +769,14 @@ describe('household security rules', () => {
     await assertSucceeds(
       updateDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), { clinicName: 'Renamed Clinic' })
     );
+  });
+
+  it('denies a non-member from reading a vet', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'vets', 'vet-1'), validVet);
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'vets', 'vet-1')));
   });
 });

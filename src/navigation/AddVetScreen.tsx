@@ -4,6 +4,7 @@ import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
 import { createVet } from '../vets/vetService';
 import { firestore } from '../firebase/config';
+import { usePetSelection } from '../selection/PetSelectionContext';
 import { petColor } from '../theme/petColors';
 import { Pet } from '../types/pet';
 import { ScreenContainer, TextField, Button, Chip, Title, BodyText, MutedText, ErrorText } from '../components/ui';
@@ -11,6 +12,7 @@ import { colors, spacing, radii } from '../theme/theme';
 
 export function AddVetScreen({ navigation }: any) {
   const { household } = useHousehold();
+  const { selectedPetId } = usePetSelection();
   const [pets, setPets] = useState<Pet[]>([]);
   const [clinicName, setClinicName] = useState('');
   const [doctorName, setDoctorName] = useState('');
@@ -20,7 +22,7 @@ export function AddVetScreen({ navigation }: any) {
   const [speciality, setSpeciality] = useState('');
   const [isEmergency24h, setIsEmergency24h] = useState(false);
   const [notes, setNotes] = useState('');
-  const [petIds, setPetIds] = useState<string[]>([]);
+  const [petIds, setPetIds] = useState<string[]>(selectedPetId !== 'all' ? [selectedPetId] : []);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

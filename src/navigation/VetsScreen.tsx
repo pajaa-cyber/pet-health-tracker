@@ -5,6 +5,7 @@ import { subscribeToPets, activePets } from '../pets/petService';
 import { subscribeToVets } from '../vets/vetService';
 import { firestore } from '../firebase/config';
 import { usePetSelection } from '../selection/PetSelectionContext';
+import { petColor } from '../theme/petColors';
 import { Pet } from '../types/pet';
 import { Vet } from '../types/vet';
 import {
@@ -25,7 +26,8 @@ function callPhone(phone: string) {
   );
 }
 
-function VetCard({ vet, navigation }: { vet: Vet; navigation: any }) {
+function VetCard({ vet, pets, navigation }: { vet: Vet; pets: Pet[]; navigation: any }) {
+  const vetPets = pets.filter((p) => vet.petIds.includes(p.id));
   return (
     <Card style={{ gap: spacing.xs }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -50,6 +52,16 @@ function VetCard({ vet, navigation }: { vet: Vet; navigation: any }) {
         </Pressable>
       )}
       {vet.notes.length > 0 && <MutedText>{vet.notes}</MutedText>}
+      {vetPets.length > 0 && (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
+          {vetPets.map((pet) => (
+            <View key={pet.id} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: petColor(pet) }} />
+              <MutedText>{pet.name}</MutedText>
+            </View>
+          ))}
+        </View>
+      )}
       <Button title="Edit" variant="outline" onPress={() => navigation.navigate('EditVet', { vetId: vet.id })} />
     </Card>
   );
@@ -83,7 +95,7 @@ export function VetsScreen({ navigation }: any) {
         data={filteredVets}
         keyExtractor={(v) => v.id}
         contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
-        renderItem={({ item }) => <VetCard vet={item} navigation={navigation} />}
+        renderItem={({ item }) => <VetCard vet={item} pets={pets} navigation={navigation} />}
         ListEmptyComponent={
           <GuidedEmptyState
             emoji="🩺"

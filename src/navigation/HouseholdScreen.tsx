@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FlatList, Share, Alert } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
-import { removeMember } from '../household/householdService';
+import { removeMember, reconcileMemberCount } from '../household/householdService';
 import { firestore } from '../firebase/config';
 import { FREE_HOUSEHOLD_MEMBERS, canAddHouseholdMember, householdMemberLimitMessage } from '../limits/limits';
 import { HouseholdMember } from '../types/household';
@@ -12,6 +12,14 @@ import { spacing } from '../theme/theme';
 export function HouseholdScreen({ navigation }: any) {
   const { user } = useAuth();
   const { household } = useHousehold();
+
+  useEffect(() => {
+    if (!household) return;
+    reconcileMemberCount(firestore, household.inviteCode, household.members.length).catch(() => {
+      // Best-effort — a failed reconcile just means the count stays stale
+      // until the next successful attempt; not worth surfacing to the user.
+    });
+  }, [household?.id, household?.members.length]);
 
   const handleShare = () => {
     if (!household) return;
@@ -24,7 +32,7 @@ export function HouseholdScreen({ navigation }: any) {
     if (!household) return;
     Alert.alert(
       'Remove member',
-      `Remove ${member.displayName} from this household? They will need a new invite to rejoin.`,
+      `Remove ${member.displayName} from this household? They can rejoin later if they still have the invite code.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -32,7 +40,7 @@ export function HouseholdScreen({ navigation }: any) {
           style: 'destructive',
           onPress: async () => {
             try {
-              await removeMember(firestore, household.id, household.inviteCode, member);
+              await removeMember(firestore, household.id, household.inviteCode, member, household.members.length - 1);
             } catch (e: any) {
               Alert.alert('Could not remove member', e.message);
             }
