@@ -1,10 +1,65 @@
-# Where we left off (2026-09-15)
+# Where we left off (2026-09-18)
 
 Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
 
-## ✅ Bolt-connected purple theme merged and verified on-device (2026-09-15) — Plan 7 is next
+## ✅ Colourful Reskin, Part A — device-verified, ready to merge (2026-09-18)
+
+A full visual reskin of the onboarding-through-first-pet path (dark shell,
+each pet's identity colour as the dominant accent) built from
+`design_handoff_colorful_reskin/README.md`, a high-fidelity design handoff
+covering six screen areas. Split into two plans by explicit owner choice:
+**Part A** (this plan — theme foundation, tab bar/FAB/Add sheet, Pets home,
+Pet health hub, Add-Pet wizard) is done; **Part B** (the five record-list
+screens + Calendar) is deferred, not yet brainstormed or planned. Full
+rationale, resolved open decisions (Tinted cards, system-default fonts, no
+`react-native-reanimated`, wizard lands on the new pet's hub) and scope
+boundary: `docs/superpowers/specs/2026-09-16-colorful-reskin-design.md`.
+Implementation plan: `docs/superpowers/plans/2026-09-16-colorful-reskin-part-a.md`.
+
+Built via `superpowers:subagent-driven-development` in a dedicated worktree
+at `C:\dev\colorful-reskin` (branch `colorful-reskin`, from `master`
+`f52d47a`) — 9 tasks, 2 of which needed one fix round each (a test-mock
+scoping issue, and two self-caught bugs: a missing Expenses tile + a
+dropped Edit-pet entry point), then a final whole-branch review (opus)
+that found 1 Critical + 5 Important genuine regressions — all traced to
+mistakes in this plan's own authored code snippets, not implementer error
+— fixed in one wave and independently re-verified clean. Full detail:
+`CLAUDE.md`'s "Colourful Reskin (Part A)" paragraph under UI/Design system.
+
+**On-device checklist: every item passed**, including two rounds of real
+bugs only the phone caught (safe-area padding lost under the new
+`headerShown:false` screens, and a due-strip `FlatList` expanding to fill
+its column — the same bug class as Plan 6's `PetSelector` fix — both fixed,
+commit `8b503a5`), plus a full end-to-end Add-Pet wizard run confirming the
+plan's key resolved decision: completing the wizard calls
+`navigation.replace('PetHome', {petId})` and lands directly on the new
+pet's own hub showing its freshly assigned identity colour, not back on
+Home. Custom-field add/remove/free-tier-cap, review-step row-tap-to-jump,
+graceful-date precision chips, and hardware-back step-not-exit behavior
+were all also exercised and confirmed working.
+
+**Next step:** the plan's SDD workspace
+(`.superpowers/sdd/2026-09-16-colorful-reskin-part-a/`) is ready to delete
+and `superpowers:finishing-a-development-branch` invoked to merge
+`colorful-reskin` into `master`.
+
+## Plan 7 ("Vets directory and household members") — built, not yet merged
+
+Separate, earlier work this session, in its own still-open worktree at
+`C:\dev\vets-household` (branch `plan-7-vets-household`) — a new Vets
+directory (CRUD) plus household member-limit/removal. Fully built,
+reviewed, fixed, and Firestore rules deployed to production
+(`pet-tracker-app-63512`). **Not yet merged** — device verification is
+mostly done (Home, pet hub, Add sheet, single-device household flows) but
+still needs: **second-device testing** (join/remove/recovery-path — blocked
+on the owner having a USB cable for a second phone) and finishing the
+test-vet Firestore cleanup ("Corner Clinic", "Riverside Vet Clinic
+Renamed") that was interrupted mid-session by a phone disconnect. Full
+plan: `docs/superpowers/plans/2026-09-15-vets-and-household-members.md`.
+
+## ✅ Bolt-connected purple theme merged and verified on-device (2026-09-15)
 
 After Plan 6 merged, the owner connected this GitHub repo to Bolt
 (bolt.new), which pushed three commits directly to `master` outside any
