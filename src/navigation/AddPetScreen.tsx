@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, BackHandler, Pressable, Text, TextInput } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHousehold } from '../household/HouseholdContext';
 import { createPet, updatePetPhoto, subscribeToPets, NewPetInput } from '../pets/petService';
 import { firestore } from '../firebase/config';
@@ -84,6 +85,7 @@ function ReviewRow({ label, value, jumpTo, onJump }: { label: string; value: str
 
 export function AddPetScreen({ navigation }: any) {
   const { household } = useHousehold();
+  const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(INITIAL);
   const [existingPets, setExistingPets] = useState<Pet[]>([]);
@@ -378,7 +380,7 @@ export function AddPetScreen({ navigation }: any) {
   };
 
   return (
-    <ScreenContainer scroll background={tint} style={{ paddingTop: 20, paddingHorizontal: 20, paddingBottom: 26, gap: 18 }}>
+    <ScreenContainer scroll background={tint} style={{ paddingTop: 20 + insets.top, paddingHorizontal: 20, paddingBottom: 26, gap: 18 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)' }}>
           Step {step + 1} of {TOTAL_STEPS}

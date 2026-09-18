@@ -1,6 +1,7 @@
 // src/navigation/PetHomeScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Pressable, Text, FlatList } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs } from '../pets/weightLogService';
 import { subscribeToVaccines } from '../pets/vaccineService';
@@ -71,6 +72,7 @@ export function PetHomeScreen({ route, navigation }: any) {
   const { petId } = route.params;
   const { household } = useHousehold();
   const { setSelectedPetId } = usePetSelection();
+  const insets = useSafeAreaInsets();
   const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
   const [vaccines, setVaccines] = useState<Vaccine[]>([]);
   const [medications, setMedications] = useState<Medication[]>([]);
@@ -135,7 +137,7 @@ export function PetHomeScreen({ route, navigation }: any) {
 
   return (
     <ScreenContainer scroll background={shell.bg} style={{ padding: 0, gap: spacing.md }}>
-      <View style={{ backgroundColor: color, paddingTop: 16, paddingHorizontal: 18, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: color, paddingTop: 16 + insets.top, paddingHorizontal: 18, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: 'hidden' }}>
         <Text style={{ position: 'absolute', right: -16, bottom: -34, fontSize: 150, opacity: 0.2 }}>
           {SPECIES_EMOJI[pet.species] ?? '🐾'}
         </Text>

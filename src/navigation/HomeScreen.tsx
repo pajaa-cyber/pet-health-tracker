@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, Pressable, Image, View, Text, Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
@@ -163,6 +164,7 @@ export function HomeScreen({ navigation }: any) {
   const { household } = useHousehold();
   const { selectedPetId, setSelectedPetId } = usePetSelection();
   const [pets, setPets] = useState<Pet[]>([]);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!household) return;
@@ -182,7 +184,7 @@ export function HomeScreen({ navigation }: any) {
   const nextDueForPet = (petId: string) => reminders.find((r) => r.petId === petId);
 
   return (
-    <ScreenContainer style={{ flex: 1, gap: spacing.md }} background={shell.bg}>
+    <ScreenContainer style={{ flex: 1, gap: spacing.md, paddingTop: spacing.md + insets.top }} background={shell.bg}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View>
           {household && (
@@ -202,6 +204,7 @@ export function HomeScreen({ navigation }: any) {
       {reminders.length > 0 && (
         <FlatList
           horizontal
+          style={{ flexGrow: 0 }}
           showsHorizontalScrollIndicator={false}
           data={reminders}
           keyExtractor={(r) => r.id}
