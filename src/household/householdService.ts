@@ -1,11 +1,32 @@
 import { collection, doc, getDoc, arrayUnion, writeBatch, type Firestore } from '@react-native-firebase/firestore';
 import { Household, HouseholdMember } from '../types/household';
 
+// Prefers the platform CSPRNG (crypto.getRandomValues, available in Hermes
+// on recent React Native versions) over Math.random(), which is not
+// cryptographically secure and was previously used unconditionally here —
+// a logged, low-severity known gap (invite codes are not currently
+// exploitable, but a predictable PRNG is the wrong primitive for anything
+// access-granting). Falls back to Math.random() when crypto.getRandomValues
+// isn't present, so this can never behave worse than the code it replaces
+// regardless of the Hermes version actually running on a given device —
+// deliberately chosen so this doesn't need a native dependency (no
+// expo-crypto, no prebuild/rebuild cycle) or device verification to ship
+// safely.
+function secureRandomIndex(max: number): number {
+  const cryptoObj = (globalThis as any).crypto;
+  if (cryptoObj && typeof cryptoObj.getRandomValues === 'function') {
+    const arr = new Uint32Array(1);
+    cryptoObj.getRandomValues(arr);
+    return arr[0] % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
 function generateInviteCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I ambiguity
   let code = '';
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[secureRandomIndex(chars.length)];
   }
   return code;
 }
