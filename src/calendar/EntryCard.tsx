@@ -48,7 +48,7 @@ export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProp
               accessibilityRole="checkbox"
               accessibilityState={{ checked: entry.completed }}
               accessibilityLabel={entry.completed ? 'Mark as not done' : 'Mark as done'}
-              hitSlop={8}
+              hitSlop={11}
               style={{
                 width: 22, height: 22, borderRadius: 11, borderWidth: 2,
                 borderColor: entry.completed ? colors.success : 'rgba(255,255,255,0.35)',
