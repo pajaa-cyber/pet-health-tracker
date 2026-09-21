@@ -93,6 +93,7 @@ export function DayDetailScreen({ route, navigation }: any) {
             message="Vaccines, doses, follow-ups, and anything you log will show up here."
             actionLabel="Add to Calendar"
             onAction={() => navigation.navigate('AddEvent')}
+            variant="dark"
           />
         }
       />

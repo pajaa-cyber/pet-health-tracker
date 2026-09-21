@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { markDone, skip } from '../reminders/reminderActions';
-import { updateEvent } from '../calendar/eventService';
+import { updateEvent } from './eventService';
 import { CalendarEntry } from './calendarEntries';
 import { firestore } from '../firebase/config';
 import type { Household } from '../types/household';
@@ -15,11 +15,17 @@ export function useCalendarEntryActions(household: Household | null, userId: str
   const [error, setError] = useState<string | null>(null);
 
   const handleDone = async (entry: CalendarEntry) => {
-    if (!household) return;
+    if (!household) {
+      setError('No household');
+      return;
+    }
     setError(null);
     try {
       if (entry.reminder) {
-        if (!userId) return;
+        if (!userId) {
+          setError('Not signed in');
+          return;
+        }
         await markDone(firestore, household.id, entry.reminder, userId);
       } else if (entry.event) {
         await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
@@ -30,11 +36,17 @@ export function useCalendarEntryActions(household: Household | null, userId: str
   };
 
   const handleSkip = async (entry: CalendarEntry) => {
-    if (!household) return;
+    if (!household) {
+      setError('No household');
+      return;
+    }
     setError(null);
     try {
       if (entry.reminder) {
-        if (!userId) return;
+        if (!userId) {
+          setError('Not signed in');
+          return;
+        }
         await skip(firestore, household.id, entry.reminder, userId);
       } else if (entry.event) {
         await updateEvent(firestore, household.id, entry.event.id, { status: entry.skipped ? 'upcoming' : 'skipped' });

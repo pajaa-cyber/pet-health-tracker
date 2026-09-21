@@ -12,6 +12,7 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   bg?: string;
   textColor?: string;
   borderColor?: string;
+  fontSize?: number;
 }
 
 const variantStyles: Record<Variant, { bg: string; border?: string; text: string }> = {
@@ -21,12 +22,13 @@ const variantStyles: Record<Variant, { bg: string; border?: string; text: string
   danger: { bg: colors.danger, text: '#FFFFFF' },
 };
 
-export function Button({ title, variant = 'primary', loading, disabled, style, bg, textColor, borderColor, ...rest }: ButtonProps) {
+export function Button({ title, variant = 'primary', loading, disabled, style, bg, textColor, borderColor, fontSize, ...rest }: ButtonProps) {
   const v = variantStyles[variant];
   const isDisabled = disabled || loading;
   const resolvedBg = bg ?? v.bg;
   const resolvedBorder = borderColor ?? v.border;
   const resolvedText = textColor ?? v.text;
+  const resolvedFontSize = fontSize ?? styles.text.fontSize;
 
   return (
     <Pressable
@@ -44,7 +46,7 @@ export function Button({ title, variant = 'primary', loading, disabled, style, b
       ]}
       {...rest}
     >
-      {loading ? <ActivityIndicator color={resolvedText} /> : <Text style={[styles.text, { color: resolvedText }]}>{title}</Text>}
+      {loading ? <ActivityIndicator color={resolvedText} /> : <Text style={[styles.text, { color: resolvedText, fontSize: resolvedFontSize }]}>{title}</Text>}
     </Pressable>
   );
 }

@@ -171,11 +171,24 @@ export function CalendarScreen({ navigation }: any) {
             {viewMode === 'month' && (
               <MonthView monthStart={startOfMonth(selectedDate)} selectedDate={selectedDate} entries={petFilteredEntries} pets={pets} onSelectDate={setSelectedDate} />
             )}
-            <View>
-              <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>{agendaHeading}</Text>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
-                {agendaCount} thing{agendaCount === 1 ? '' : 's'} {viewMode === 'overdue' ? 'waiting' : 'on this day'}
-              </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>{agendaHeading}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
+                  {agendaCount} thing{agendaCount === 1 ? '' : 's'} {viewMode === 'overdue' ? 'waiting' : 'on this day'}
+                </Text>
+              </View>
+              {viewMode !== 'overdue' && (
+                <Pressable
+                  onPress={() => navigation.navigate('DayDetail', { date: selectedDate })}
+                  accessibilityRole="button"
+                  accessibilityLabel="View full day"
+                  hitSlop={8}
+                  style={{ minHeight: 44, borderRadius: 14, backgroundColor: shell.control, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: text.primary }}>View full day</Text>
+                </Pressable>
+              )}
             </View>
           </View>
         }
@@ -194,6 +207,7 @@ export function CalendarScreen({ navigation }: any) {
             }
             actionLabel="Reminder settings"
             onAction={() => navigation.navigate('ReminderSettings')}
+            variant="dark"
           />
         }
       />

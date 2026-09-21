@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { View } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs, createWeightLog } from '../pets/weightLogService';
 import { subscribeToPets } from '../pets/petService';
@@ -69,6 +69,7 @@ export function WeightLogScreen({ route, navigation }: any) {
             message="Track your pet's weight to spot health changes early."
             actionLabel="Log weight"
             onAction={() => {}}
+            variant="dark"
           />
         ) : (
           <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16 }}>

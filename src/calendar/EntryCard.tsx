@@ -104,6 +104,7 @@ export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProp
               textColor={entry.completed ? text.primary : undefined}
               onPress={onDone}
               style={{ flex: 1 }}
+              fontSize={13}
             />
             <Button
               title={entry.skipped ? 'Bring back' : 'Skip'}
@@ -112,6 +113,7 @@ export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProp
               textColor={text.primary}
               onPress={onSkip}
               style={{ flex: 1 }}
+              fontSize={13}
             />
             <Button
               title="Edit"
@@ -120,6 +122,7 @@ export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProp
               textColor={text.primary}
               onPress={onEdit}
               style={{ flex: 1 }}
+              fontSize={13}
             />
           </View>
         )}

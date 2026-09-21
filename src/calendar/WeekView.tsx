@@ -3,7 +3,7 @@ import { View, Pressable, Text } from 'react-native';
 import { CalendarEntry, daysWithEntries, addDays } from './calendarEntries';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
-import { shell, text, spacing } from '../theme/theme';
+import { shell, text } from '../theme/theme';
 
 interface WeekViewProps {
   weekStart: number;

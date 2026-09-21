@@ -118,7 +118,7 @@ describe('overdueEntries', () => {
 });
 
 describe('daysWithEntries', () => {
-  it('returns the start-of-day timestamp for each distinct day that has an entry, sorted ascending', () => {
+  it('returns the start-of-day timestamp for each distinct day that has an entry (Map, unordered by key)', () => {
     const day1 = new Date('2026-09-15T00:00:00').getTime();
     const day3 = new Date('2026-09-17T00:00:00').getTime();
     const entries = mergeCalendarEntries(

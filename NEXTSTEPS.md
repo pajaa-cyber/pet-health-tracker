@@ -60,7 +60,15 @@ the kind of thing that looked fine in a code review and then wasn't, per
 Plan 6's note #6 above); the event card's Done/Skip toggle round-trips
 correctly (mark done → not done → done again) without leaving stale state;
 multi-pet day dots in Week/Month render correctly for a household with
-more than one pet. Once verified (or once it finds real bugs — fix and
+more than one pet; **and specifically confirm, from the Calendar tab, that
+"View full day" (week/month agenda header) actually navigates to
+`DayDetailScreen` and that Done/Skip/Bring-back work correctly there too**
+— a whole-branch code review caught this screen as completely unreachable
+(the navigation call had been dropped in this plan's `CalendarScreen.tsx`
+rewrite) and fixed it before merge, but that fix has itself not been
+on-device verified yet, and "a screen exists but nothing links to it" is
+exactly the kind of gap a checklist should catch and one already slipped
+through once here. Once verified (or once it finds real bugs — fix and
 re-verify, don't skip), update both CLAUDE.md's "Colourful Reskin (Part B)"
 paragraph and this section with what was found, the same way Plan 5/6/Part
 A's notes were written after their device passes, not before — then, and
