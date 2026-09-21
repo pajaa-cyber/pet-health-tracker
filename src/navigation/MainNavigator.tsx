@@ -39,7 +39,7 @@ export function MainNavigator() {
       <Stack.Screen name="AddVaccine" component={AddVaccineScreen} options={{ title: 'Add Vaccine' }} />
       <Stack.Screen name="MedicationList" component={MedicationListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: 'Add Medication' }} />
-      <Stack.Screen name="WeightLog" component={WeightLogScreen} options={{ title: 'Weight' }} />
+      <Stack.Screen name="WeightLog" component={WeightLogScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ExpenseList" component={ExpenseListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Add Expense' }} />
       <Stack.Screen name="VetVisitList" component={VetVisitListScreen} options={{ headerShown: false }} />
