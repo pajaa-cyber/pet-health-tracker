@@ -21,7 +21,7 @@ import { MonthView } from '../calendar/MonthView';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { Pet } from '../types/pet';
 import {
-  ScreenContainer, Card, Button, Chip, Title, Subtitle, MutedText, PermissionBar, PetSelector, GuidedEmptyState,
+  ScreenContainer, Card, Button, Chip, Title, Subtitle, MutedText, PermissionBar, PetSelector, GuidedEmptyState, ErrorText,
 } from '../components/ui';
 import { spacing } from '../theme/theme';
 
@@ -48,6 +48,7 @@ export function CalendarScreen({ navigation }: any) {
   const [snoozes, setSnoozes] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedDate, setSelectedDate] = useState(startOfDay(Date.now()));
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!household) return;
@@ -76,21 +77,36 @@ export function CalendarScreen({ navigation }: any) {
 
   const handleDone = async (entry: CalendarEntry) => {
     if (!household || !user || !entry.reminder) return;
-    await markDone(firestore, household.id, entry.reminder, user.uid);
+    setError(null);
+    try {
+      await markDone(firestore, household.id, entry.reminder, user.uid);
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleSkip = async (entry: CalendarEntry) => {
     if (!household || !user) return;
-    if (entry.reminder) {
-      await skip(firestore, household.id, entry.reminder, user.uid);
-    } else if (entry.event) {
-      await updateEvent(firestore, household.id, entry.event.id, { status: 'skipped' });
+    setError(null);
+    try {
+      if (entry.reminder) {
+        await skip(firestore, household.id, entry.reminder, user.uid);
+      } else if (entry.event) {
+        await updateEvent(firestore, household.id, entry.event.id, { status: 'skipped' });
+      }
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   const handleToggleComplete = async (entry: CalendarEntry) => {
     if (!household || !entry.event) return;
-    await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
+    setError(null);
+    try {
+      await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleEdit = (entry: CalendarEntry) => {
@@ -132,6 +148,7 @@ export function CalendarScreen({ navigation }: any) {
         <PermissionBar message="Reminders need notifications. Tap to enable." onPress={request} />
       )}
       <Title>Calendar</Title>
+      {error && <ErrorText>{error}</ErrorText>}
       <PetSelector pets={pets} />
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         <Chip label="Week" selected={viewMode === 'week'} onPress={() => setViewMode('week')} />
