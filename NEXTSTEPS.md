@@ -1,8 +1,71 @@
-# Where we left off (2026-09-18)
+# Where we left off (2026-09-21)
 
 Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
+
+## Colourful Reskin, Part B — code-complete, tests-green, NOT yet device-verified (2026-09-21)
+
+Continues Part A's dark-shell reskin onto the two areas its own README
+explicitly parked for later: the five record-list screens (Vaccines,
+Medications, Vet Visits, Weight, Expenses) and the whole Calendar tab
+(`CalendarScreen.tsx`, `DayDetailScreen.tsx`, `WeekView.tsx`,
+`MonthView.tsx`, `EntryCard.tsx`). Built via
+`superpowers:subagent-driven-development` in a dedicated worktree at
+`C:\dev\colorful-reskin-b` (branch `colorful-reskin-b`, off `master` at
+`e7fe10a`) — 9 tasks, each reviewed clean or fixed and re-reviewed clean
+(see `.superpowers/sdd/2026-09-21-colorful-reskin-part-b/progress.md` for
+the full per-task ledger). Full architecture detail: CLAUDE.md's
+"Colourful Reskin (Part B)" paragraph under UI/Design system.
+
+**This task (Task 9) ran full local verification and it is all clean:**
+`npx tsc --noEmit` — 0 errors. `npx jest __tests__
+--testPathIgnorePatterns=firestore.rules` — 19 suites / 108 tests, all
+passed. `firebase emulators:exec --only firestore,storage "npx jest
+__tests__/firestore.rules.test.ts"` — 41/41 passed, the same count as
+`master` (this plan touches no `firestore.rules`/`storage.rules`/rules-test
+file — confirmed via `git diff master` on those paths, empty). `git diff
+master -- package.json` is also empty — zero new dependencies, as planned.
+A full re-read of `git diff master` found no data/logic change beyond the
+two the plan explicitly sanctioned: `daysWithEntries()`'s richer
+`Map<number, string[]>` return (Task 6, for multi-pet day dots) and the new
+`useCalendarEntryActions` hook's toggle-based event Done/Skip (Tasks 5, 7 —
+"Mark done"/"Not done" and "Skip"/"Bring back"). The five record-list
+screens each gained a new `subscribeToPets` read (for the pet-colour rail)
+that wasn't in the plan's two headline items, but it's a plan-authored,
+display-only read (not a computed value or a write) that the SDD ledger
+already logged as deliberate — not scope creep.
+
+**What is NOT done: the on-device checklist.** No Android device was
+reachable in the session that built this plan or in this docs/verification
+session — this is stated plainly, not glossed over. `tsc`/Jest/emulator
+passing is necessary but explicitly not sufficient for this project (see
+the Plan 5/6/Part A precedent above, all of which found real bugs only a
+real phone caught — DST date math, an edit-form data-loss bug, a
+`ScrollView` silently expanding to fill its column, safe-area padding lost
+under `headerShown:false`, etc.). **Do not merge this branch until that
+checklist has actually run.**
+
+**Next step for whoever picks this up:** drive the on-device checklist the
+same way every prior plan's Task 9 did — build from `C:\dev\colorful-reskin-b`
+per "Local device build environment (Windows)" in CLAUDE.md (remember the
+`android/local.properties` + `google-services.json` copy steps a fresh
+worktree needs), and prefer `adb`/`uiautomator` layout dumps and simulated
+taps over relying on the owner's eyes alone, matching Plans 5/6/Part A's
+practice. Specifically worth checking given what this plan touched: the 5
+record-list screens' new pet-colour rail and `DashedAddButton`/
+`RecordListHeader` layout on a real screen size; the Calendar tab's
+restored inline Month agenda actually has room to render (this is exactly
+the kind of thing that looked fine in a code review and then wasn't, per
+Plan 6's note #6 above); the event card's Done/Skip toggle round-trips
+correctly (mark done → not done → done again) without leaving stale state;
+multi-pet day dots in Week/Month render correctly for a household with
+more than one pet. Once verified (or once it finds real bugs — fix and
+re-verify, don't skip), update both CLAUDE.md's "Colourful Reskin (Part B)"
+paragraph and this section with what was found, the same way Plan 5/6/Part
+A's notes were written after their device passes, not before — then, and
+only then, `superpowers:finishing-a-development-branch` to merge into
+`master`.
 
 ## ✅ Colourful Reskin, Part A — device-verified, ready to merge (2026-09-18)
 
