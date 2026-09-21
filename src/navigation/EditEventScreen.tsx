@@ -45,14 +45,18 @@ export function EditEventScreen({ route, navigation }: any) {
       const event = events.find((e) => e.id === eventId);
       if (!event) {
         // onSnapshot always delivers an initial snapshot synchronously (even
-        // from cache) — if that first snapshot has events but none match
-        // eventId, there's nothing to wait for: the event was deleted
-        // elsewhere or eventId is bad. Surface that instead of spinning on
-        // "Loading…" forever. A later snapshot could in principle still add
-        // a matching event, but once loadedEventRef is never set, we treat
-        // "any snapshot with no match" as not-found — simplest correct
-        // behavior for this edge case, not a full retry system.
-        if (events.length > 0) setNotFound(true);
+        // from cache) — if that first snapshot doesn't contain eventId,
+        // there's nothing to wait for: the event was deleted elsewhere or
+        // eventId is bad, whether or not the household has any other events
+        // (an events.length > 0 guard here previously left a genuinely
+        // empty household's first snapshot spinning on "Loading…" forever,
+        // since a snapshot that will never contain the event still isn't
+        // "no events yet"). Surface not-found instead. A later snapshot
+        // could in principle still add a matching event, but once
+        // loadedEventRef is never set, we treat "any snapshot with no
+        // match" as not-found — simplest correct behavior for this edge
+        // case, not a full retry system.
+        setNotFound(true);
         return;
       }
       setPetIds(event.petIds);
@@ -61,6 +65,7 @@ export function EditEventScreen({ route, navigation }: any) {
       setNotes(event.notes);
       setDate(event.date);
       setLoaded(true);
+      setNotFound(false);
       loadedEventRef.current = true;
     });
   }, [household, eventId]);

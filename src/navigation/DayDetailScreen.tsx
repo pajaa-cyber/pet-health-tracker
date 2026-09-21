@@ -13,7 +13,7 @@ import { mergeCalendarEntries, entriesForPet, entriesForDay, CalendarEntry } fro
 import { EntryCard } from '../calendar/EntryCard';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { Pet } from '../types/pet';
-import { ScreenContainer, Title, MutedText, GuidedEmptyState } from '../components/ui';
+import { ScreenContainer, Title, MutedText, GuidedEmptyState, ErrorText } from '../components/ui';
 import { spacing } from '../theme/theme';
 
 export function DayDetailScreen({ route, navigation }: any) {
@@ -23,6 +23,7 @@ export function DayDetailScreen({ route, navigation }: any) {
   const { selectedPetId } = usePetSelection();
   const [pets, setPets] = useState<Pet[]>([]);
   const [snoozes, setSnoozes] = useState<Record<string, number>>({});
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!household) return;
@@ -44,21 +45,36 @@ export function DayDetailScreen({ route, navigation }: any) {
 
   const handleDone = async (entry: CalendarEntry) => {
     if (!household || !user || !entry.reminder) return;
-    await markDone(firestore, household.id, entry.reminder, user.uid);
+    setError(null);
+    try {
+      await markDone(firestore, household.id, entry.reminder, user.uid);
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleSkip = async (entry: CalendarEntry) => {
     if (!household || !user) return;
-    if (entry.reminder) {
-      await skip(firestore, household.id, entry.reminder, user.uid);
-    } else if (entry.event) {
-      await updateEvent(firestore, household.id, entry.event.id, { status: 'skipped' });
+    setError(null);
+    try {
+      if (entry.reminder) {
+        await skip(firestore, household.id, entry.reminder, user.uid);
+      } else if (entry.event) {
+        await updateEvent(firestore, household.id, entry.event.id, { status: 'skipped' });
+      }
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
   const handleToggleComplete = async (entry: CalendarEntry) => {
     if (!household || !entry.event) return;
-    await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
+    setError(null);
+    try {
+      await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleEdit = (entry: CalendarEntry) => {
@@ -69,6 +85,7 @@ export function DayDetailScreen({ route, navigation }: any) {
   return (
     <ScreenContainer style={{ flex: 1 }}>
       <Title>{new Date(date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Title>
+      {error && <ErrorText>{error}</ErrorText>}
       <FlatList
         style={{ flex: 1 }}
         data={dayEntries}

@@ -56,6 +56,7 @@ export function EntryCard({ entry, pets, onDone, onSkip, onToggleComplete, onEdi
       </MutedText>
       <View
         style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}
+        accessible={entryPets.length > 0}
         accessibilityLabel={entryPets.length > 0 ? `For ${entryPets.map((p) => p.name).join(', ')}` : undefined}
       >
         {entryPets.map((pet) => (
