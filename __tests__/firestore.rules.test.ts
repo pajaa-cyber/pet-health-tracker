@@ -4,7 +4,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, setDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
 import * as fs from 'fs';
 
 let testEnv: RulesTestEnvironment;
@@ -606,5 +606,23 @@ describe('household security rules', () => {
     await assertFails(
       updateDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1'), { status: 'completed' })
     );
+  });
+
+  it('allows a household member to delete an event', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'events', 'evt-1'), validEvent);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(deleteDoc(doc(memberDb, 'households', 'h1', 'events', 'evt-1')));
+  });
+
+  it('denies a non-member from deleting an event', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'events', 'evt-1'), validEvent);
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(deleteDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1')));
   });
 });

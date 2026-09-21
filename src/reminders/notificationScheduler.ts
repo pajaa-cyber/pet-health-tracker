@@ -1,7 +1,9 @@
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { UpcomingReminder } from './computeUpcoming';
 import { ReminderSettings } from './settingsStore';
 import { computeNotificationTime } from './notificationTiming';
+import { REMINDERS_CHANNEL_ID } from './notificationSetup';
 
 // Cancels every previously scheduled reminder notification and reschedules
 // from scratch against the current reminder list — simplest correct way to
@@ -19,7 +21,11 @@ export async function rescheduleNotifications(reminders: UpcomingReminder[], set
         title: reminder.petName,
         body: `${reminder.label} is coming up`,
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: trigger },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: trigger,
+        ...(Platform.OS === 'android' ? { channelId: REMINDERS_CHANNEL_ID } : {}),
+      },
     });
   }
 }
