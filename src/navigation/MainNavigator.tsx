@@ -35,14 +35,14 @@ export function MainNavigator() {
       <Stack.Screen name="AddPet" component={AddPetScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PetHome" component={PetHomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="EditPet" component={EditPetScreen} options={{ title: 'Edit Pet' }} />
-      <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ title: 'Vaccines' }} />
+      <Stack.Screen name="VaccineList" component={VaccineListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddVaccine" component={AddVaccineScreen} options={{ title: 'Add Vaccine' }} />
-      <Stack.Screen name="MedicationList" component={MedicationListScreen} options={{ title: 'Medications' }} />
+      <Stack.Screen name="MedicationList" component={MedicationListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddMedication" component={AddMedicationScreen} options={{ title: 'Add Medication' }} />
       <Stack.Screen name="WeightLog" component={WeightLogScreen} options={{ title: 'Weight' }} />
       <Stack.Screen name="ExpenseList" component={ExpenseListScreen} options={{ title: 'Expenses' }} />
       <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Add Expense' }} />
-      <Stack.Screen name="VetVisitList" component={VetVisitListScreen} options={{ title: 'Vet Visits' }} />
+      <Stack.Screen name="VetVisitList" component={VetVisitListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddVetVisit" component={AddVetVisitScreen} options={{ title: 'Add Vet Visit' }} />
       <Stack.Screen name="VetVisitDocuments" component={VetVisitDocumentsScreen} options={{ title: 'Documents' }} />
       <Stack.Screen name="ChoosePetForAdd" component={ChoosePetForAddScreen} options={{ title: 'Choose a pet' }} />
