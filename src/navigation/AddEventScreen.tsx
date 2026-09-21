@@ -9,7 +9,7 @@ import { firestore } from '../firebase/config';
 import { DateField } from '../components/DateField';
 import { petColor } from '../theme/petColors';
 import { Pet } from '../types/pet';
-import { ScreenContainer, TextField, Button, Chip, Title, BodyText, ErrorText } from '../components/ui';
+import { ScreenContainer, TextField, Button, Chip, Title, BodyText, ErrorText, GuidedEmptyState } from '../components/ui';
 import { colors, spacing, radii } from '../theme/theme';
 
 const STEPS = ['Who is it for?', 'What kind of event?', 'Details'] as const;
@@ -63,7 +63,17 @@ export function AddEventScreen({ navigation }: any) {
     <ScreenContainer scroll>
       <Title>{STEPS[step]}</Title>
 
-      {step === 0 && (
+      {step === 0 && pets.length === 0 && (
+        <GuidedEmptyState
+          emoji="🐾"
+          title="No pets yet"
+          message="Add a pet first, then come back to put an event on their calendar."
+          actionLabel="Add a Pet"
+          onAction={() => navigation.navigate('PetsTab', { screen: 'AddPet' })}
+        />
+      )}
+
+      {step === 0 && pets.length > 0 && (
         <View style={{ gap: spacing.sm }}>
           {pets.map((pet) => {
             const selected = petIds.includes(pet.id);
