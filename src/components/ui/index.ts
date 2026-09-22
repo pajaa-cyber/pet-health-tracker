@@ -10,3 +10,5 @@ export { PetSelector } from './PetSelector';
 export { BreedPicker } from './BreedPicker';
 export { GuidedEmptyState } from './GuidedEmptyState';
 export { PermissionBar } from './PermissionBar';
+export { DashedAddButton } from './DashedAddButton';
+export { RecordListHeader } from './RecordListHeader';

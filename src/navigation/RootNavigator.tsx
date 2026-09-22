@@ -50,11 +50,7 @@ export function RootNavigator() {
               component={EditEventScreen}
               options={{ headerShown: true, title: 'Edit event', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
             />
-            <Stack.Screen
-              name="DayDetail"
-              component={DayDetailScreen}
-              options={{ headerShown: true, title: '', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
-            />
+            <Stack.Screen name="DayDetail" component={DayDetailScreen} options={{ headerShown: false }} />
           </>
         ) : (
           <Stack.Screen name="HouseholdSetup" component={HouseholdSetupScreen} />

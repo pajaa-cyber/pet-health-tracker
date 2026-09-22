@@ -1,26 +1,36 @@
 import React from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, Text } from 'react-native';
 import { CalendarEntry, daysWithEntries, addDays } from './calendarEntries';
-import { MutedText, BodyText } from '../components/ui';
-import { colors, radii, spacing } from '../theme/theme';
-
-const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+import { Pet } from '../types/pet';
+import { petColor } from '../theme/petColors';
+import { shell, text } from '../theme/theme';
 
 interface WeekViewProps {
   weekStart: number;
   selectedDate: number;
   entries: CalendarEntry[];
+  pets: Pet[];
   onSelectDate: (day: number) => void;
 }
 
-export function WeekView({ weekStart, selectedDate, entries, onSelectDate }: WeekViewProps) {
+const WEEKDAY_LABELS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+const TODAY = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
+export function WeekView({ weekStart, selectedDate, entries, pets, onSelectDate }: WeekViewProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-  const markedDays = new Set(daysWithEntries(entries, weekStart, addDays(weekStart, 7)));
+  const dayPetMap = daysWithEntries(entries, weekStart, addDays(weekStart, 7));
+  const today = TODAY();
 
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+    <View style={{ flexDirection: 'row', gap: 6 }}>
       {days.map((day, i) => {
         const isSelected = day === selectedDate;
+        const isToday = day === today;
+        const dotPetIds = (dayPetMap.get(day) ?? []).slice(0, 3);
         return (
           <Pressable
             key={day}
@@ -28,20 +38,30 @@ export function WeekView({ weekStart, selectedDate, entries, onSelectDate }: Wee
             accessibilityRole="button"
             accessibilityLabel={new Date(day).toDateString()}
             style={{
-              alignItems: 'center', gap: spacing.xs, paddingVertical: spacing.sm, paddingHorizontal: spacing.xs,
-              borderRadius: radii.md, backgroundColor: isSelected ? colors.primary : 'transparent', minWidth: 40,
+              flex: 1, minHeight: 72, borderRadius: 16, paddingVertical: 10, paddingHorizontal: 2, paddingBottom: 8,
+              alignItems: 'center', justifyContent: 'space-between',
+              backgroundColor: isSelected ? '#FFFFFF' : shell.card,
+              borderWidth: isToday && !isSelected ? 1.5 : 0,
+              borderColor: 'rgba(255,255,255,0.45)',
             }}
           >
-            <MutedText style={isSelected ? { color: '#FFFFFF' } : undefined}>{WEEKDAY_LABELS[i]}</MutedText>
-            <BodyText style={{ fontWeight: '700', color: isSelected ? '#FFFFFF' : colors.text }}>
+            <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.8, color: isSelected ? shell.bg : text.faint }}>
+              {WEEKDAY_LABELS[i]}
+            </Text>
+            <Text style={{ fontSize: 17, fontWeight: '800', color: isSelected ? shell.bg : text.primary }}>
               {new Date(day).getDate()}
-            </BodyText>
-            <View
-              style={{
-                width: 6, height: 6, borderRadius: 3,
-                backgroundColor: markedDays.has(day) ? (isSelected ? '#FFFFFF' : colors.accent) : 'transparent',
-              }}
-            />
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 3, minHeight: 6 }}>
+              {dotPetIds.map((petId) => {
+                const pet = pets.find((p) => p.id === petId);
+                return (
+                  <View
+                    key={petId}
+                    style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: pet ? petColor(pet) : text.faint }}
+                  />
+                );
+              })}
+            </View>
           </Pressable>
         );
       })}

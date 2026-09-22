@@ -1,37 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, View, Text, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { useUpcomingReminders } from '../reminders/useUpcomingReminders';
 import { useNotificationPermission } from '../reminders/useNotificationPermission';
-import { markDone, skip } from '../reminders/reminderActions';
 import { getSnoozes, isSnoozed } from '../reminders/snoozeStore';
 import { useCalendarEvents } from '../calendar/useCalendarEvents';
-import { updateEvent } from '../calendar/eventService';
 import {
   mergeCalendarEntries, entriesForDay, entriesForPet, overdueEntries,
   startOfWeek, startOfMonth, addDays, CalendarEntry,
 } from '../calendar/calendarEntries';
 import { startOfDay } from '../reminders/computeUpcoming';
+import { useCalendarEntryActions } from '../calendar/useCalendarEntryActions';
 import { EntryCard } from '../calendar/EntryCard';
 import { WeekView } from '../calendar/WeekView';
 import { MonthView } from '../calendar/MonthView';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { Pet } from '../types/pet';
 import {
-  ScreenContainer, Card, Button, Chip, Title, Subtitle, MutedText, PermissionBar, PetSelector, GuidedEmptyState, ErrorText,
+  ScreenContainer, Chip, PermissionBar, PetSelector, GuidedEmptyState, ErrorText,
 } from '../components/ui';
-import { spacing } from '../theme/theme';
+import { shell, text, accentLavender, spacing } from '../theme/theme';
 
 type ViewMode = 'week' | 'month' | 'overdue';
 
-// One calendar month back/forward from `date`. Clamps to the 1st before
-// calling setMonth so a selectedDate on e.g. the 31st doesn't overflow into
-// the wrong month when the adjacent month is shorter (setMonth(-1) from
-// March 31st would otherwise land on ~March 3rd, not February at all) —
-// startOfMonth() re-derives the clean start-of-month timestamp afterward.
 function shiftMonth(date: number, delta: number): number {
   const d = new Date(date);
   d.setDate(1);
@@ -44,11 +39,12 @@ export function CalendarScreen({ navigation }: any) {
   const { household } = useHousehold();
   const { granted, request } = useNotificationPermission();
   const { selectedPetId } = usePetSelection();
+  const insets = useSafeAreaInsets();
   const [pets, setPets] = useState<Pet[]>([]);
   const [snoozes, setSnoozes] = useState<Record<string, number>>({});
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedDate, setSelectedDate] = useState(startOfDay(Date.now()));
-  const [error, setError] = useState<string | null>(null);
+  const { handleDone, handleSkip, handleEdit, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
 
   useEffect(() => {
     if (!household) return;
@@ -63,60 +59,10 @@ export function CalendarScreen({ navigation }: any) {
   const events = useCalendarEvents();
   const now = Date.now();
 
-  // Snoozes are keyed by the *original* UpcomingReminder.id (e.g.
-  // "vaccine:vax-1"), exactly as Plan 5's snoozeReminder() stores them —
-  // not by CalendarEntry.id, which has its own "reminder:"/"event:" prefix
-  // (Task 2). Comparing snoozes against entry.id instead of
-  // entry.reminder.id would silently never match, and a snoozed reminder
-  // would incorrectly reappear here — this is exactly the kind of thing
-  // Plan 5's own device verification caught once already; don't reintroduce
-  // it. Events have no snooze concept in this plan, so they always pass.
   const allEntries = mergeCalendarEntries(reminders, events, now)
     .filter((e) => e.reminder == null || !isSnoozed(snoozes, e.reminder.id, now));
   const petFilteredEntries = entriesForPet(allEntries, selectedPetId);
 
-  const handleDone = async (entry: CalendarEntry) => {
-    if (!household || !user || !entry.reminder) return;
-    setError(null);
-    try {
-      await markDone(firestore, household.id, entry.reminder, user.uid);
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const handleSkip = async (entry: CalendarEntry) => {
-    if (!household || !user) return;
-    setError(null);
-    try {
-      if (entry.reminder) {
-        await skip(firestore, household.id, entry.reminder, user.uid);
-      } else if (entry.event) {
-        await updateEvent(firestore, household.id, entry.event.id, { status: 'skipped' });
-      }
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const handleToggleComplete = async (entry: CalendarEntry) => {
-    if (!household || !entry.event) return;
-    setError(null);
-    try {
-      await updateEvent(firestore, household.id, entry.event.id, { status: entry.completed ? 'upcoming' : 'completed' });
-    } catch (e: any) {
-      setError(e.message);
-    }
-  };
-
-  const handleEdit = (entry: CalendarEntry) => {
-    if (!entry.event) return;
-    navigation.navigate('EditEvent', { eventId: entry.event.id });
-  };
-
-  // Week mode pages by exactly 7 calendar days (DST-safe via addDays);
-  // Month mode pages by one calendar month. Only meaningful in week/month
-  // mode — the Overdue tab has no date grid to page through.
   const handlePrev = () => {
     setSelectedDate((prev) => (viewMode === 'month' ? shiftMonth(prev, -1) : addDays(prev, -7)));
   };
@@ -131,9 +77,8 @@ export function CalendarScreen({ navigation }: any) {
     <EntryCard
       entry={item}
       pets={pets}
-      onDone={item.source === 'reminder' ? () => handleDone(item) : undefined}
+      onDone={() => handleDone(item)}
       onSkip={() => handleSkip(item)}
-      onToggleComplete={item.source === 'event' ? () => handleToggleComplete(item) : undefined}
       onEdit={item.source === 'event' ? () => handleEdit(item) : undefined}
     />
   );
@@ -142,89 +87,142 @@ export function CalendarScreen({ navigation }: any) {
   const dayList = entriesForDay(petFilteredEntries, selectedDate);
   const listData = viewMode === 'overdue' ? overdueList : dayList;
 
+  const rangeLabel =
+    viewMode === 'month'
+      ? new Date(selectedDate).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+      : `${new Date(startOfWeek(selectedDate)).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} – ${new Date(addDays(startOfWeek(selectedDate), 6)).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
+
+  const agendaHeading = viewMode === 'overdue'
+    ? 'Overdue'
+    : new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const agendaCount = listData.length;
+
   return (
-    <ScreenContainer style={{ flex: 1 }}>
-      {granted === false && (
-        <PermissionBar message="Reminders need notifications. Tap to enable." onPress={request} />
-      )}
-      <Title>Calendar</Title>
-      {error && <ErrorText>{error}</ErrorText>}
-      <PetSelector pets={pets} />
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        <Chip label="Week" selected={viewMode === 'week'} onPress={() => setViewMode('week')} />
-        <Chip label="Month" selected={viewMode === 'month'} onPress={() => setViewMode('month')} />
-        <Chip label={`Overdue (${overdueList.length})`} selected={viewMode === 'overdue'} onPress={() => setViewMode('overdue')} />
-      </View>
-      <Button
-        title="Reminder settings"
-        variant="outline"
-        onPress={() => navigation.navigate('ReminderSettings')}
+    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+      <FlatList
+        style={{ flex: 1 }}
+        ListHeaderComponent={
+          <View style={{ paddingHorizontal: spacing.md, gap: spacing.md, paddingTop: insets.top + spacing.sm, paddingBottom: spacing.sm }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <View>
+                <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: accentLavender }}>
+                  Everything, one place
+                </Text>
+                <Text style={{ fontSize: 26, fontWeight: '800', color: text.primary }}>Calendar</Text>
+              </View>
+              <Chip
+                label="⚙︎ Reminders"
+                selected={false}
+                onPress={() => navigation.navigate('ReminderSettings')}
+                unselectedBg={shell.control}
+                unselectedColor={text.primary}
+              />
+            </View>
+            {granted === false && (
+              <PermissionBar message="Reminders need notifications. Tap to enable." onPress={request} />
+            )}
+            {error && <ErrorText>{error}</ErrorText>}
+            <PetSelector pets={pets} variant="dark" />
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Chip
+                label="Week"
+                selected={viewMode === 'week'}
+                onPress={() => setViewMode('week')}
+                selectedBg="#FFFFFF"
+                selectedColor={shell.bg}
+                unselectedBg="rgba(255,255,255,0.10)"
+                unselectedColor="rgba(255,255,255,0.8)"
+              />
+              <Chip
+                label="Month"
+                selected={viewMode === 'month'}
+                onPress={() => setViewMode('month')}
+                selectedBg="#FFFFFF"
+                selectedColor={shell.bg}
+                unselectedBg="rgba(255,255,255,0.10)"
+                unselectedColor="rgba(255,255,255,0.8)"
+              />
+              <Chip
+                label={`Overdue (${overdueList.length})`}
+                selected={viewMode === 'overdue'}
+                onPress={() => setViewMode('overdue')}
+                selectedBg="#FFFFFF"
+                selectedColor={shell.bg}
+                unselectedBg="rgba(255,255,255,0.10)"
+                unselectedColor="rgba(255,255,255,0.8)"
+              />
+            </View>
+            {viewMode !== 'overdue' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Pressable44 label="‹" onPress={handlePrev} />
+                <Pressable
+                  onPress={handleToday}
+                  accessibilityRole="button"
+                  style={{ flex: 1, minHeight: 44, borderRadius: 14, backgroundColor: shell.control, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: text.primary }}>{rangeLabel} · Today</Text>
+                </Pressable>
+                <Pressable44 label="›" onPress={handleNext} />
+              </View>
+            )}
+            {viewMode === 'week' && (
+              <WeekView weekStart={startOfWeek(selectedDate)} selectedDate={selectedDate} entries={petFilteredEntries} pets={pets} onSelectDate={setSelectedDate} />
+            )}
+            {viewMode === 'month' && (
+              <MonthView monthStart={startOfMonth(selectedDate)} selectedDate={selectedDate} entries={petFilteredEntries} pets={pets} onSelectDate={setSelectedDate} />
+            )}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <View>
+                <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>{agendaHeading}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
+                  {agendaCount} thing{agendaCount === 1 ? '' : 's'} {viewMode === 'overdue' ? 'waiting' : 'on this day'}
+                </Text>
+              </View>
+              {viewMode !== 'overdue' && (
+                <Pressable
+                  onPress={() => navigation.navigate('DayDetail', { date: selectedDate })}
+                  accessibilityRole="button"
+                  accessibilityLabel="View full day"
+                  hitSlop={8}
+                  style={{ minHeight: 44, borderRadius: 14, backgroundColor: shell.control, alignItems: 'center', justifyContent: 'center', paddingHorizontal: spacing.sm }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: text.primary }}>View full day</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        }
+        data={listData}
+        keyExtractor={(e) => e.id}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm }}
+        renderItem={renderEntry}
+        ListEmptyComponent={
+          <GuidedEmptyState
+            emoji={viewMode === 'overdue' ? '✅' : '🗓️'}
+            title={viewMode === 'overdue' ? 'Nothing overdue' : 'Nothing here'}
+            message={
+              viewMode === 'overdue'
+                ? 'Every reminder and event is on track.'
+                : 'Vaccines, doses, follow-ups, and anything you log will show up here on the day they fall.'
+            }
+            actionLabel="Reminder settings"
+            onAction={() => navigation.navigate('ReminderSettings')}
+            variant="dark"
+          />
+        }
       />
-      {viewMode !== 'overdue' && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          <Button title="‹" variant="outline" onPress={handlePrev} style={{ paddingHorizontal: spacing.lg }} />
-          <Button title="Today" variant="outline" onPress={handleToday} style={{ flex: 1 }} />
-          <Button title="›" variant="outline" onPress={handleNext} style={{ paddingHorizontal: spacing.lg }} />
-        </View>
-      )}
-      {viewMode === 'week' && (
-        <Card>
-          <WeekView
-            weekStart={startOfWeek(selectedDate)}
-            selectedDate={selectedDate}
-            entries={petFilteredEntries}
-            onSelectDate={setSelectedDate}
-          />
-        </Card>
-      )}
-      {viewMode === 'month' && (
-        <Card>
-          <MonthView
-            monthStart={startOfMonth(selectedDate)}
-            selectedDate={selectedDate}
-            entries={petFilteredEntries}
-            onSelectDate={setSelectedDate}
-          />
-        </Card>
-      )}
-      {viewMode !== 'overdue' && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Subtitle>{new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</Subtitle>
-          <Button title="View full day" variant="outline" onPress={() => navigation.navigate('DayDetail', { date: selectedDate })} />
-        </View>
-      )}
-      {viewMode === 'month' ? (
-        // The 6-row month grid already fills nearly the whole screen, leaving
-        // no room for an inline entries list below it (confirmed on-device —
-        // the list rendered but was squeezed to zero visible height). Month
-        // mode is a bird's-eye "which days have something" view; "View full
-        // day" above is the way to see what's actually on a given day, the
-        // same division Week mode doesn't need since it has room to spare.
-        <MutedText style={{ textAlign: 'center', paddingTop: spacing.md }}>
-          Tap a day, then "View full day" to see what's on it.
-        </MutedText>
-      ) : (
-        <FlatList
-          style={{ flex: 1 }}
-          data={listData}
-          keyExtractor={(e) => e.id}
-          contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
-          renderItem={renderEntry}
-          ListEmptyComponent={
-            <GuidedEmptyState
-              emoji={viewMode === 'overdue' ? '✅' : '🗓️'}
-              title={viewMode === 'overdue' ? 'Nothing overdue' : 'Nothing here'}
-              message={
-                viewMode === 'overdue'
-                  ? 'Every reminder and event is on track.'
-                  : 'Vaccines, doses, follow-ups, and anything you log will show up here on the day they fall.'
-              }
-              actionLabel="Reminder settings"
-              onAction={() => navigation.navigate('ReminderSettings')}
-            />
-          }
-        />
-      )}
     </ScreenContainer>
+  );
+}
+
+function Pressable44({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: shell.control, alignItems: 'center', justifyContent: 'center' }}
+    >
+      <Text style={{ fontSize: 18, fontWeight: '800', color: text.primary }}>{label}</Text>
+    </Pressable>
   );
 }

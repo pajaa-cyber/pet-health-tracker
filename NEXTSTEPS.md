@@ -1,4 +1,4 @@
-# Where we left off (2026-09-18)
+# Where we left off (2026-09-22)
 
 Resume state only. Permanent rules live in `CLAUDE.md`; per-plan build and
 verification history lives in `docs/history/` (`plan-log.md` is the index).
@@ -8,15 +8,7 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**1. Colourful Reskin, Part A — device-verified, ready to merge.**
-Worktree `C:\dev\colorful-reskin`, branch `colorful-reskin` (from `master`
-`f52d47a`). Every on-device checklist item passed; last fixes in commit `8b503a5`.
-Next step: delete the plan's SDD workspace
-(`.superpowers/sdd/2026-09-16-colorful-reskin-part-a/`) and merge
-`colorful-reskin` into `master`.
-Detail: `docs/history/2026-09-18-colorful-reskin-part-a.md`.
-
-**2. Plan 7 ("Vets directory and household members") — built, not merged.**
+**1. Plan 7 ("Vets directory and household members") — built, not merged.**
 Worktree `C:\dev\vets-household`, branch `plan-7-vets-household`. A new Vets
 directory (CRUD) plus household member-limit/removal. Fully built, reviewed,
 fixed, and its Firestore rules already deployed to `pet-tracker-app-63512`.
@@ -33,13 +25,13 @@ Plan doc: `docs/superpowers/plans/2026-09-15-vets-and-household-members.md`.
 ## Done and merged
 
 Plans 1–6 are complete, device-verified and on `master`, along with the
-Bolt-pushed purple theme. See `docs/history/plan-log.md`.
+Bolt-pushed purple theme, and both halves of the Colourful Reskin (Part A,
+Part B). See `docs/history/plan-log.md`.
 
 ## After that
 
 Phase 6 = Plan 8 ("Medical records, documents, passport"), Phase 7 = Plan 9
-("Subscriptions and release"). Also unplanned: **Colourful Reskin Part B** (the
-five record-list screens + Calendar) — not yet brainstormed.
+("Subscriptions and release").
 
 Before starting new plan work, read `CLAUDE.md`'s Calendar and pet-selection
 sections: reuse `usePetSelection()` / `<PetSelector>`, follow the

@@ -80,14 +80,21 @@ export function overdueEntries(entries: CalendarEntry[]): CalendarEntry[] {
 }
 
 // The distinct calendar days (as startOfDay() timestamps) within
-// [rangeStart, rangeEndExclusive) that have at least one entry — WeekView/
-// MonthView use this to decide which day cells get a dot.
-export function daysWithEntries(entries: CalendarEntry[], rangeStart: number, rangeEndExclusive: number): number[] {
-  const days = new Set<number>();
+// [rangeStart, rangeEndExclusive) that have at least one entry, mapped to the
+// deduped pet ids with an entry that day (first-seen order) — WeekView/
+// MonthView use this to render up to one coloured dot per pet, per day cell.
+export function daysWithEntries(entries: CalendarEntry[], rangeStart: number, rangeEndExclusive: number): Map<number, string[]> {
+  const days = new Map<number, string[]>();
   for (const e of entries) {
-    if (e.date >= rangeStart && e.date < rangeEndExclusive) days.add(startOfDay(e.date));
+    if (e.date < rangeStart || e.date >= rangeEndExclusive) continue;
+    const day = startOfDay(e.date);
+    const existing = days.get(day) ?? [];
+    for (const petId of e.petIds) {
+      if (!existing.includes(petId)) existing.push(petId);
+    }
+    days.set(day, existing);
   }
-  return Array.from(days).sort((a, b) => a - b);
+  return days;
 }
 
 export function startOfWeek(date: number): number {

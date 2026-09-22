@@ -108,6 +108,12 @@ Full build record and the eight device-found bugs:
 
 ---
 
+## Colourful Reskin, Part B — merged to `master`, device-verified
+
+[`2026-09-22-colorful-reskin-part-b.md`](./2026-09-22-colorful-reskin-part-b.md).
+
+---
+
 ## Bolt-connected purple theme — merged and verified on-device, 2026-09-15
 
 After Plan 6 merged, the owner connected this GitHub repo to Bolt (bolt.new),

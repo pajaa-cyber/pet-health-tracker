@@ -9,6 +9,10 @@ interface ButtonProps extends Omit<PressableProps, 'style'> {
   variant?: Variant;
   loading?: boolean;
   style?: ViewStyle;
+  bg?: string;
+  textColor?: string;
+  borderColor?: string;
+  fontSize?: number;
 }
 
 const variantStyles: Record<Variant, { bg: string; border?: string; text: string }> = {
@@ -18,9 +22,13 @@ const variantStyles: Record<Variant, { bg: string; border?: string; text: string
   danger: { bg: colors.danger, text: '#FFFFFF' },
 };
 
-export function Button({ title, variant = 'primary', loading, disabled, style, ...rest }: ButtonProps) {
+export function Button({ title, variant = 'primary', loading, disabled, style, bg, textColor, borderColor, fontSize, ...rest }: ButtonProps) {
   const v = variantStyles[variant];
   const isDisabled = disabled || loading;
+  const resolvedBg = bg ?? v.bg;
+  const resolvedBorder = borderColor ?? v.border;
+  const resolvedText = textColor ?? v.text;
+  const resolvedFontSize = fontSize ?? styles.text.fontSize;
 
   return (
     <Pressable
@@ -29,16 +37,16 @@ export function Button({ title, variant = 'primary', loading, disabled, style, .
       style={({ pressed }) => [
         styles.base,
         {
-          backgroundColor: v.bg,
-          borderColor: v.border ?? 'transparent',
-          borderWidth: v.border ? 1.5 : 0,
+          backgroundColor: resolvedBg,
+          borderColor: resolvedBorder ?? 'transparent',
+          borderWidth: resolvedBorder ? 1.5 : 0,
           opacity: isDisabled ? 0.6 : pressed ? 0.85 : 1,
         },
         style,
       ]}
       {...rest}
     >
-      {loading ? <ActivityIndicator color={v.text} /> : <Text style={[styles.text, { color: v.text }]}>{title}</Text>}
+      {loading ? <ActivityIndicator color={resolvedText} /> : <Text style={[styles.text, { color: resolvedText, fontSize: resolvedFontSize }]}>{title}</Text>}
     </Pressable>
   );
 }

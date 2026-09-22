@@ -226,9 +226,10 @@ can cover several pets — deliberately not nested under a single pet.
 `EntryCard.tsx` is the one shared row: a reminder gets Done/Skip; an event gets a
 tap-to-complete checkbox plus Skip/Edit. `WeekView`/`MonthView` are hand-rolled
 `View`/`Pressable` grids, not a calendar library (same precedent as
-`WeightTrendChart`). **Month mode's grid leaves no room for an inline entries
-list** — it shows a hint pointing at "View full day"; Week mode keeps its inline
-list. `AddEventScreen`/`EditEventScreen` are registered at `RootNavigator`'s top
+`WeightTrendChart`). Month and Week modes both keep an inline entries list beneath
+the grid (Colourful Reskin Part B restored Month's inline list, which Plan 6 had
+originally replaced with a "View full day" hint because the 6-row grid left no
+room for it — the more compact Part B grid has room). `AddEventScreen`/`EditEventScreen` are registered at `RootNavigator`'s top
 level, not under `MainTabs`, so they're reachable from any tab; `AddSheet.tsx`
 routes "Add to Calendar" there via a `topLevel` flag.
 
@@ -316,11 +317,26 @@ on Home. That is a resolved design decision, not incidental.
 (Tinted cards with a 5px identity-colour left rail, not a full-colour background),
 the Pet health hub, and the Add-Pet wizard (per-step tints via `WIZARD_TINTS`).
 Out of scope by design: Vets, Household, Reminder Settings, auth/household-setup,
-the five record-list screens and Calendar — those are a future "Part B". Two
+the five record-list screens and Calendar — those covered by Part B below. Two
 standing build constraints, both zero-new-dependency: **fonts are the RN platform
 default** (not the handoff's Outfit/Nunito — an explicitly sanctioned
 substitution), and **all animation uses RN's built-in `Animated`** — no
 `react-native-reanimated`.
+
+**Colourful Reskin, Part B** continues the dark shell onto the five record-list
+screens (Vaccines, Medications, Vet Visits, Weight, Expenses) and the whole
+Calendar tab, the two areas Part A parked. Record lists share two new
+`components/ui` primitives (`DashedAddButton`, `RecordListHeader`) plus a
+per-row pet-identity-colour rail, each screen reading it via its own
+`subscribeToPets` listener (a deliberate, already-logged compounding of the
+listener fan-out gap, not a regression). **Two real logic extensions, not just
+styling:** `calendarEntries.ts`'s `daysWithEntries()` now returns
+`Map<number, string[]>` (deduped per-pet-id) so a day cell renders one dot per
+distinct pet, and a new shared hook `src/calendar/useCalendarEntryActions.ts`
+makes event Done/Skip genuine **toggles** ("Mark done" ⇄ "Not done", "Skip" ⇄
+"Bring back") — reminder Done/Skip stay one-directional, unchanged. Device-
+verified 2026-09-22; full build and verification record:
+`docs/history/2026-09-22-colorful-reskin-part-b.md`.
 
 ---
 

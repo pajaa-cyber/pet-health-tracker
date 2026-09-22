@@ -118,20 +118,34 @@ describe('overdueEntries', () => {
 });
 
 describe('daysWithEntries', () => {
-  it('returns the start-of-day timestamp for each distinct day that has an entry, sorted ascending', () => {
+  it('returns the start-of-day timestamp for each distinct day that has an entry (Map, unordered by key)', () => {
     const day1 = new Date('2026-09-15T00:00:00').getTime();
     const day3 = new Date('2026-09-17T00:00:00').getTime();
     const entries = mergeCalendarEntries(
       [], [event({ id: 'a', date: day1 + 3 * 60 * 60 * 1000 }), event({ id: 'b', date: day3 + 60 * 60 * 1000 })], NOW
     );
-    expect(daysWithEntries(entries, day1, day3 + DAY_MS)).toEqual([day1, day3]);
+    expect(Array.from(daysWithEntries(entries, day1, day3 + DAY_MS).keys()).sort((a, b) => a - b)).toEqual([day1, day3]);
   });
 
   it('excludes days outside the given range', () => {
     const inRange = new Date('2026-09-15T00:00:00').getTime();
     const outOfRange = new Date('2026-10-15T00:00:00').getTime();
     const entries = mergeCalendarEntries([], [event({ date: inRange }), event({ id: 'far', date: outOfRange })], NOW);
-    expect(daysWithEntries(entries, inRange, inRange + DAY_MS)).toEqual([inRange]);
+    expect(Array.from(daysWithEntries(entries, inRange, inRange + DAY_MS).keys())).toEqual([inRange]);
+  });
+
+  it('deduplicates and collects distinct pet ids per day', () => {
+    const day = new Date('2026-09-15T00:00:00').getTime();
+    const entries = mergeCalendarEntries(
+      [],
+      [
+        event({ id: 'a', petIds: ['pet-1'], date: day }),
+        event({ id: 'b', petIds: ['pet-2'], date: day + 60 * 60 * 1000 }),
+        event({ id: 'c', petIds: ['pet-1'], date: day + 2 * 60 * 60 * 1000 }),
+      ],
+      NOW
+    );
+    expect(daysWithEntries(entries, day, day + DAY_MS).get(day)).toEqual(['pet-1', 'pet-2']);
   });
 });
 
