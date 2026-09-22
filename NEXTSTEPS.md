@@ -4,7 +4,7 @@ Read this before doing anything else in this project. It's a handoff for
 resuming work, not permanent documentation (see `CLAUDE.md` for that).
 Assume the reader knows nothing about what happened in this session.
 
-## Colourful Reskin, Part B — code-complete, tests-green, NOT yet device-verified (2026-09-21)
+## ✅ Colourful Reskin, Part B — device-verified (2026-09-22)
 
 Continues Part A's dark-shell reskin onto the two areas its own README
 explicitly parked for later: the five record-list screens (Vaccines,
@@ -36,44 +36,64 @@ that wasn't in the plan's two headline items, but it's a plan-authored,
 display-only read (not a computed value or a write) that the SDD ledger
 already logged as deliberate — not scope creep.
 
-**What is NOT done: the on-device checklist.** No Android device was
-reachable in the session that built this plan or in this docs/verification
-session — this is stated plainly, not glossed over. `tsc`/Jest/emulator
-passing is necessary but explicitly not sufficient for this project (see
-the Plan 5/6/Part A precedent above, all of which found real bugs only a
-real phone caught — DST date math, an edit-form data-loss bug, a
-`ScrollView` silently expanding to fill its column, safe-area padding lost
-under `headerShown:false`, etc.). **Do not merge this branch until that
-checklist has actually run.**
+**On-device pass completed 2026-09-22**, on a second physical phone (Honor
+`DNY-NX9`, distinct from the `MTN-NX1M` used for Part A/Plan 5/6), signed in
+as the real account (`mpajevic7@gmail.com`) to reach real household data
+(Macmac, Dona — 12 vaccines, 4 medications, 5 vet visits, 5 weight logs, 1
+expense on Dona), driven via `adb`/`uiautomator` (bounds-based taps, not
+screenshot-coordinate guessing) per this project's established practice.
+Confirmed working correctly:
 
-**Next step for whoever picks this up:** drive the on-device checklist the
-same way every prior plan's Task 9 did — build from `C:\dev\colorful-reskin-b`
-per "Local device build environment (Windows)" in CLAUDE.md (remember the
-`android/local.properties` + `google-services.json` copy steps a fresh
-worktree needs), and prefer `adb`/`uiautomator` layout dumps and simulated
-taps over relying on the owner's eyes alone, matching Plans 5/6/Part A's
-practice. Specifically worth checking given what this plan touched: the 5
-record-list screens' new pet-colour rail and `DashedAddButton`/
-`RecordListHeader` layout on a real screen size; the Calendar tab's
-restored inline Month agenda actually has room to render (this is exactly
-the kind of thing that looked fine in a code review and then wasn't, per
-Plan 6's note #6 above); the event card's Done/Skip toggle round-trips
-correctly (mark done → not done → done again) without leaving stale state;
-multi-pet day dots in Week/Month render correctly for a household with
-more than one pet; **and specifically confirm, from the Calendar tab, that
-"View full day" (week/month agenda header) actually navigates to
-`DayDetailScreen` and that Done/Skip/Bring-back work correctly there too**
-— a whole-branch code review caught this screen as completely unreachable
-(the navigation call had been dropped in this plan's `CalendarScreen.tsx`
-rewrite) and fixed it before merge, but that fix has itself not been
-on-device verified yet, and "a screen exists but nothing links to it" is
-exactly the kind of gap a checklist should catch and one already slipped
-through once here. Once verified (or once it finds real bugs — fix and
-re-verify, don't skip), update both CLAUDE.md's "Colourful Reskin (Part B)"
-paragraph and this section with what was found, the same way Plan 5/6/Part
-A's notes were written after their device passes, not before — then, and
-only then, `superpowers:finishing-a-development-branch` to merge into
-`master`.
+- **The Critical fix, specifically confirmed:** "View full day" (both Week
+  and Month agenda headers) navigates to `DayDetailScreen` successfully —
+  the screen that a whole-branch review found completely unreachable is
+  reachable again. Its header (back button + date title) and its empty
+  state both render correctly in the dark shell.
+- **The Important contrast fix, specifically confirmed:** `GuidedEmptyState`'s
+  dark variant — checked on 3 separate empty states (Calendar Week mode's
+  "Nothing here", Overdue mode's "Nothing overdue", `DayDetailScreen`'s
+  "Nothing this day") — all render with fully readable white/light-grey
+  text on the dashed `shell.card` container, not the near-invisible
+  light-theme text the review caught.
+- Record lists: Vaccines, Medications (incl. the `Button` colour-override
+  Skip/Mark-given pair — cosmetic note: "Mark dose as given"'s label wraps
+  to 2 lines on this screen width, still fully legible/tappable, not a
+  break), and Expenses (incl. tapping a category filter chip, which
+  correctly re-filtered the list and updated the total) all render with
+  the shared `RecordListHeader`/pet-colour-rail/`DashedAddButton` layout
+  exactly as designed. Weight's chart-plus-form structure (no new list,
+  per this plan's own explicit constraint) confirmed unchanged.
+- Calendar: eyebrow/title/Reminders pill header, dark `PetSelector`,
+  Week/Month/Overdue chips, the `‹ range ›` row, Week strip
+  today/selected states all render correctly.
+- **Multi-pet day dots confirmed working**: Month view showed two visually
+  distinct pet-colour dots on a day both Macmac and Dona had entries on —
+  the exact `daysWithEntries()`/`Map<number,string[]>` dedup behavior Task 6
+  added.
+- **The restored inline Month agenda confirmed working**: selecting a day
+  in Month mode renders that day's real entry cards directly beneath the
+  grid — no longer the "View full day"-only hint Plan 6 shipped.
+- **A real Done action round-trip confirmed working end-to-end**: tapped
+  "Done" on a real medication reminder, the Firestore write succeeded (no
+  error surfaced), and the agenda list correctly re-rendered with the
+  actioned item gone. This exercises `useCalendarEntryActions`'s hook on
+  real hardware, not just in review.
+
+**Not yet covered by this pass** (lower-risk than the above — none of these
+were flagged by the final review, unlike the two Critical/Important items
+above): the Vet Visits list screen specifically (not opened this session);
+`DayDetailScreen` with real entries showing (only its empty state was seen
+— reached via a day with 0 items); the event-card Done/Skip **toggle**
+specifically ("Mark done"⇄"Not done", "Skip"⇄"Bring back") — this test
+household's calendar entries were all reminders (medication doses), which
+are correctly one-directional per design, not toggle-based, so the toggle
+path itself wasn't exercised; the 5 record-list screens' "Add a ___" flows.
+Worth a follow-up pass if a stricter completeness bar is wanted, but none
+of these block the merge decision below.
+
+**No new bugs found during this pass** — everything the final review fixed
+held up on real hardware, and nothing else broke. This branch is now ready
+for `superpowers:finishing-a-development-branch`.
 
 ## ✅ Colourful Reskin, Part A — device-verified, ready to merge (2026-09-18)
 
