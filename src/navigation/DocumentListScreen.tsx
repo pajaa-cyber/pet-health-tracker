@@ -3,11 +3,12 @@ import { FlatList, View, Text, Image, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToDocuments, subscribeToDocumentPages, reconcileDocumentsStorageBytes } from '../documents/documentService';
 import { subscribeToPets } from '../pets/petService';
+import { canShareDocument, shareDocumentLimitMessage } from '../limits/limits';
 import { firestore } from '../firebase/config';
 import { Document } from '../types/document';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
-import { ScreenContainer, RecordListHeader, DashedAddButton, GuidedEmptyState } from '../components/ui';
+import { ScreenContainer, RecordListHeader, DashedAddButton, GuidedEmptyState, ErrorText } from '../components/ui';
 import { shell, text, spacing } from '../theme/theme';
 
 // Well under the Spark plan's real 1 GiB total-storage ceiling, to leave
@@ -19,6 +20,7 @@ export function DocumentListScreen({ route, navigation }: any) {
   const { household } = useHousehold();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
+  const [shareError, setShareError] = useState<string | null>(null);
   const pet = pets.find((p) => p.id === petId);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export function DocumentListScreen({ route, navigation }: any) {
           </Text>
         </View>
       )}
+      {shareError && <ErrorText>{shareError}</ErrorText>}
       <FlatList
         data={documents}
         keyExtractor={(d) => d.id}
@@ -74,7 +77,13 @@ export function DocumentListScreen({ route, navigation }: any) {
               </View>
             </Pressable>
             <Pressable
-              onPress={() => navigation.navigate('ShareDocument', { documentId: item.id })}
+              onPress={() => {
+                if (!household || !canShareDocument(household)) {
+                  setShareError(shareDocumentLimitMessage());
+                  return;
+                }
+                navigation.navigate('ShareDocument', { documentId: item.id });
+              }}
               accessibilityRole="button"
               accessibilityLabel={`Share ${item.title}`}
               style={{ padding: 14, justifyContent: 'center' }}

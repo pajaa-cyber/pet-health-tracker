@@ -154,9 +154,9 @@ export function EditPetScreen({ route, navigation }: any) {
         </View>
       ))}
       <Button
-        title={!canAddCustomField(pet) ? customFieldLimitMessage() : 'Add a custom field'}
+        title={!canAddCustomField(pet, household ?? { trialEndsAt: null }) ? customFieldLimitMessage() : 'Add a custom field'}
         variant="outline"
-        disabled={!canAddCustomField(pet)}
+        disabled={!canAddCustomField(pet, household ?? { trialEndsAt: null })}
         onPress={() => patch({ customFields: [...pet.customFields, { label: '', value: '' }] })}
       />
       {error && <ErrorText>{error}</ErrorText>}

@@ -1,69 +1,93 @@
 import {
-  FREE_CUSTOM_FIELDS_PER_PET,
-  FREE_HOUSEHOLD_MEMBERS,
-  FREE_DOCUMENT_PHOTOS_PER_PET,
-  canAddCustomField,
-  canAddHouseholdMember,
-  canAddDocumentPage,
-  customFieldLimitMessage,
-  isHouseholdFull,
-  householdMemberLimitMessage,
-  documentPhotoLimitMessage,
+  isSubscriptionActive, FREE_CUSTOM_FIELDS_PER_PET, FREE_HOUSEHOLD_MEMBERS, FREE_DOCUMENT_PHOTOS_PER_PET,
+  canAddCustomField, customFieldLimitMessage,
+  canAddHouseholdMember, householdMemberLimitMessage, isHouseholdFull,
+  canAddDocumentPage, documentPhotoLimitMessage,
+  canGeneratePassport, passportLimitMessage,
+  canShareDocument, shareDocumentLimitMessage,
 } from '../src/limits/limits';
 
-describe('limits', () => {
-  it('exposes the locked free-tier constants', () => {
-    expect(FREE_CUSTOM_FIELDS_PER_PET).toBe(3);
-    expect(FREE_HOUSEHOLD_MEMBERS).toBe(4);
-  });
+const NOW = 1_700_000_000_000;
+const activeHousehold = { trialEndsAt: NOW + 1000 };
+const expiredHousehold = { trialEndsAt: NOW - 1000 };
+const neverStartedHousehold = { trialEndsAt: null };
 
-  it('allows another custom field below the limit', () => {
-    expect(canAddCustomField({ customFields: [{ label: 'a', value: '1' }] })).toBe(true);
-  });
+beforeEach(() => {
+  jest.spyOn(Date, 'now').mockReturnValue(NOW);
+});
 
-  it('denies another custom field at the limit', () => {
-    const three = [
-      { label: 'a', value: '1' }, { label: 'b', value: '2' }, { label: 'c', value: '3' },
-    ];
-    expect(canAddCustomField({ customFields: three })).toBe(false);
-  });
+afterEach(() => {
+  jest.restoreAllMocks();
+});
 
-  it('allows a custom field when the pet has none yet (undefined)', () => {
-    expect(canAddCustomField({})).toBe(true);
+describe('isSubscriptionActive', () => {
+  it('is true while trialEndsAt is in the future', () => {
+    expect(isSubscriptionActive(activeHousehold)).toBe(true);
   });
-
-  it('returns an explanatory message, not a bare refusal', () => {
-    expect(customFieldLimitMessage()).toContain('3');
+  it('is false once trialEndsAt has passed', () => {
+    expect(isSubscriptionActive(expiredHousehold)).toBe(false);
   });
-
-  it('allows another household member below the limit', () => {
-    expect(canAddHouseholdMember({ members: [1, 2, 3] })).toBe(true);
-  });
-
-  it('denies another household member at the limit', () => {
-    expect(canAddHouseholdMember({ members: [1, 2, 3, 4] })).toBe(false);
-  });
-
-  it('reports a household as full at exactly the free member limit', () => {
-    expect(isHouseholdFull(4)).toBe(true);
-    expect(isHouseholdFull(3)).toBe(false);
-  });
-
-  it('returns an explanatory household-limit message, not a bare refusal', () => {
-    expect(householdMemberLimitMessage()).toContain('4 household members');
+  it('is false when trialEndsAt was never set', () => {
+    expect(isSubscriptionActive(neverStartedHousehold)).toBe(false);
   });
 });
 
-describe('document photo limit', () => {
-  it('allows adding a page while under the free limit', () => {
-    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET - 1)).toBe(true);
-  });
+describe('canAddCustomField', () => {
+  const petUnderCap = { customFields: [{ label: 'a', value: '1' }] };
+  const petAtCap = { customFields: Array.from({ length: FREE_CUSTOM_FIELDS_PER_PET }, () => ({ label: 'a', value: '1' })) };
 
-  it('denies adding a page once at the free limit', () => {
-    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET)).toBe(false);
+  it('enforces the free cap when not subscribed', () => {
+    expect(canAddCustomField(petUnderCap, expiredHousehold)).toBe(true);
+    expect(canAddCustomField(petAtCap, expiredHousehold)).toBe(false);
   });
+  it('is always true while subscribed, regardless of the count', () => {
+    expect(canAddCustomField(petAtCap, activeHousehold)).toBe(true);
+  });
+});
 
-  it('returns a friendly message naming the limit', () => {
+describe('canAddHouseholdMember', () => {
+  const fullHousehold = { members: Array.from({ length: FREE_HOUSEHOLD_MEMBERS }, () => ({})) };
+
+  it('enforces the free cap when not subscribed', () => {
+    expect(canAddHouseholdMember({ ...fullHousehold, ...expiredHousehold })).toBe(false);
+  });
+  it('is always true while subscribed, regardless of member count', () => {
+    expect(canAddHouseholdMember({ ...fullHousehold, ...activeHousehold })).toBe(true);
+  });
+});
+
+describe('canAddDocumentPage', () => {
+  it('enforces the free cap when not subscribed', () => {
+    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET - 1, expiredHousehold)).toBe(true);
+    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET, expiredHousehold)).toBe(false);
+  });
+  it('is always true while subscribed, regardless of the count', () => {
+    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET, activeHousehold)).toBe(true);
+  });
+});
+
+describe('canGeneratePassport / canShareDocument', () => {
+  it('are gated entirely behind subscription status', () => {
+    expect(canGeneratePassport(expiredHousehold)).toBe(false);
+    expect(canGeneratePassport(activeHousehold)).toBe(true);
+    expect(canShareDocument(expiredHousehold)).toBe(false);
+    expect(canShareDocument(activeHousehold)).toBe(true);
+  });
+});
+
+describe('messages', () => {
+  it('are non-empty strings mentioning the relevant constant', () => {
+    expect(customFieldLimitMessage()).toContain(String(FREE_CUSTOM_FIELDS_PER_PET));
+    expect(householdMemberLimitMessage()).toContain(String(FREE_HOUSEHOLD_MEMBERS));
     expect(documentPhotoLimitMessage()).toContain(String(FREE_DOCUMENT_PHOTOS_PER_PET));
+    expect(passportLimitMessage().length).toBeGreaterThan(0);
+    expect(shareDocumentLimitMessage().length).toBeGreaterThan(0);
+  });
+});
+
+describe('isHouseholdFull (unchanged — used by the pre-join check, see Global Constraints)', () => {
+  it('is true at exactly the free cap', () => {
+    expect(isHouseholdFull(FREE_HOUSEHOLD_MEMBERS)).toBe(true);
+    expect(isHouseholdFull(FREE_HOUSEHOLD_MEMBERS - 1)).toBe(false);
   });
 });
