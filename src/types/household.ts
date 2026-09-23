@@ -20,4 +20,10 @@ export interface Household {
   memberIds: string[];
   inviteCode: string;
   createdAt: number;
+  // Denormalized running total of document-page bytes (Plan 8 Task 8),
+  // updated by each createDocument() page write and self-healed by
+  // reconcileDocumentsStorageBytes() on DocumentListScreen load. Optional:
+  // absent on any household that existed before this field, and on a
+  // brand-new household until its first document.
+  documentsStorageBytes?: number;
 }

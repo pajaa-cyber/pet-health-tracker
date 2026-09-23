@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, View, Text, Image, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToDocuments, subscribeToDocumentPages } from '../documents/documentService';
+import { subscribeToDocuments, subscribeToDocumentPages, reconcileDocumentsStorageBytes } from '../documents/documentService';
 import { subscribeToPets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { Document } from '../types/document';
@@ -9,6 +9,10 @@ import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
 import { ScreenContainer, RecordListHeader, DashedAddButton, GuidedEmptyState } from '../components/ui';
 import { shell, text, spacing } from '../theme/theme';
+
+// Well under the Spark plan's real 1 GiB total-storage ceiling, to leave
+// headroom for the rest of the project's Firestore usage.
+const STORAGE_WARNING_THRESHOLD_BYTES = 200 * 1024 * 1024;
 
 export function DocumentListScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -27,7 +31,13 @@ export function DocumentListScreen({ route, navigation }: any) {
     return subscribeToPets(firestore, household.id, setPets);
   }, [household]);
 
+  useEffect(() => {
+    if (!household) return;
+    reconcileDocumentsStorageBytes(firestore, household.id).catch(console.error);
+  }, [household?.id]);
+
   const rail = pet ? petColor(pet) : shell.control;
+  const showStorageWarning = (household?.documentsStorageBytes ?? 0) > STORAGE_WARNING_THRESHOLD_BYTES;
 
   return (
     <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
@@ -36,6 +46,13 @@ export function DocumentListScreen({ route, navigation }: any) {
         subtitle={`${pet?.name ?? 'Pet'} · ${documents.length} ${documents.length === 1 ? 'document' : 'documents'}`}
         onBack={() => navigation.goBack()}
       />
+      {showStorageWarning && (
+        <View style={{ marginHorizontal: spacing.md, marginBottom: spacing.sm, borderRadius: 14, backgroundColor: shell.card, padding: 12 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
+            Your documents are using a lot of storage — consider removing ones you no longer need.
+          </Text>
+        </View>
+      )}
       <FlatList
         data={documents}
         keyExtractor={(d) => d.id}

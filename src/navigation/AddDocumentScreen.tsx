@@ -59,7 +59,10 @@ export function AddDocumentScreen({ route, navigation }: any) {
     setError(null);
     setSaving(true);
     try {
-      await createDocument(firestore, household.id, petId, title.trim() || 'Untitled document', category.trim() || 'Other', date, pageUrls);
+      await createDocument(
+        firestore, household.id, petId, title.trim() || 'Untitled document',
+        category.trim() || 'Other', date, pageUrls, null, household.documentsStorageBytes ?? 0
+      );
       navigation.goBack();
     } catch (e: any) {
       setError(e.message);
