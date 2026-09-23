@@ -16,6 +16,7 @@ import { AddVetVisitScreen } from './AddVetVisitScreen';
 import { VetVisitDocumentsScreen } from './VetVisitDocumentsScreen';
 import { DocumentListScreen } from './DocumentListScreen';
 import { AddDocumentScreen } from './AddDocumentScreen';
+import { DocumentViewerScreen } from './DocumentViewerScreen';
 import { ChoosePetForAddScreen } from './ChoosePetForAddScreen';
 import { DevStyleGuideScreen } from './DevStyleGuideScreen';
 import { colors } from '../theme/theme';
@@ -49,6 +50,7 @@ export function MainNavigator() {
       <Stack.Screen name="VetVisitDocuments" component={VetVisitDocumentsScreen} options={{ title: 'Documents' }} />
       <Stack.Screen name="DocumentList" component={DocumentListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddDocument" component={AddDocumentScreen} options={{ title: 'Add Document' }} />
+      <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChoosePetForAdd" component={ChoosePetForAddScreen} options={{ title: 'Choose a pet' }} />
       <Stack.Screen name="DevStyleGuide" component={DevStyleGuideScreen} options={{ title: 'Style Guide' }} />
     </Stack.Navigator>
