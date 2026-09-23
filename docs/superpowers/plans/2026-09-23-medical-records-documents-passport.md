@@ -112,20 +112,30 @@ export interface DocumentPage {
 // __tests__/documentService.test.ts
 import type { Firestore } from '@react-native-firebase/firestore';
 
+// documentService.ts's real code always calls doc(collectionRef) with a
+// SINGLE argument for a new auto-ID ref (the same convention
+// householdService.ts's createHousehold already uses for docRef =
+// doc(collection(db, 'households'))) — there is no path string to switch on
+// at the doc() call itself. The two call sites are distinguished instead by
+// WHICH collection() call produced the ref they're built from, matched by
+// object identity below — collection()'s own arguments DO carry a real path.
+const mockDocumentsCollectionRef = { __name: 'documents' };
+const mockPagesCollectionRef = { __name: 'pages' };
 const mockCreatedDocumentRef = { id: 'doc-1' };
 const mockCreatedPageRefs = [{ id: 'page-1' }, { id: 'page-2' }];
 let pageRefCallCount = 0;
-const mockCollectionRef = {};
 const mockOnSnapshot = jest.fn();
 const mockBatchSet = jest.fn();
 const mockBatchCommit = jest.fn();
 const mockWriteBatch = jest.fn(() => ({ set: mockBatchSet, commit: mockBatchCommit }));
 
 jest.mock('@react-native-firebase/firestore', () => ({
-  collection: jest.fn(() => mockCollectionRef),
-  doc: jest.fn((refOrDb: unknown, path?: string) => {
-    if (path === 'documents') return mockCreatedDocumentRef;
-    if (path === 'pages') return mockCreatedPageRefs[pageRefCallCount++];
+  collection: jest.fn((_db: unknown, ...pathSegments: string[]) => {
+    if (pathSegments[pathSegments.length - 1] === 'pages') return mockPagesCollectionRef;
+    return mockDocumentsCollectionRef;
+  }),
+  doc: jest.fn((collectionRef: unknown) => {
+    if (collectionRef === mockPagesCollectionRef) return mockCreatedPageRefs[pageRefCallCount++];
     return mockCreatedDocumentRef;
   }),
   onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
@@ -489,6 +499,15 @@ git commit -m "feat: add Document/DocumentPage types, documentService, and the d
 // __tests__/migration.test.ts
 import type { Firestore } from '@react-native-firebase/firestore';
 
+// migration.ts mixes TWO different doc() calling conventions from the real
+// RNFB API: explicit-path calls like doc(db, 'households', householdId)
+// (path segments ARE available to switch on), and single-argument auto-ID
+// calls like doc(collection(db, ..., 'documents')) (no path segments at the
+// doc() call itself — the collection() call that produced the ref is what
+// carries the real path, so those two are matched by referential identity
+// against collection()'s own mocked return values instead).
+const mockDocumentsCollectionRef = { __name: 'documents' };
+const mockPagesCollectionRef = { __name: 'pages' };
 const mockCreatedDocumentRef = { id: 'new-doc-1' };
 const mockCreatedPageRef = { id: 'new-page-1' };
 const mockHouseholdDocRef = { id: 'household-ref' };
@@ -501,12 +520,16 @@ const mockBatchCommit = jest.fn();
 const mockWriteBatch = jest.fn(() => ({ set: mockBatchSet, update: mockBatchUpdate, commit: mockBatchCommit }));
 
 jest.mock('@react-native-firebase/firestore', () => ({
-  collection: jest.fn(() => ({})),
-  doc: jest.fn((refOrDb: unknown, ...path: string[]) => {
-    if (path[0] === 'households' && path.length === 1) return mockHouseholdDocRef;
-    if (path.includes('vetVisits')) return mockVisitDocRef;
-    if (path.includes('documents') && !path.includes('pages')) return mockCreatedDocumentRef;
-    if (path.includes('pages')) return mockCreatedPageRef;
+  collection: jest.fn((_db: unknown, ...pathSegments: string[]) => {
+    if (pathSegments[pathSegments.length - 1] === 'pages') return mockPagesCollectionRef;
+    if (pathSegments[pathSegments.length - 1] === 'documents') return mockDocumentsCollectionRef;
+    return {}; // the pets/{petId}/vetVisits collection read via getDocs — its identity doesn't matter, getDocs is mocked directly below
+  }),
+  doc: jest.fn((refOrCollectionRef: unknown, ...pathSegments: string[]) => {
+    if (refOrCollectionRef === mockPagesCollectionRef) return mockCreatedPageRef;
+    if (refOrCollectionRef === mockDocumentsCollectionRef) return mockCreatedDocumentRef;
+    if (pathSegments.includes('vetVisits')) return mockVisitDocRef;
+    if (pathSegments[0] === 'households') return mockHouseholdDocRef;
     return {};
   }),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
@@ -1456,13 +1479,16 @@ Append to `__tests__/documentService.test.ts`:
 
 ```typescript
   it('createDocument writes a literal new documentsStorageBytes total, never increment()', async () => {
+    const photoUrl = 'data:image/jpeg;base64,AAAA'; // full data URI, 27 chars
     await createDocument(
       fakeDb, 'h1', 'pet-1', 'Title', 'Category', 1700000000000,
-      ['data:image/jpeg;base64,AAAA'], // 4 chars of base64 payload
-      null, 1000 // currentStorageBytes
+      [photoUrl], null, 1000 // currentStorageBytes
     );
-    // 1000 (existing) + Math.ceil('AAAA'.length * 0.75) (new) — a literal number, not { __increment: N }.
-    expect(mockBatchUpdate).toHaveBeenCalledWith(mockHouseholdDocRef, { documentsStorageBytes: 1003 });
+    // 1000 (existing) + Math.ceil(27 * 0.75) = 1000 + 21 = 1021 — the estimate
+    // is over the FULL data-URI string length (prefix included), not just the
+    // base64 payload portion, matching the real implementation exactly. A
+    // literal number, never { __increment: N }.
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockHouseholdDocRef, { documentsStorageBytes: 1021 });
   });
 ```
 
