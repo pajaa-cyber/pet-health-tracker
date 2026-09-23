@@ -859,4 +859,141 @@ describe('household security rules', () => {
     const memberDb = testEnv.authenticatedContext('user-1').firestore();
     await assertSucceeds(setDoc(doc(memberDb, 'households', 'h1', 'documents', 'doc-1', 'pages', 'page-1'), validPage));
   });
+
+  // Sub-project A of Plan 9: sitter access.
+  const seedSitterGrant = async (overrides: Partial<{ petIds: string[]; expiresAt: number; revoked: boolean; code: string }> = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'sitterInviteCodes', 'SITCODE1'), {
+        householdId: 'h1', petIds: overrides.petIds ?? ['pet-1'], expiresAt: overrides.expiresAt ?? Date.now() + 100000,
+      });
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'sitterAccess', 'sitter-1'), {
+        sitterUid: 'sitter-1', householdId: 'h1',
+        petIds: overrides.petIds ?? ['pet-1'], expiresAt: overrides.expiresAt ?? Date.now() + 100000,
+        revoked: overrides.revoked ?? false, code: overrides.code ?? 'SITCODE1',
+      });
+    });
+  };
+
+  const seedGrantedPet = async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'pets', 'pet-1'), {
+        id: 'pet-1', householdId: 'h1', name: 'Rex', species: 'dog', speciesOther: null,
+        breed: 'Labrador', birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
+        arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#EF4444',
+        sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+        microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
+        customFields: [], status: 'active',
+      });
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'pets', 'pet-2'), {
+        id: 'pet-2', householdId: 'h1', name: 'Milo', species: 'cat', speciesOther: null,
+        breed: '', birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
+        arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#3B82F6',
+        sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+        microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
+        customFields: [], status: 'active',
+      });
+    });
+  };
+
+  it('allows a valid, non-expired sitter to read a pet they were granted', async () => {
+    await seedPetHousehold();
+    await seedGrantedPet();
+    await seedSitterGrant();
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertSucceeds(getDoc(doc(sitterDb, 'households', 'h1', 'pets', 'pet-1')));
+  });
+
+  it('denies an expired sitter', async () => {
+    await seedPetHousehold();
+    await seedGrantedPet();
+    await seedSitterGrant({ expiresAt: Date.now() - 1000 });
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertFails(getDoc(doc(sitterDb, 'households', 'h1', 'pets', 'pet-1')));
+  });
+
+  it('denies a sitter reading a pet they were not granted', async () => {
+    await seedPetHousehold();
+    await seedGrantedPet();
+    await seedSitterGrant({ petIds: ['pet-1'] });
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertFails(getDoc(doc(sitterDb, 'households', 'h1', 'pets', 'pet-2')));
+  });
+
+  it('denies a revoked sitter even before their expiresAt', async () => {
+    await seedPetHousehold();
+    await seedGrantedPet();
+    await seedSitterGrant({ revoked: true });
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertFails(getDoc(doc(sitterDb, 'households', 'h1', 'pets', 'pet-1')));
+  });
+
+  it('denies a sitter writing anything', async () => {
+    await seedPetHousehold();
+    await seedGrantedPet();
+    await seedSitterGrant();
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertFails(updateDoc(doc(sitterDb, 'households', 'h1', 'pets', 'pet-1'), { name: 'Hacked' }));
+  });
+
+  it('a household member can revoke a sitter grant, flipping only revoked', async () => {
+    await seedPetHousehold();
+    await seedSitterGrant();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1', 'sitterAccess', 'sitter-1'), { revoked: true })
+    );
+  });
+
+  it('denies redeeming a code with broader petIds than the code specifies', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'sitterInviteCodes', 'SITCODE1'), {
+        householdId: 'h1', petIds: ['pet-1'], expiresAt: Date.now() + 100000,
+      });
+    });
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertFails(
+      setDoc(doc(sitterDb, 'households', 'h1', 'sitterAccess', 'sitter-1'), {
+        sitterUid: 'sitter-1', householdId: 'h1', petIds: ['pet-1', 'pet-2'],
+        expiresAt: Date.now() + 100000, revoked: false, code: 'SITCODE1',
+      })
+    );
+  });
+
+  it('allows redeeming a code exactly matching its own petIds/expiresAt', async () => {
+    await seedPetHousehold();
+    const expiresAt = Date.now() + 100000;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'sitterInviteCodes', 'SITCODE1'), {
+        householdId: 'h1', petIds: ['pet-1'], expiresAt,
+      });
+    });
+    const sitterDb = testEnv.authenticatedContext('sitter-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(sitterDb, 'households', 'h1', 'sitterAccess', 'sitter-1'), {
+        sitterUid: 'sitter-1', householdId: 'h1', petIds: ['pet-1'],
+        expiresAt, revoked: false, code: 'SITCODE1',
+      })
+    );
+  });
+
+  it('a household member can create a sitter invite code', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'sitterInviteCodes', 'SITCODE1'), {
+        householdId: 'h1', petIds: ['pet-1'], expiresAt: Date.now() + 100000,
+      })
+    );
+  });
+
+  it('denies a non-member creating a sitter invite code for someone else\'s household', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'sitterInviteCodes', 'SITCODE1'), {
+        householdId: 'h1', petIds: ['pet-1'], expiresAt: Date.now() + 100000,
+      })
+    );
+  });
 });
