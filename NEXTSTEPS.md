@@ -10,13 +10,13 @@ it** — this file is written by a session that may not have finished cleanly.
 
 **Plan 8 (medical records, documents, passport) is mid-execution**, in its own
 worktree: `C:\dev\documents-passport`, branch `documents-passport`, fully
-pushed to `origin/documents-passport` through commit `2be1340`.
+pushed to `origin/documents-passport` through commit `49665aa`.
 
 - Design spec: `docs/superpowers/specs/2026-09-23-medical-records-documents-passport-design.md`
 - Implementation plan (10 tasks): `docs/superpowers/plans/2026-09-23-medical-records-documents-passport.md`
 - Progress ledger (what's done, rulings made, why): `C:\dev\documents-passport\.superpowers\sdd\2026-09-23-medical-records-documents-passport\progress.md` — read this first when resuming, it's the authoritative task-by-task record. (Not git-tracked — it's local to that worktree checkout only.)
 
-**Done (Tasks 1-7 of 10), all committed and pushed:** data model + Firestore
+**Done (Tasks 1-8 of 10), all committed and pushed:** data model + Firestore
 rules + free-tier photo cap; migration off the old `VetVisit.documentUrls`
 field (with a fix round for a real duplicate-creation-on-retry bug);
 `DocumentListScreen` + a Documents tile on the pet hub; `AddDocumentScreen`
@@ -26,15 +26,23 @@ HTML-to-PDF-to-share helper both the passport and document-sharing use);
 `passportService.ts` (one-page PDF passport: microchip, recent vaccines,
 assigned vets) + a "Generate Passport" button on `PetHomeScreen`; a thin
 `ShareDocumentScreen` wiring `DocumentListScreen`'s existing share icon to the
-same `buildAndSharePdf` helper.
+same `buildAndSharePdf` helper; `documentsStorageBytes` tracking (added
+`Household.documentsStorageBytes`, not in the plan's own file list but
+required for `tsc` — see ledger) with self-healing reconcile and a 200MB
+warning banner on `DocumentListScreen`.
 
-**Not started: Tasks 8-10.** Task 8 (storage-size accounting), 9 (remove the
-old `documentUrls` field/screen — gated on Task 10's on-device confirmation
-that migration worked), and 10 (on-device checklist + **owner-gated**
-`firebase deploy --only firestore:rules`, then merge to master) haven't been
-started. No brief extracted yet for Task 8 — read the implementation plan's
-Task 8 section and verify its sample code against real source before writing
-anything, same process as every prior task.
+**All autonomous coding work for this plan is now done. Tasks 9-10 need the
+owner, not just a session.** Task 9 (remove the old `documentUrls`
+field/screen) is explicitly gated in the plan on Task 10's on-device
+confirmation that migration worked — "this task deletes the only path back to
+the old data shape." Task 10 itself is an on-device checklist (needs a
+connected Android device, per `docs/environment.md`'s adb caveats) plus
+**owner-gated** `firebase deploy --only firestore:rules` (never run without
+asking, every time, per this file's non-negotiables above) and the merge to
+master. Resume by running the app on-device from the `documents-passport`
+worktree and working through Task 10's checklist in the plan
+(`docs/superpowers/plans/2026-09-23-medical-records-documents-passport.md`,
+Task 10 section) with the owner.
 
 **Process note for whoever resumes this:** partway through this plan's
 execution (2026-09-23) the owner asked to stop dispatching subagents
