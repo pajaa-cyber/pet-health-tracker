@@ -8,6 +8,7 @@ import { subscribeToVaccines } from '../pets/vaccineService';
 import { subscribeToMedications } from '../pets/medicationService';
 import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { subscribeToExpenses } from '../pets/expenseService';
+import { subscribeToDocuments } from '../documents/documentService';
 import { subscribeToPets, updatePetPhoto, updatePetColor, updatePet } from '../pets/petService';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
@@ -16,6 +17,7 @@ import { Vaccine } from '../types/vaccine';
 import { Medication } from '../types/medication';
 import { VetVisit } from '../types/vetVisit';
 import { Expense, ExpenseCategory } from '../types/expense';
+import { Document } from '../types/document';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, AvatarPicker } from '../components/ui';
@@ -37,6 +39,7 @@ interface HubData {
   vetVisits: VetVisit[];
   weightLogs: WeightLog[];
   expenses: Expense[];
+  documents: Document[];
 }
 
 function recordsLabel(n: number): string {
@@ -49,6 +52,7 @@ const SECTIONS: SectionTile[] = [
   { key: 'VetVisitList', label: 'Vet visits', emoji: '🩺', color: '#14B8A6', count: (d) => recordsLabel(d.vetVisits.length) },
   { key: 'WeightLog', label: 'Weight', emoji: '⚖️', color: '#84CC16', count: (d) => recordsLabel(d.weightLogs.length) },
   { key: 'ExpenseList', label: 'Expenses', emoji: '💰', color: '#F97316', count: (d) => recordsLabel(d.expenses.length) },
+  { key: 'DocumentList', label: 'Documents', emoji: '📄', color: '#06B6D4', count: (d) => recordsLabel(d.documents.length) },
 ];
 
 const EXPENSE_CATEGORY_LABEL: Record<ExpenseCategory, string> = {
@@ -78,6 +82,7 @@ export function PetHomeScreen({ route, navigation }: any) {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [vetVisits, setVetVisits] = useState<VetVisit[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [statusSaving, setStatusSaving] = useState(false);
   const pet = pets.find((p) => p.id === petId);
@@ -90,6 +95,7 @@ export function PetHomeScreen({ route, navigation }: any) {
       subscribeToMedications(firestore, household.id, petId, setMedications),
       subscribeToVetVisits(firestore, household.id, petId, setVetVisits),
       subscribeToExpenses(firestore, household.id, petId, setExpenses),
+      subscribeToDocuments(firestore, household.id, petId, setDocuments),
     ];
     return () => unsubs.forEach((u) => u());
   }, [household, petId]);
@@ -109,7 +115,7 @@ export function PetHomeScreen({ route, navigation }: any) {
 
   const color = petColor(pet);
   const ink = onPetColorInk(color);
-  const hubData: HubData = { vaccines, medications, vetVisits, weightLogs, expenses };
+  const hubData: HubData = { vaccines, medications, vetVisits, weightLogs, expenses, documents };
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
   const yearExpenses = expenses.filter((e) => e.date >= yearStart);
   const totalCents = yearExpenses.reduce((sum, e) => sum + e.amountCents, 0);
