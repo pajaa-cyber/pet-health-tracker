@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, View, Text, Pressable } from 'react-native';
+import { FlatList, View, Text } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { subscribeToPets } from '../pets/petService';
@@ -41,23 +41,18 @@ export function VetVisitListScreen({ route, navigation }: any) {
         keyExtractor={(v) => v.id}
         contentContainerStyle={{ padding: spacing.md, gap: spacing.sm, flexGrow: 1 }}
         renderItem={({ item }) => (
-          <Pressable onPress={() => navigation.navigate('VetVisitDocuments', { petId, visitId: item.id })}>
-            <View style={{ flexDirection: 'row', borderRadius: 18, backgroundColor: shell.card, overflow: 'hidden' }}>
-              <View style={{ width: 6, backgroundColor: rail }} />
-              <View style={{ flex: 1, padding: 14, gap: 2 }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{item.reason}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
-                  {new Date(item.date).toLocaleDateString()}
-                </Text>
-                {item.notes ? (
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{item.notes}</Text>
-                ) : null}
-                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
-                  {item.documentUrls.length} document{item.documentUrls.length === 1 ? '' : 's'}
-                </Text>
-              </View>
+          <View style={{ flexDirection: 'row', borderRadius: 18, backgroundColor: shell.card, overflow: 'hidden' }}>
+            <View style={{ width: 6, backgroundColor: rail }} />
+            <View style={{ flex: 1, padding: 14, gap: 2 }}>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{item.reason}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
+                {new Date(item.date).toLocaleDateString()}
+              </Text>
+              {item.notes ? (
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{item.notes}</Text>
+              ) : null}
             </View>
-          </Pressable>
+          </View>
         )}
         ListEmptyComponent={
           <Text style={{ color: text.secondary, fontSize: 14, textAlign: 'center', paddingTop: spacing.xl }}>

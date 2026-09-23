@@ -13,7 +13,10 @@ import { ExpenseListScreen } from './ExpenseListScreen';
 import { AddExpenseScreen } from './AddExpenseScreen';
 import { VetVisitListScreen } from './VetVisitListScreen';
 import { AddVetVisitScreen } from './AddVetVisitScreen';
-import { VetVisitDocumentsScreen } from './VetVisitDocumentsScreen';
+import { DocumentListScreen } from './DocumentListScreen';
+import { AddDocumentScreen } from './AddDocumentScreen';
+import { DocumentViewerScreen } from './DocumentViewerScreen';
+import { ShareDocumentScreen } from './ShareDocumentScreen';
 import { ChoosePetForAddScreen } from './ChoosePetForAddScreen';
 import { DevStyleGuideScreen } from './DevStyleGuideScreen';
 import { colors } from '../theme/theme';
@@ -44,7 +47,10 @@ export function MainNavigator() {
       <Stack.Screen name="AddExpense" component={AddExpenseScreen} options={{ title: 'Add Expense' }} />
       <Stack.Screen name="VetVisitList" component={VetVisitListScreen} options={{ headerShown: false }} />
       <Stack.Screen name="AddVetVisit" component={AddVetVisitScreen} options={{ title: 'Add Vet Visit' }} />
-      <Stack.Screen name="VetVisitDocuments" component={VetVisitDocumentsScreen} options={{ title: 'Documents' }} />
+      <Stack.Screen name="DocumentList" component={DocumentListScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="AddDocument" component={AddDocumentScreen} options={{ title: 'Add Document' }} />
+      <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ShareDocument" component={ShareDocumentScreen} options={{ headerShown: false, presentation: 'transparentModal' }} />
       <Stack.Screen name="ChoosePetForAdd" component={ChoosePetForAddScreen} options={{ title: 'Choose a pet' }} />
       <Stack.Screen name="DevStyleGuide" component={DevStyleGuideScreen} options={{ title: 'Style Guide' }} />
     </Stack.Navigator>

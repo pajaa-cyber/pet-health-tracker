@@ -8,7 +8,10 @@ import { subscribeToVaccines } from '../pets/vaccineService';
 import { subscribeToMedications } from '../pets/medicationService';
 import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { subscribeToExpenses } from '../pets/expenseService';
+import { subscribeToDocuments } from '../documents/documentService';
 import { subscribeToPets, updatePetPhoto, updatePetColor, updatePet } from '../pets/petService';
+import { subscribeToVets } from '../vets/vetService';
+import { generatePassport } from '../documents/passportService';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
@@ -16,9 +19,11 @@ import { Vaccine } from '../types/vaccine';
 import { Medication } from '../types/medication';
 import { VetVisit } from '../types/vetVisit';
 import { Expense, ExpenseCategory } from '../types/expense';
+import { Document } from '../types/document';
+import { Vet } from '../types/vet';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
-import { ScreenContainer, AvatarPicker } from '../components/ui';
+import { ScreenContainer, AvatarPicker, Button, ErrorText } from '../components/ui';
 import { shell, text, spacing, colors } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
@@ -37,6 +42,7 @@ interface HubData {
   vetVisits: VetVisit[];
   weightLogs: WeightLog[];
   expenses: Expense[];
+  documents: Document[];
 }
 
 function recordsLabel(n: number): string {
@@ -49,6 +55,7 @@ const SECTIONS: SectionTile[] = [
   { key: 'VetVisitList', label: 'Vet visits', emoji: '🩺', color: '#14B8A6', count: (d) => recordsLabel(d.vetVisits.length) },
   { key: 'WeightLog', label: 'Weight', emoji: '⚖️', color: '#84CC16', count: (d) => recordsLabel(d.weightLogs.length) },
   { key: 'ExpenseList', label: 'Expenses', emoji: '💰', color: '#F97316', count: (d) => recordsLabel(d.expenses.length) },
+  { key: 'DocumentList', label: 'Documents', emoji: '📄', color: '#06B6D4', count: (d) => recordsLabel(d.documents.length) },
 ];
 
 const EXPENSE_CATEGORY_LABEL: Record<ExpenseCategory, string> = {
@@ -78,8 +85,12 @@ export function PetHomeScreen({ route, navigation }: any) {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [vetVisits, setVetVisits] = useState<VetVisit[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [vets, setVets] = useState<Vet[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [generatingPassport, setGeneratingPassport] = useState(false);
+  const [passportError, setPassportError] = useState<string | null>(null);
   const pet = pets.find((p) => p.id === petId);
 
   useEffect(() => {
@@ -90,9 +101,15 @@ export function PetHomeScreen({ route, navigation }: any) {
       subscribeToMedications(firestore, household.id, petId, setMedications),
       subscribeToVetVisits(firestore, household.id, petId, setVetVisits),
       subscribeToExpenses(firestore, household.id, petId, setExpenses),
+      subscribeToDocuments(firestore, household.id, petId, setDocuments),
     ];
     return () => unsubs.forEach((u) => u());
   }, [household, petId]);
+
+  useEffect(() => {
+    if (!household) return;
+    return subscribeToVets(firestore, household.id, setVets);
+  }, [household]);
 
   useEffect(() => {
     if (!household) return;
@@ -109,7 +126,7 @@ export function PetHomeScreen({ route, navigation }: any) {
 
   const color = petColor(pet);
   const ink = onPetColorInk(color);
-  const hubData: HubData = { vaccines, medications, vetVisits, weightLogs, expenses };
+  const hubData: HubData = { vaccines, medications, vetVisits, weightLogs, expenses, documents };
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
   const yearExpenses = expenses.filter((e) => e.date >= yearStart);
   const totalCents = yearExpenses.reduce((sum, e) => sum + e.amountCents, 0);
@@ -133,6 +150,18 @@ export function PetHomeScreen({ route, navigation }: any) {
   const openCalendarForThisPet = () => {
     setSelectedPetId(petId);
     navigation.navigate('CalendarTab');
+  };
+
+  const handleGeneratePassport = async () => {
+    setGeneratingPassport(true);
+    setPassportError(null);
+    try {
+      await generatePassport(pet, vaccines, vets);
+    } catch (e: any) {
+      setPassportError(e.message);
+    } finally {
+      setGeneratingPassport(false);
+    }
   };
 
   return (
@@ -232,6 +261,11 @@ export function PetHomeScreen({ route, navigation }: any) {
               <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>View this pet's calendar</Text>
             </View>
           </Pressable>
+        </View>
+
+        <View>
+          <Button title="Generate Passport" onPress={handleGeneratePassport} loading={generatingPassport} />
+          {passportError && <ErrorText>{passportError}</ErrorText>}
         </View>
 
         <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>

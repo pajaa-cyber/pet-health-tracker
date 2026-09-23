@@ -6,7 +6,6 @@ const mockCollectionRef = {};
 const mockSetDoc = jest.fn();
 const mockUpdateDoc = jest.fn();
 const mockOnSnapshot = jest.fn();
-const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
 
 jest.mock('@react-native-firebase/firestore', () => ({
   collection: jest.fn(() => mockCollectionRef),
@@ -16,10 +15,9 @@ jest.mock('@react-native-firebase/firestore', () => ({
   setDoc: (...args: unknown[]) => mockSetDoc(...args),
   updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
   onSnapshot: (...args: unknown[]) => mockOnSnapshot(...args),
-  arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
 }));
 
-import { createVetVisit, subscribeToVetVisits, addVetVisitDocument, updateVetVisit } from '../src/pets/vetVisitService';
+import { createVetVisit, subscribeToVetVisits, updateVetVisit } from '../src/pets/vetVisitService';
 
 const fakeDb = {} as Firestore;
 
@@ -28,14 +26,14 @@ beforeEach(() => {
 });
 
 describe('vetVisitService', () => {
-  it('creates a vet visit with an empty documentUrls array and an optional follow-up date', async () => {
+  it('creates a vet visit with an optional follow-up date', async () => {
     mockSetDoc.mockResolvedValue(undefined);
 
     const visit = await createVetVisit(fakeDb, 'h1', 'pet-1', 1000, 'Annual checkup', 'All healthy', 2000);
 
     expect(visit).toEqual({
       id: 'visit-1', petId: 'pet-1', date: 1000, reason: 'Annual checkup', notes: 'All healthy',
-      documentUrls: [], followUpDate: 2000,
+      followUpDate: 2000,
     });
     expect(mockSetDoc).toHaveBeenCalledWith(mockCreatedDocRef, visit);
   });
@@ -59,16 +57,5 @@ describe('vetVisitService', () => {
     subscribeToVetVisits(fakeDb, 'h1', 'pet-1', callback);
 
     expect(callback).toHaveBeenCalledWith([fakeVisit]);
-  });
-
-  it('appends a document URL via arrayUnion', async () => {
-    mockUpdateDoc.mockResolvedValue(undefined);
-
-    await addVetVisitDocument(fakeDb, 'h1', 'pet-1', 'visit-1-existing', 'https://example.com/doc.pdf');
-
-    expect(mockArrayUnion).toHaveBeenCalledWith('https://example.com/doc.pdf');
-    expect(mockUpdateDoc).toHaveBeenCalledWith(mockVisitDocRef, {
-      documentUrls: { __arrayUnion: ['https://example.com/doc.pdf'] },
-    });
   });
 });

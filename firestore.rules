@@ -212,7 +212,7 @@ service cloud.firestore {
     match /households/{householdId}/pets/{petId}/vetVisits/{visitId} {
       allow read: if isHouseholdMember(householdId);
       allow create: if isHouseholdMember(householdId) &&
-        request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'reason', 'notes', 'documentUrls', 'followUpDate']);
+        request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'reason', 'notes', 'followUpDate']);
       allow update: if isHouseholdMember(householdId);
       allow delete: if isHouseholdMember(householdId);
     }
@@ -236,6 +236,29 @@ service cloud.firestore {
           'id', 'householdId', 'clinicName', 'doctorName', 'address', 'phone',
           'openingHours', 'speciality', 'isEmergency24h', 'notes', 'petIds'
         ]);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
+    // Household-level (not per-pet, not tied to a specific vet visit) —
+    // matching vets'/events' precedent. pages is documents' subcollection:
+    // one Firestore document per photo is the actual fix for the old
+    // VetVisit.documentUrls array's 1 MiB-per-document failure mode.
+    match /households/{householdId}/documents/{documentId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'householdId', 'petId', 'title', 'category', 'date',
+          'sourceVisitId', 'pageCount', 'createdAt'
+        ]);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
+    match /households/{householdId}/documents/{documentId}/pages/{pageId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['id', 'order', 'photoUrl']);
       allow update: if isHouseholdMember(householdId);
       allow delete: if isHouseholdMember(householdId);
     }

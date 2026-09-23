@@ -1,11 +1,14 @@
 import {
   FREE_CUSTOM_FIELDS_PER_PET,
   FREE_HOUSEHOLD_MEMBERS,
+  FREE_DOCUMENT_PHOTOS_PER_PET,
   canAddCustomField,
   canAddHouseholdMember,
+  canAddDocumentPage,
   customFieldLimitMessage,
   isHouseholdFull,
   householdMemberLimitMessage,
+  documentPhotoLimitMessage,
 } from '../src/limits/limits';
 
 describe('limits', () => {
@@ -48,5 +51,19 @@ describe('limits', () => {
 
   it('returns an explanatory household-limit message, not a bare refusal', () => {
     expect(householdMemberLimitMessage()).toContain('4 household members');
+  });
+});
+
+describe('document photo limit', () => {
+  it('allows adding a page while under the free limit', () => {
+    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET - 1)).toBe(true);
+  });
+
+  it('denies adding a page once at the free limit', () => {
+    expect(canAddDocumentPage(FREE_DOCUMENT_PHOTOS_PER_PET)).toBe(false);
+  });
+
+  it('returns a friendly message naming the limit', () => {
+    expect(documentPhotoLimitMessage()).toContain(String(FREE_DOCUMENT_PHOTOS_PER_PET));
   });
 });

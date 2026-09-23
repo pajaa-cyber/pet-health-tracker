@@ -4,6 +4,5 @@ export interface VetVisit {
   date: number; // epoch millis
   reason: string;
   notes: string;
-  documentUrls: string[];
   followUpDate: number | null; // "come back on/around this date" — null if none was set
 }
