@@ -212,7 +212,7 @@ service cloud.firestore {
     match /households/{householdId}/pets/{petId}/vetVisits/{visitId} {
       allow read: if isHouseholdMember(householdId);
       allow create: if isHouseholdMember(householdId) &&
-        request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'reason', 'notes', 'documentUrls', 'followUpDate']);
+        request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'reason', 'notes', 'followUpDate']);
       allow update: if isHouseholdMember(householdId);
       allow delete: if isHouseholdMember(householdId);
     }

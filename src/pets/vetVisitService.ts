@@ -4,7 +4,6 @@ import {
   setDoc,
   updateDoc,
   onSnapshot,
-  arrayUnion,
   type Firestore,
   type Unsubscribe,
 } from '@react-native-firebase/firestore';
@@ -20,7 +19,7 @@ export async function createVetVisit(
   followUpDate: number | null
 ): Promise<VetVisit> {
   const docRef = doc(collection(db, 'households', householdId, 'pets', petId, 'vetVisits'));
-  const visit: VetVisit = { id: docRef.id, petId, date, reason, notes, documentUrls: [], followUpDate };
+  const visit: VetVisit = { id: docRef.id, petId, date, reason, notes, followUpDate };
   await setDoc(docRef, visit);
   return visit;
 }
@@ -40,19 +39,6 @@ export function subscribeToVetVisits(
       console.error('subscribeToVetVisits listener error', error);
       callback([]);
     }
-  );
-}
-
-export async function addVetVisitDocument(
-  db: Firestore,
-  householdId: string,
-  petId: string,
-  visitId: string,
-  documentUrl: string
-): Promise<void> {
-  await updateDoc(
-    doc(db, 'households', householdId, 'pets', petId, 'vetVisits', visitId),
-    { documentUrls: arrayUnion(documentUrl) }
   );
 }
 

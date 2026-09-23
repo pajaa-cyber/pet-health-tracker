@@ -18,7 +18,7 @@ const medication = (overrides: Partial<Medication> = {}): Medication => ({
 });
 
 const vetVisit = (overrides: Partial<VetVisit> = {}): VetVisit => ({
-  id: 'visit-1', petId: 'pet-1', date: NOW - 30 * DAY_MS, reason: 'Checkup', notes: '', documentUrls: [], followUpDate: NOW + 14 * DAY_MS,
+  id: 'visit-1', petId: 'pet-1', date: NOW - 30 * DAY_MS, reason: 'Checkup', notes: '', followUpDate: NOW + 14 * DAY_MS,
   ...overrides,
 });
 

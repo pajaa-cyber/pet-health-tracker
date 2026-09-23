@@ -648,7 +648,7 @@ describe('household security rules', () => {
     const memberDb = testEnv.authenticatedContext('user-1').firestore();
     await assertSucceeds(
       setDoc(doc(memberDb, 'households', 'h1', 'pets', 'pet-1', 'vetVisits', 'visit-1'), {
-        id: 'visit-1', petId: 'pet-1', date: 0, reason: 'Checkup', notes: 'Fine', documentUrls: [], followUpDate: null,
+        id: 'visit-1', petId: 'pet-1', date: 0, reason: 'Checkup', notes: 'Fine', followUpDate: null,
       })
     );
   });
@@ -658,7 +658,7 @@ describe('household security rules', () => {
     const strangerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(
       setDoc(doc(strangerDb, 'households', 'h1', 'pets', 'pet-1', 'vetVisits', 'visit-1'), {
-        id: 'visit-1', petId: 'pet-1', date: 0, reason: 'Checkup', notes: 'Fine', documentUrls: [], followUpDate: null,
+        id: 'visit-1', petId: 'pet-1', date: 0, reason: 'Checkup', notes: 'Fine', followUpDate: null,
       })
     );
   });

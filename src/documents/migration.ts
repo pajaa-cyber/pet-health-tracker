@@ -32,7 +32,12 @@ export async function migrateVetVisitDocuments(db: Firestore, householdId: strin
   for (const pet of pets) {
     const visitsSnap = await getDocs(collection(db, 'households', householdId, 'pets', pet.id, 'vetVisits'));
     for (const visitDoc of visitsSnap.docs) {
-      const visit = visitDoc.data() as VetVisit;
+      // VetVisit.documentUrls was removed from the type once Task 9 confirmed
+      // migration works on-device (see CLAUDE.md/plan) — a legacy document
+      // that hasn't gone through migration yet can still have real data in
+      // this field, so it's read via an inline extension of the type rather
+      // than reintroducing it to VetVisit, matching documentsMigratedAt above.
+      const visit = visitDoc.data() as VetVisit & { documentUrls?: string[] };
       if (!visit.documentUrls || visit.documentUrls.length === 0) continue;
 
       const existingSnap = await getDocs(
