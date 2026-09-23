@@ -10,6 +10,8 @@ import { subscribeToVetVisits } from '../pets/vetVisitService';
 import { subscribeToExpenses } from '../pets/expenseService';
 import { subscribeToDocuments } from '../documents/documentService';
 import { subscribeToPets, updatePetPhoto, updatePetColor, updatePet } from '../pets/petService';
+import { subscribeToVets } from '../vets/vetService';
+import { generatePassport } from '../documents/passportService';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
@@ -18,9 +20,10 @@ import { Medication } from '../types/medication';
 import { VetVisit } from '../types/vetVisit';
 import { Expense, ExpenseCategory } from '../types/expense';
 import { Document } from '../types/document';
+import { Vet } from '../types/vet';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
-import { ScreenContainer, AvatarPicker } from '../components/ui';
+import { ScreenContainer, AvatarPicker, Button, ErrorText } from '../components/ui';
 import { shell, text, spacing, colors } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
@@ -83,8 +86,11 @@ export function PetHomeScreen({ route, navigation }: any) {
   const [vetVisits, setVetVisits] = useState<VetVisit[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [vets, setVets] = useState<Vet[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [generatingPassport, setGeneratingPassport] = useState(false);
+  const [passportError, setPassportError] = useState<string | null>(null);
   const pet = pets.find((p) => p.id === petId);
 
   useEffect(() => {
@@ -99,6 +105,11 @@ export function PetHomeScreen({ route, navigation }: any) {
     ];
     return () => unsubs.forEach((u) => u());
   }, [household, petId]);
+
+  useEffect(() => {
+    if (!household) return;
+    return subscribeToVets(firestore, household.id, setVets);
+  }, [household]);
 
   useEffect(() => {
     if (!household) return;
@@ -139,6 +150,18 @@ export function PetHomeScreen({ route, navigation }: any) {
   const openCalendarForThisPet = () => {
     setSelectedPetId(petId);
     navigation.navigate('CalendarTab');
+  };
+
+  const handleGeneratePassport = async () => {
+    setGeneratingPassport(true);
+    setPassportError(null);
+    try {
+      await generatePassport(pet, vaccines, vets);
+    } catch (e: any) {
+      setPassportError(e.message);
+    } finally {
+      setGeneratingPassport(false);
+    }
   };
 
   return (
@@ -238,6 +261,11 @@ export function PetHomeScreen({ route, navigation }: any) {
               <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>View this pet's calendar</Text>
             </View>
           </Pressable>
+        </View>
+
+        <View>
+          <Button title="Generate Passport" onPress={handleGeneratePassport} loading={generatingPassport} />
+          {passportError && <ErrorText>{passportError}</ErrorText>}
         </View>
 
         <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
