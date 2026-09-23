@@ -240,6 +240,29 @@ service cloud.firestore {
       allow delete: if isHouseholdMember(householdId);
     }
 
+    // Household-level (not per-pet, not tied to a specific vet visit) —
+    // matching vets'/events' precedent. pages is documents' subcollection:
+    // one Firestore document per photo is the actual fix for the old
+    // VetVisit.documentUrls array's 1 MiB-per-document failure mode.
+    match /households/{householdId}/documents/{documentId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'householdId', 'petId', 'title', 'category', 'date',
+          'sourceVisitId', 'pageCount', 'createdAt'
+        ]);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
+    match /households/{householdId}/documents/{documentId}/pages/{pageId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['id', 'order', 'photoUrl']);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
     // Maps a shareable invite code to its household ID. Readable by any
     // signed-in user — that's the point: it's how joinHousehold (Task 4)
     // finds a household without needing read access to the household

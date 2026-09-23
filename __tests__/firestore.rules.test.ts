@@ -797,4 +797,66 @@ describe('household security rules', () => {
     const strangerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'vets', 'vet-1')));
   });
+
+  // documents is household-level (not nested under a pet or vet visit) —
+  // matching vets'/events' precedent. pages is its subcollection: one
+  // Firestore document per photo, the actual fix for the old
+  // VetVisit.documentUrls 1 MiB failure mode.
+  const validDocument = {
+    id: 'doc-1', householdId: 'h1', petId: 'pet-1', title: 'Rabies booklet',
+    category: 'Vaccination booklet', date: 1700000000000, sourceVisitId: null,
+    pageCount: 1, createdAt: 1700000000000,
+  };
+  const validPage = { id: 'page-1', order: 0, photoUrl: 'data:image/jpeg;base64,AAA' };
+
+  it('allows a member to create a document', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(setDoc(doc(memberDb, 'households', 'h1', 'documents', 'doc-1'), validDocument));
+  });
+
+  it('denies a non-member from creating a document', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(setDoc(doc(strangerDb, 'households', 'h1', 'documents', 'doc-1'), validDocument));
+  });
+
+  it('denies creating a document with a field outside the allowlist', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(memberDb, 'households', 'h1', 'documents', 'doc-1'), { ...validDocument, extra: 'sneaky' })
+    );
+  });
+
+  it('allows a member to read a document and its pages', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'documents', 'doc-1'), validDocument);
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'documents', 'doc-1', 'pages', 'page-1'), validPage);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(getDoc(doc(memberDb, 'households', 'h1', 'documents', 'doc-1')));
+    await assertSucceeds(getDoc(doc(memberDb, 'households', 'h1', 'documents', 'doc-1', 'pages', 'page-1')));
+  });
+
+  it('denies a non-member from reading a document or its pages', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'documents', 'doc-1'), validDocument);
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'documents', 'doc-1', 'pages', 'page-1'), validPage);
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'documents', 'doc-1')));
+    await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'documents', 'doc-1', 'pages', 'page-1')));
+  });
+
+  it('allows a member to create a page under a document', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'documents', 'doc-1'), validDocument);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(setDoc(doc(memberDb, 'households', 'h1', 'documents', 'doc-1', 'pages', 'page-1'), validPage));
+  });
 });

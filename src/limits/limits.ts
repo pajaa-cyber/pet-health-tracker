@@ -20,3 +20,13 @@ export function householdMemberLimitMessage(): string {
 export function canAddHouseholdMember(household: { members: unknown[] }): boolean {
   return !isHouseholdFull(household.members.length);
 }
+
+export const FREE_DOCUMENT_PHOTOS_PER_PET = 30;
+
+export function canAddDocumentPage(pageCountSoFar: number): boolean {
+  return pageCountSoFar < FREE_DOCUMENT_PHOTOS_PER_PET;
+}
+
+export function documentPhotoLimitMessage(): string {
+  return `The free plan includes ${FREE_DOCUMENT_PHOTOS_PER_PET} document photos per pet. Upgrading unlocks unlimited photos.`;
+}
