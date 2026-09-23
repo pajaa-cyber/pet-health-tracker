@@ -120,6 +120,12 @@ Full build record and the eight device-found bugs:
 
 ---
 
+## Plan 8 — "Medical records, documents, passport" — device-verified, merge pending
+
+[`2026-09-23-plan-8-medical-records-documents-passport.md`](./2026-09-23-plan-8-medical-records-documents-passport.md).
+
+---
+
 ## Bolt-connected purple theme — merged and verified on-device, 2026-09-15
 
 After Plan 6 merged, the owner connected this GitHub repo to Bolt (bolt.new),

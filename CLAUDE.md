@@ -211,6 +211,36 @@ intent, never an in-app map. `AddVetScreen`/`EditVetScreen` are registered at
 `AddEvent`), so "Add a Vet" is reachable from the global "+" sheet from any
 tab, not just the Vets tab.
 
+**Documents and passport (Plan 8).** `households/{householdId}/documents/{documentId}`
+is household-level (not nested under a pet, matching `vets`'/`events`' precedent),
+with `pages/{pageId}` as its subcollection — one Firestore document per photo, the
+actual fix for the old `VetVisit.documentUrls` 1 MiB failure mode (a photo array
+that used to accumulate into one shared document and broke around ten to twenty
+photos). `documentService.ts`'s `createDocument()` writes the parent document and
+every page in one homogeneous `set()`-only batch, then a **separate** batch
+updates `households/{householdId}.documentsStorageBytes` (a denormalized running
+total, self-healed by `reconcileDocumentsStorageBytes()` on `DocumentListScreen`
+load, same style as Plan 7's `memberCount`) — this project's two batch lessons
+generalize beyond Plan 7's `memberCount`/`writeBatch()` findings that first
+surfaced them: **never `increment()`** (always a literal caller-computed number —
+RNFB's `increment()` has already been found to fail a rule's `is int` check on
+real hardware even when the identical rule/call passes under the emulator's web
+SDK) and **never mix `set()`/`update()` in one `writeBatch()`** call. `VetVisit`
+no longer has a `documentUrls` field or screen — removed once Plan 8's migration
+(`src/documents/migration.ts`, a one-time `documentsMigratedAt`-gated pass run
+from `HouseholdContext.tsx`) was confirmed working on a real device; a not-yet-migrated
+household's legacy field is read via an inline `VetVisit & { documentUrls?:
+string[] }` cast in `migration.ts` itself, not by reintroducing the field to the
+real type (same pattern already used there for `documentsMigratedAt`). Passport
+generation (`src/documents/passportService.ts`'s `buildPassportHtml`/
+`generatePassport`, a "Generate Passport" button on `PetHomeScreen`) and a
+single document's Share icon both funnel through the one shared
+`src/documents/pdfService.ts`'s `buildAndSharePdf(html, fileName)` — this plan's
+"one make-something-shareable mechanism for the whole feature, not two." A
+passport is never stored as a `Document`; it's built and handed to the OS share
+sheet fresh each time, and truncates a long vaccination history to the 8 most
+recent (`MOST_RECENT_VACCINES_SHOWN`) so it stays one page.
+
 **Pet records.** `households/{householdId}/pets/{petId}`, with `vaccines/`,
 `medications/`, `vetVisits/`, `weightLogs/`, `expenses/` as subcollections of each
 pet. No untrusted-write path exists for any of them, so their rules blocks are a
