@@ -35,7 +35,7 @@ jest.mock('@react-native-firebase/firestore', () => ({
   writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }));
 
-import { createHousehold, joinHousehold, getHousehold, removeMember, reconcileMemberCount } from '../src/household/householdService';
+import { createHousehold, joinHousehold, getHousehold, removeMember, reconcileMemberCount, startTrialIfNeeded } from '../src/household/householdService';
 
 const fakeDb = {} as Firestore;
 
@@ -168,5 +168,26 @@ describe('householdService', () => {
     await reconcileMemberCount(fakeDb, 'ABC123', 3);
 
     expect(mockUpdateDoc).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: 3 });
+  });
+
+  it('startTrialIfNeeded sets trialStartedAt/trialEndsAt 14 days apart, only when unset', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+    jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+
+    await startTrialIfNeeded(fakeDb, 'h1', { trialStartedAt: null } as any);
+
+    expect(mockUpdateDoc).toHaveBeenCalledWith(mockHouseholdDocRef, {
+      trialStartedAt: 1_700_000_000_000,
+      trialEndsAt: 1_700_000_000_000 + 14 * 24 * 60 * 60 * 1000,
+    });
+    jest.restoreAllMocks();
+  });
+
+  it('startTrialIfNeeded does nothing when trialStartedAt is already set', async () => {
+    mockUpdateDoc.mockResolvedValue(undefined);
+
+    await startTrialIfNeeded(fakeDb, 'h1', { trialStartedAt: 1_600_000_000_000 } as any);
+
+    expect(mockUpdateDoc).not.toHaveBeenCalled();
   });
 });

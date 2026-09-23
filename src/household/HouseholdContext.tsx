@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { Household } from '../types/household';
 import { Pet } from '../types/pet';
 import { migrateVetVisitDocuments } from '../documents/migration';
+import { startTrialIfNeeded } from './householdService';
 
 interface HouseholdContextValue {
   household: Household | null;
@@ -99,6 +100,23 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
         return migrateVetVisitDocuments(firestore, household.id, pets);
       })
       .catch(console.error);
+  }, [household]);
+
+  // Sub-project A of Plan 9: start this household's 14-day trial the first
+  // time it's ever seen with no trialStartedAt — covers both a brand-new
+  // household (this fires within moments of createHousehold) and every
+  // pre-existing household (this fires the next time any of its members
+  // opens the app after this ships). Same fire-and-forget, ref-guarded
+  // shape as the migration effect above; errors just logged, never blocks
+  // rendering.
+  const trialStartedHouseholdIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!household) return;
+    if (household.trialStartedAt) return;
+    if (trialStartedHouseholdIdRef.current === household.id) return;
+    trialStartedHouseholdIdRef.current = household.id;
+
+    startTrialIfNeeded(firestore, household.id, household).catch(console.error);
   }, [household]);
 
   return (
