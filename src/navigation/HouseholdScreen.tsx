@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
 import { removeMember, reconcileMemberCount } from '../household/householdService';
 import { firestore } from '../firebase/config';
-import { FREE_HOUSEHOLD_MEMBERS, canAddHouseholdMember, householdMemberLimitMessage } from '../limits/limits';
+import { FREE_HOUSEHOLD_MEMBERS, canAddHouseholdMember, householdMemberLimitMessage, isSubscriptionActive } from '../limits/limits';
 import { HouseholdMember } from '../types/household';
 import { ScreenContainer, Card, Title, Subtitle, MutedText, Button } from '../components/ui';
 import { spacing } from '../theme/theme';
@@ -61,6 +61,16 @@ export function HouseholdScreen({ navigation }: any) {
         <Title style={{ letterSpacing: 4 }}>{household?.inviteCode ?? '------'}</Title>
         <Button title="Share invite" onPress={handleShare} />
       </Card>
+
+      {household && (
+        <Card style={{ gap: spacing.xs }}>
+          <Subtitle>
+            {isSubscriptionActive(household)
+              ? `Free trial — ${Math.max(0, Math.ceil(((household.trialEndsAt ?? 0) - Date.now()) / (24 * 60 * 60 * 1000)))} days left`
+              : 'Trial ended'}
+          </Subtitle>
+        </Card>
+      )}
 
       <MutedText>{household?.members.length ?? 0} of {FREE_HOUSEHOLD_MEMBERS} members</MutedText>
       {atLimit && <MutedText>{householdMemberLimitMessage()}</MutedText>}
