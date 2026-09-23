@@ -13,6 +13,7 @@ import { EditEventScreen } from './EditEventScreen';
 import { DayDetailScreen } from './DayDetailScreen';
 import { AddVetScreen } from './AddVetScreen';
 import { EditVetScreen } from './EditVetScreen';
+import { InviteSitterScreen } from './InviteSitterScreen';
 import { ReminderRescheduler } from '../reminders/ReminderRescheduler';
 import { colors } from '../theme/theme';
 
@@ -62,6 +63,11 @@ export function RootNavigator() {
               name="EditVet"
               component={EditVetScreen}
               options={{ headerShown: true, title: 'Edit vet', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
+            />
+            <Stack.Screen
+              name="InviteSitter"
+              component={InviteSitterScreen}
+              options={{ headerShown: true, title: 'Invite a sitter', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
             />
           </>
         ) : (
