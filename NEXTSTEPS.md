@@ -10,28 +10,31 @@ it** — this file is written by a session that may not have finished cleanly.
 
 **Plan 8 (medical records, documents, passport) is mid-execution**, in its own
 worktree: `C:\dev\documents-passport`, branch `documents-passport`, fully
-pushed to `origin/documents-passport` through commit `2f2aecd`.
+pushed to `origin/documents-passport` through commit `2be1340`.
 
 - Design spec: `docs/superpowers/specs/2026-09-23-medical-records-documents-passport-design.md`
 - Implementation plan (10 tasks): `docs/superpowers/plans/2026-09-23-medical-records-documents-passport.md`
-- Progress ledger (what's done, rulings made, why): `C:\dev\documents-passport\.superpowers\sdd\2026-09-23-medical-records-documents-passport\progress.md` — read this first when resuming, it's the authoritative task-by-task record.
+- Progress ledger (what's done, rulings made, why): `C:\dev\documents-passport\.superpowers\sdd\2026-09-23-medical-records-documents-passport\progress.md` — read this first when resuming, it's the authoritative task-by-task record. (Not git-tracked — it's local to that worktree checkout only.)
 
-**Done (Tasks 1-6 of 10), all committed and pushed:** data model + Firestore
+**Done (Tasks 1-7 of 10), all committed and pushed:** data model + Firestore
 rules + free-tier photo cap; migration off the old `VetVisit.documentUrls`
 field (with a fix round for a real duplicate-creation-on-retry bug);
 `DocumentListScreen` + a Documents tile on the pet hub; `AddDocumentScreen`
 (multi-page capture); `DocumentViewerScreen` (swipeable pager);
 `expo-print`/`expo-sharing` installed + `pdfService.ts` (the shared
-HTML-to-PDF-to-share helper both the passport and document-sharing use).
+HTML-to-PDF-to-share helper both the passport and document-sharing use);
+`passportService.ts` (one-page PDF passport: microchip, recent vaccines,
+assigned vets) + a "Generate Passport" button on `PetHomeScreen`; a thin
+`ShareDocumentScreen` wiring `DocumentListScreen`'s existing share icon to the
+same `buildAndSharePdf` helper.
 
-**Not started: Tasks 7-10.** Task 7 (passport generation + document sharing)
-has its brief extracted and its brief's sample code pre-verified against real
-source (`C:\dev\documents-passport\.superpowers\sdd\...\task-7-brief.md`) but
-no code written yet — resume there. Tasks 8 (storage-size accounting), 9
-(remove the old `documentUrls` field/screen — gated on Task 10's on-device
-confirmation that migration worked), and 10 (on-device checklist +
-**owner-gated** `firebase deploy --only firestore:rules`, then merge to
-master) haven't been started.
+**Not started: Tasks 8-10.** Task 8 (storage-size accounting), 9 (remove the
+old `documentUrls` field/screen — gated on Task 10's on-device confirmation
+that migration worked), and 10 (on-device checklist + **owner-gated**
+`firebase deploy --only firestore:rules`, then merge to master) haven't been
+started. No brief extracted yet for Task 8 — read the implementation plan's
+Task 8 section and verify its sample code against real source before writing
+anything, same process as every prior task.
 
 **Process note for whoever resumes this:** partway through this plan's
 execution (2026-09-23) the owner asked to stop dispatching subagents
