@@ -309,12 +309,21 @@ service cloud.firestore {
       // Direct-path access: any household member managing sitters, or the
       // sitter reading their own grant.
       allow get: if isHouseholdMember(householdId) || (request.auth != null && request.auth.uid == sitterUid);
-      // collectionGroup query access (subscribeToMySitterGrants): provable
-      // per-document since the query's own where('sitterUid','==',uid)
-      // clause matches this condition exactly — the same reasoning
-      // firestore.rules already documents for every other query in this
-      // file, just satisfied instead of failed this time.
-      allow list: if request.auth != null && resource.data.sitterUid == request.auth.uid;
+      // Two distinct list shapes need to work: (1) subscribeToSitterGrants —
+      // a household member listing every sitterAccess doc under their OWN
+      // household (HouseholdScreen's sitters list); isHouseholdMember(householdId)
+      // doesn't touch resource.data at all, so it's trivially provable for
+      // every doc this plain (non-collectionGroup) query could match, same
+      // as every other subcollection's isHouseholdMember-gated read. (2)
+      // subscribeToMySitterGrants — a sitter's collectionGroup query across
+      // every household, filtered to just their own uid; provable per-
+      // document since the query's own where('sitterUid','==',uid) clause
+      // matches this condition exactly. A real on-device bug (found during
+      // Task 9's checklist): the original version of this rule only granted
+      // (2), so a household member's own sitters list silently failed with
+      // permission-denied — every list of a KNOWN collection still needs its
+      // own explicit allow, `allow get` does not imply `allow list`.
+      allow list: if isHouseholdMember(householdId) || (request.auth != null && resource.data.sitterUid == request.auth.uid);
       // The sitter creates their own grant by redeeming a code — the write
       // must exactly match what that code specifies, so a sitter can never
       // grant themselves broader pets or a later expiry than the code

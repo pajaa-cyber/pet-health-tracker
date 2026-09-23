@@ -977,6 +977,26 @@ describe('household security rules', () => {
     );
   });
 
+  it('a household member can list every sitter grant under their own household', async () => {
+    // Regression test for a real on-device bug found during Task 9's
+    // checklist: the original rule only granted `list` to a sitter querying
+    // their own uid (subscribeToMySitterGrants), not to a household member
+    // listing their own household's sitterAccess collection
+    // (subscribeToSitterGrants) — HouseholdScreen's sitters list silently
+    // failed with permission-denied.
+    await seedPetHousehold();
+    await seedSitterGrant();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(getDocs(collection(memberDb, 'households', 'h1', 'sitterAccess')));
+  });
+
+  it('denies a non-member from listing a household\'s sitter grants', async () => {
+    await seedPetHousehold();
+    await seedSitterGrant();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDocs(collection(strangerDb, 'households', 'h1', 'sitterAccess')));
+  });
+
   it('a household member can create a sitter invite code', async () => {
     await seedPetHousehold();
     const memberDb = testEnv.authenticatedContext('user-1').firestore();
