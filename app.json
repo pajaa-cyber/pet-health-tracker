@@ -35,7 +35,8 @@
         {
           "cameraPermission": "Allow Pet Health Tracker to use the camera to take photos of your pets and vet documents."
         }
-      ]
+      ],
+      "expo-sharing"
     ]
   }
 }
