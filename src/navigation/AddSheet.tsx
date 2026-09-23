@@ -25,6 +25,7 @@ const ADD_ACTIONS: AddAction[] = [
   { label: 'Add a Vet Visit', emoji: '🩺', color: '#14B8A6', route: 'AddVetVisit', needsPet: true },
   { label: 'Add an Expense', emoji: '💰', color: '#F97316', route: 'AddExpense', needsPet: true },
   { label: 'Add a Vet', emoji: '🏥', color: '#6366F1', route: 'AddVet', needsPet: false, topLevel: true },
+  { label: 'Add a Document', emoji: '📄', color: '#06B6D4', route: 'AddDocument', needsPet: true },
   { label: 'Add to Calendar', emoji: '📅', color: '#EC4899', route: 'AddEvent', needsPet: false, topLevel: true },
 ];
 
