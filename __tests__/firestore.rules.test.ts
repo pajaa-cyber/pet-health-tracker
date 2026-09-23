@@ -4,7 +4,7 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, collection, setDoc, updateDoc, deleteDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, getDocs, collection, setDoc, updateDoc, deleteDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import * as fs from 'fs';
 
 let testEnv: RulesTestEnvironment;
@@ -331,6 +331,73 @@ describe('household security rules', () => {
     );
   });
 
+  it('allows creating an invite-code entry with householdId and memberCount', async () => {
+    const creatorDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(creatorDb, 'inviteCodes', 'ZZZ999'), { householdId: 'h2', memberCount: 1 })
+    );
+  });
+
+  it("allows any signed-in user to update an invite code's memberCount via increment()", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: increment(1) })
+    );
+  });
+
+  it('allows incrementing memberCount on an invite code that predates the field', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1' });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertSucceeds(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: increment(1) })
+    );
+  });
+
+  it('denies an unauthenticated memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const anonDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(
+      updateDoc(doc(anonDb, 'inviteCodes', 'ABC123'), { memberCount: increment(1) })
+    );
+  });
+
+  it('denies repointing an invite code at a different household via a memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { householdId: 'h-hijacked', memberCount: 2 })
+    );
+  });
+
+  it('denies a negative memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: -1 })
+    );
+  });
+
+  it('denies a non-integer memberCount update', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'inviteCodes', 'ABC123'), { householdId: 'h1', memberCount: 1 });
+    });
+    const someUserDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      updateDoc(doc(someUserDb, 'inviteCodes', 'ABC123'), { memberCount: 'three' })
+    );
+  });
+
   it('allows a user to create their own users/{uid} household pointer', async () => {
     const userDb = testEnv.authenticatedContext('user-1').firestore();
     await assertSucceeds(
@@ -352,6 +419,58 @@ describe('household security rules', () => {
     const userDb = testEnv.authenticatedContext('user-1').firestore();
     await assertFails(
       setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('lets a removed member overwrite their stale household pointer', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      // user-1's pointer still names h1, but h1's memberIds no longer
+      // includes them (they were removed, or never actually re-added after
+      // seedHousehold — either way, the rule only cares about the CURRENT
+      // memberIds of the household the stale pointer names).
+      await setDoc(doc(context.firestore(), 'users', 'user-1'), { householdId: 'h1' });
+      await setDoc(doc(context.firestore(), 'households', 'h1'), {
+        id: 'h1', name: 'Test Household',
+        members: [{ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }],
+        memberIds: ['user-2'],
+        inviteCode: 'ABC123', createdAt: 0,
+      });
+    });
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('still denies a current member from overwriting their own pointer', async () => {
+    await seedHousehold(); // user-1 is a member of h1
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users', 'user-1'), { householdId: 'h1' });
+    });
+    const userDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(userDb, 'users', 'user-1'), { householdId: 'h2' })
+    );
+  });
+
+  it('allows a member to remove another member from the household', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1'), {
+        id: 'h1', name: 'Test Household',
+        members: [
+          { userId: 'user-1', displayName: 'Ana', joinedAt: 0 },
+          { userId: 'user-2', displayName: 'Marko', joinedAt: 0 },
+        ],
+        memberIds: ['user-1', 'user-2'],
+        inviteCode: 'ABC123', createdAt: 0,
+      });
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1'), {
+        members: arrayRemove({ userId: 'user-2', displayName: 'Marko', joinedAt: 0 }),
+        memberIds: arrayRemove('user-2'),
+      })
     );
   });
 
@@ -624,5 +743,58 @@ describe('household security rules', () => {
     });
     const strangerDb = testEnv.authenticatedContext('user-2').firestore();
     await assertFails(deleteDoc(doc(strangerDb, 'households', 'h1', 'events', 'evt-1')));
+  });
+
+  // vets is household-level (not nested under pets), matching events'
+  // precedent — a clinic can serve multiple pets in the household via petIds.
+  const validVet = {
+    id: 'vet-1', householdId: 'h1', clinicName: 'Riverside Vet Clinic', doctorName: 'Dr. Novak',
+    address: '12 River Rd', phone: '555-0100', openingHours: 'Mon-Fri 9am-6pm',
+    speciality: 'General practice', isEmergency24h: false, notes: '', petIds: ['pet-1'],
+  };
+
+  it('allows a member to create a vet', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(
+      setDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), validVet)
+    );
+  });
+
+  it('denies a non-member from creating a vet', async () => {
+    await seedPetHousehold();
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(
+      setDoc(doc(strangerDb, 'households', 'h1', 'vets', 'vet-1'), validVet)
+    );
+  });
+
+  it('denies creating a vet with a field outside the allowlist', async () => {
+    await seedPetHousehold();
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertFails(
+      setDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), { ...validVet, vetIdOnVisit: 'sneaky' })
+    );
+  });
+
+  it('allows a member to read and update a vet', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'vets', 'vet-1'), validVet);
+    });
+    const memberDb = testEnv.authenticatedContext('user-1').firestore();
+    await assertSucceeds(getDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1')));
+    await assertSucceeds(
+      updateDoc(doc(memberDb, 'households', 'h1', 'vets', 'vet-1'), { clinicName: 'Renamed Clinic' })
+    );
+  });
+
+  it('denies a non-member from reading a vet', async () => {
+    await seedPetHousehold();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'households', 'h1', 'vets', 'vet-1'), validVet);
+    });
+    const strangerDb = testEnv.authenticatedContext('user-2').firestore();
+    await assertFails(getDoc(doc(strangerDb, 'households', 'h1', 'vets', 'vet-1')));
   });
 });

@@ -1,4 +1,4 @@
-# Where we left off (2026-09-22)
+# Where we left off (2026-09-23)
 
 Resume state only. Permanent rules live in `CLAUDE.md`; per-plan build and
 verification history lives in `docs/history/` (`plan-log.md` is the index).
@@ -8,23 +8,11 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**1. Plan 7 ("Vets directory and household members") — built, not merged.**
-Worktree `C:\dev\vets-household`, branch `plan-7-vets-household`. A new Vets
-directory (CRUD) plus household member-limit/removal. Fully built, reviewed,
-fixed, and its Firestore rules already deployed to `pet-tracker-app-63512`.
-Device verification is mostly done (Home, pet hub, Add sheet, single-device
-household flows). Still blocked on:
-
-- **second-device testing** (join / remove / recovery path) — waiting on a USB
-  cable for a second phone;
-- finishing the test-vet Firestore cleanup ("Corner Clinic", "Riverside Vet Clinic
-  Renamed"), interrupted mid-session by a phone disconnect.
-
-Plan doc: `docs/superpowers/plans/2026-09-15-vets-and-household-members.md`.
+Nothing currently in flight. Next up: Plan 8 (see "After that" below).
 
 ## Done and merged
 
-Plans 1–6 are complete, device-verified and on `master`, along with the
+Plans 1–7 are complete, device-verified and on `master`, along with the
 Bolt-pushed purple theme, and both halves of the Colourful Reskin (Part A,
 Part B). See `docs/history/plan-log.md`.
 
@@ -47,9 +35,13 @@ passed clean. Nothing is done until it has been seen working on the phone.
 
 Deliberately parked, roughly by weight.
 
-1. **No in-app recovery** if a household document becomes unreadable — both
-   `createHousehold` and `joinHousehold` fail permanently once a `users/{uid}`
-   pointer exists.
+1. **No in-app recovery for a household document that becomes unreadable for
+   any reason other than being removed.** Plan 7 added a recovery path
+   specifically for a *removed* member (their own `users/{uid}` pointer can be
+   overwritten once they're no longer in that household's `memberIds`). Any
+   other cause of an unreadable household — the household deleted, corrupted,
+   etc. — still leaves `createHousehold`/`joinHousehold` failing permanently,
+   since both require the pointer not to already exist.
 2. **`generateInviteCode()` uses `Math.random()`**, not a CSPRNG. Not currently
    exploitable; a proper fix needs `expo-crypto` plus a prebuild/rebuild cycle.
 3. **Listener fan-out** is duplicated across `HomeScreen` / `CalendarScreen` /
@@ -86,6 +78,12 @@ Deliberately parked, roughly by weight.
     harmless, worth a keep/drop call.
 17. Minor pre-existing: no positive-value validation beyond what exists;
     `MedicationListScreen`'s dose log has no filter UI.
+18. **No loading-state guard on "Join household" / "Create household."** A
+    double-tap while the first request is still in flight fires a second,
+    redundant request that fails (the user is already a member by then) and
+    briefly shows a raw `[firestore/permission-denied]` string, even though
+    the first request already succeeded. Same class as #4 above. Found during
+    Plan 7's device pass.
 
 ## Housekeeping in the live Firestore project
 

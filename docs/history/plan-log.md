@@ -114,6 +114,12 @@ Full build record and the eight device-found bugs:
 
 ---
 
+## Plan 7 — "Vets directory and household members" — merged to `master`, device-verified
+
+[`2026-09-23-plan-7-vets-household.md`](./2026-09-23-plan-7-vets-household.md).
+
+---
+
 ## Bolt-connected purple theme — merged and verified on-device, 2026-09-15
 
 After Plan 6 merged, the owner connected this GitHub repo to Bolt (bolt.new),

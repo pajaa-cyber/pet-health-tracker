@@ -167,6 +167,50 @@ read access to the household document. `isJoining()` additionally requires
 replace a member. Both the direct query and a client-computed members array were
 tried and found broken.
 
+**Household member limit, removal, and recovery (Plan 7).**
+`inviteCodes/{code}` carries a denormalized `memberCount` mirror (a non-member
+joiner has no read access to the household doc itself, so this is the only place
+that count can come from before attempting to join — `isHouseholdFull()` /
+`FREE_HOUSEHOLD_MEMBERS` in `src/limits/limits.ts`, currently 4, throws a
+friendly message client-side before the write is even attempted).
+`removeMember` writes the caller-supplied **absolute** remaining count, never
+`increment(-1)` — an `increment()` can't self-correct an already-wrong stored
+value, and `HouseholdScreen`'s `reconcileMemberCount` additionally self-heals
+this value against the true `members.length` every time any member opens the
+Household tab. `joinHousehold`'s own `memberCount` write is a **literal
+computed number, not `increment()`, for a separate reason**: on-device testing
+found RNFB's `increment()` FieldValue fails this exact rule's `is int` check
+server-side, even though the identical rule against the identical `increment()`
+call passes cleanly under the emulator via the web `firebase` SDK — never
+reintroduce `increment()` on this field. `removeMember` does not touch
+`users/{removedUid}` at all; the **recovery path** for "a removed member has no
+way back in" instead lives in `firestore.rules`' `users/{userId}` `allow
+update`, which lets a user overwrite their own stale pointer once they are no
+longer in the memberIds of the household it currently names. `joinHousehold`
+therefore writes the `users/{uid}` pointer **before** the household+inviteCodes
+batch, not after — reversed order breaks rejoining the SAME household
+immediately after being removed from it, since the household write would
+re-add the caller to `memberIds` before the pointer write ever checks it. The
+pointer write also can't be *batched* with the other two at all: on-device
+testing found RNFB's `writeBatch()` fails with a bare permission-denied as soon
+as a third write (a `set()`/create) joins two `update()`s in one atomic
+batch — every pair of those three writes succeeds fine alone or batched two at
+a time; only the three-way combination fails. See `householdService.ts`'s
+comments on `joinHousehold` for the full account.
+
+**Vets directory (Plan 7).** `households/{householdId}/vets/{vetId}` is
+household-level (not nested under a single pet), matching `events`' precedent —
+one clinic can serve several pets via `petIds: string[]`. No untrusted-write
+path exists (same as pet records below), so its rules block is a plain
+`isHouseholdMember` check plus a `create`-time field allowlist. `VetsScreen`
+reuses `usePetSelection()`/`<PetSelector>` to filter the list; `VetCard` shows
+assigned-pet dots/names (`EntryCard`'s established pattern) and a tap on the
+address/phone opens the phone's native Maps/dialer via a plain `tel:`/maps
+intent, never an in-app map. `AddVetScreen`/`EditVetScreen` are registered at
+`RootNavigator`'s top level (`topLevel: true` in `AddSheet.tsx`, same as
+`AddEvent`), so "Add a Vet" is reachable from the global "+" sheet from any
+tab, not just the Vets tab.
+
 **Pet records.** `households/{householdId}/pets/{petId}`, with `vaccines/`,
 `medications/`, `vetVisits/`, `weightLogs/`, `expenses/` as subcollections of each
 pet. No untrusted-write path exists for any of them, so their rules blocks are a

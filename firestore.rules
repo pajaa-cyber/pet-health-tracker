@@ -227,6 +227,19 @@ service cloud.firestore {
       allow delete: if isHouseholdMember(householdId);
     }
 
+    // Household-level (not per-pet) collection, matching events' precedent —
+    // a vet clinic can serve multiple pets in the household (petIds).
+    match /households/{householdId}/vets/{vetId} {
+      allow read: if isHouseholdMember(householdId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly([
+          'id', 'householdId', 'clinicName', 'doctorName', 'address', 'phone',
+          'openingHours', 'speciality', 'isEmergency24h', 'notes', 'petIds'
+        ]);
+      allow update: if isHouseholdMember(householdId);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
     // Maps a shareable invite code to its household ID. Readable by any
     // signed-in user — that's the point: it's how joinHousehold (Task 4)
     // finds a household without needing read access to the household
@@ -273,8 +286,37 @@ service cloud.firestore {
       // rule semantics against a real emulator before attempting to close
       // this further.
       allow create: if request.auth != null &&
-        request.resource.data.keys().hasOnly(['householdId']);
-      allow update, delete: if false;
+        request.resource.data.keys().hasOnly(['householdId', 'memberCount']);
+
+      // memberCount is a denormalized mirror of the household's member
+      // count (Plan 7), read here by a non-member client (joinHousehold)
+      // specifically so it can show a friendly "household is full" message
+      // BEFORE attempting to join — the joining client has no read grant on
+      // the household document itself (see the comment above), so this is
+      // the only place that count can come from. This is intentionally an
+      // advisory-only soft cap, the same tier as Plan 4's custom-field
+      // limit (also not rules-enforced): a signed-in user could in
+      // principle write an inaccurate count here, but that only affects
+      // what gets DISPLAYED before a join attempt, not who can actually
+      // join a household they don't belong to — isMember/isJoining on the
+      // household document itself are the real access-control boundary and
+      // are completely unaffected by this field. householdId is kept
+      // immutable so this rule can never be used to repoint a code at a
+      // different household.
+      // The memberCount is int / >= 0 checks (final-review fix wave) are a
+      // cheap complement, not a replacement, for the real fix to memberCount
+      // drift: removeMember (householdService.ts) now writes the caller-
+      // supplied absolute remaining count instead of increment(-1), and
+      // HouseholdScreen's reconcileMemberCount self-heals the stored value
+      // against the true `members.length` every time any member opens the
+      // Household tab. This rule-level floor just rejects the most obviously
+      // malformed writes (a negative or non-integer value) outright.
+      allow update: if request.auth != null &&
+        request.resource.data.householdId == resource.data.householdId &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount']) &&
+        request.resource.data.memberCount is int &&
+        request.resource.data.memberCount >= 0;
+      allow delete: if false;
     }
 
     // Maps a signed-in user to the household they belong to, so the app can
@@ -293,12 +335,32 @@ service cloud.firestore {
       // Only fires when the document does not yet exist (Firestore classifies
       // a write to an existing doc as `update`, not `create`) — so a user who
       // already belongs to a household cannot overwrite their pointer via this
-      // rule. Changing households (leaving one, joining another) is out of
-      // scope for this plan; that needs its own explicit "leave household"
-      // design, parked as a future task.
+      // rule. A STILL-ACTIVE member still can't overwrite their pointer this
+      // way either (see `allow update` below) — only a removed member can,
+      // via the recovery-path rule this plan adds.
       allow create: if request.auth != null && request.auth.uid == userId &&
         request.resource.data.keys().hasOnly(['householdId']);
-      allow update, delete: if false;
+
+      // Recovery path (Plan 7) for the standing "a removed household member
+      // has no way back in" gap: a removed member's pointer still names
+      // their OLD household. `resource` below is that EXISTING document
+      // (pre-write) — this rule lets a user overwrite their OWN pointer
+      // only once they are no longer in the memberIds of the household it
+      // currently names, so a still-active member cannot touch their own
+      // pointer this way (they'd have to actually be removed first). This
+      // depends only on the CURRENT committed state of the household
+      // document being read, never on any other write in the same batch —
+      // removeMember (householdService.ts) does not touch this document at
+      // all; the removed user's own next createHousehold/joinHousehold call
+      // is what exercises this rule, driven by the exact same
+      // batch.set(doc(db,'users',userId), {householdId}) call those
+      // functions already make (Firestore classifies a write to an existing
+      // doc as `update` regardless of set() vs update(), so no client code
+      // change was needed for this — see the comment on `allow get` above).
+      allow update: if request.auth != null && request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly(['householdId']) &&
+        !(request.auth.uid in get(/databases/$(database)/documents/households/$(resource.data.householdId)).data.memberIds);
+      allow delete: if false;
     }
   }
 }
