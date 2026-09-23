@@ -6,10 +6,10 @@ const mockHouseholdDocRef = { id: 'h1' };
 const mockUsersDocRef = { id: 'users-ref' };
 const mockCollectionRef = {};
 const mockGetDoc = jest.fn();
+const mockSetDoc = jest.fn();
 const mockUpdateDoc = jest.fn();
 const mockArrayUnion = jest.fn((value: unknown) => ({ __arrayUnion: [value] }));
 const mockArrayRemove = jest.fn((value: unknown) => ({ __arrayRemove: [value] }));
-const mockIncrement = jest.fn((value: number) => ({ __increment: value }));
 const mockBatchSet = jest.fn();
 const mockBatchUpdate = jest.fn();
 const mockBatchCommit = jest.fn();
@@ -28,10 +28,10 @@ jest.mock('@react-native-firebase/firestore', () => ({
     return mockCreatedDocRef; // doc(collectionRef) auto-id case, used by createHousehold
   }),
   getDoc: (...args: unknown[]) => mockGetDoc(...args),
+  setDoc: (...args: unknown[]) => mockSetDoc(...args),
   updateDoc: (...args: unknown[]) => mockUpdateDoc(...args),
   arrayUnion: (...args: unknown[]) => mockArrayUnion(args[0]),
   arrayRemove: (...args: unknown[]) => mockArrayRemove(args[0]),
-  increment: (...args: unknown[]) => mockIncrement(args[0] as number),
   writeBatch: (...args: unknown[]) => mockWriteBatch(...args),
 }));
 
@@ -86,12 +86,19 @@ describe('householdService', () => {
     expect(mockBatchCommit).toHaveBeenCalledTimes(5);
   });
 
-  it('joins a household and writes the users/{uid} pointer and an inviteCodes memberCount increment in the same batch', async () => {
+  it('joins a household: writes the users/{uid} pointer first, then the household membership and inviteCodes memberCount in one batch', async () => {
+    // The users/{uid} pointer write is deliberately NOT part of the batch, and
+    // deliberately runs BEFORE it — see joinHousehold's own comment for the
+    // two on-device-testing-found reasons (an RNFB writeBatch() limitation,
+    // and the recovery-path rule's ordering requirement). memberCount is a
+    // literal caller-computed number, not increment(), for the same
+    // on-device-testing reason documented there.
     mockGetDoc.mockResolvedValue({ exists: () => true, data: () => ({ householdId: 'h1', memberCount: 1 }) });
 
     await joinHousehold(fakeDb, 'user-2', 'Marko', 'ABC123');
 
     expect(mockGetDoc).toHaveBeenCalledWith(mockInviteDocRef);
+    expect(mockSetDoc).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'h1' });
     expect(mockArrayUnion).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-2', displayName: 'Marko' })
     );
@@ -101,10 +108,12 @@ describe('householdService', () => {
       memberIds: { __arrayUnion: ['user-2'] },
       joinCodeUsed: 'ABC123',
     });
-    expect(mockIncrement).toHaveBeenCalledWith(1);
-    expect(mockBatchUpdate).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: { __increment: 1 } });
-    expect(mockBatchSet).toHaveBeenCalledWith(mockUsersDocRef, { householdId: 'h1' });
+    expect(mockBatchUpdate).toHaveBeenCalledWith(mockInviteDocRef, { memberCount: 2 });
     expect(mockBatchCommit).toHaveBeenCalled();
+    // The pointer write must happen before the batch commits, not after.
+    expect(mockSetDoc.mock.invocationCallOrder[0]).toBeLessThan(
+      mockBatchCommit.mock.invocationCallOrder[0]
+    );
   });
 
   it('throws a friendly message and writes nothing when the household is already at the free member limit', async () => {
