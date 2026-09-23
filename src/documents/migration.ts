@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, writeBatch, type Firestore } from '@react-native-firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, writeBatch, type Firestore } from '@react-native-firebase/firestore';
 import { Pet } from '../types/pet';
 import { VetVisit } from '../types/vetVisit';
 import { Document } from '../types/document';
@@ -14,6 +14,14 @@ import { Document } from '../types/document';
 // after every new Document has already landed — so re-running next launch
 // either finds nothing left to do, or safely retries pass 1 for whatever
 // wasn't migrated yet (a visit whose documentUrls is already [] is skipped).
+//
+// A crash *between* pass 1 committing for some visits and the single
+// cleanup batch committing at the end would otherwise leave those visits'
+// documentUrls still populated, so re-running would recreate a second
+// Document for them. The per-visit `sourceVisitId` existence check below is
+// what makes that retry idempotent instead of duplicating data: a visit
+// whose Document already exists is queued straight for cleanup, no new
+// Document/pages are written for it.
 export async function migrateVetVisitDocuments(db: Firestore, householdId: string, pets: Pet[]): Promise<void> {
   const householdSnap = await getDoc(doc(db, 'households', householdId));
   if (!householdSnap.exists()) return;
@@ -26,6 +34,16 @@ export async function migrateVetVisitDocuments(db: Firestore, householdId: strin
     for (const visitDoc of visitsSnap.docs) {
       const visit = visitDoc.data() as VetVisit;
       if (!visit.documentUrls || visit.documentUrls.length === 0) continue;
+
+      const existingSnap = await getDocs(
+        query(collection(db, 'households', householdId, 'documents'), where('sourceVisitId', '==', visit.id))
+      );
+      if (!existingSnap.empty) {
+        // Already migrated in a prior interrupted run — don't recreate, but still
+        // queue it for documentUrls cleanup in case that part didn't finish either.
+        migratedVisits.push({ petId: pet.id, visitId: visit.id });
+        continue;
+      }
 
       const batch = writeBatch(db);
       const documentRef = doc(collection(db, 'households', householdId, 'documents'));
