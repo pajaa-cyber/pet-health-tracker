@@ -8,42 +8,29 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**Plan 8 (medical records, documents, passport) is fully built and
-device-verified — only the merge to `master` is left, and that needs the
-owner's explicit say-so.** Worktree: `C:\dev\documents-passport`, branch
-`documents-passport`, fully pushed to `origin/documents-passport` through
-commit `0c1f7e1`. Full build and device-verification record:
-`docs/history/2026-09-23-plan-8-medical-records-documents-passport.md`.
+Nothing mid-execution right now. Plan 8 merged to `master` at `949000f`
+(2026-09-23) — see "Done and merged" and `docs/history/plan-log.md`. Next up
+is starting Plan 9 (see "After that").
 
-All 10 tasks complete: data model + Firestore rules (deployed to production
-with the owner's go-ahead) + free-tier photo cap; migration off the old
-`VetVisit.documentUrls` field, confirmed working on-device against the real
-household, then the old field/screen removed entirely; `DocumentListScreen` +
-`AddDocumentScreen` (multi-page capture) + `DocumentViewerScreen`; a shared
-`pdfService.ts` used by both document sharing and `passportService.ts`'s
-one-page PDF passport ("Generate Passport" on `PetHomeScreen`);
-`documentsStorageBytes` tracking with self-healing reconcile and a 200MB
-warning banner. On-device checklist passed against the real "Pajevic
-Household" — migration, multi-page add/remove, viewer, sharing (real PDFs,
-verified via Android's print-preview), and passport generation for both a
-near-empty pet and a data-rich one (correctly truncated to 8 most-recent
-vaccines). Not directly exercised: the literal 30-photo cap (time-boxed;
-the limit logic itself is unit-tested and deterministic).
-
-**Next action:** ask the owner whether to merge `documents-passport` into
-`master` now. Nothing else is blocking it.
+The `documents-passport` worktree (`C:\dev\documents-passport`) and its
+branch still exist — not deleted, since that needs the owner's explicit
+say-so same as the merge did. Safe to remove whenever convenient
+(`git log documents-passport ^origin/master` is empty — everything on it is
+in `master` now).
 
 ## Done and merged
 
-Plans 1–7 are complete, device-verified and on `master`, along with the
+Plans 1–8 are complete, device-verified and on `master`, along with the
 Bolt-pushed purple theme, and both halves of the Colourful Reskin (Part A,
-Part B). See `docs/history/plan-log.md`.
+Part B). See `docs/history/plan-log.md`. Plan 8 (medical records, documents,
+passport) is the most recent: multi-page document storage replacing the old
+`VetVisit.documentUrls` array, a one-page PDF pet passport, and document
+sharing — full record at
+`docs/history/2026-09-23-plan-8-medical-records-documents-passport.md`.
 
 ## After that
 
-Plan 8 ("Medical records, documents, passport") is done pending merge (see
-above). Phase 7 = Plan 9 ("Subscriptions and release") is next up once Plan 8
-is merged.
+Phase 7 = Plan 9 ("Subscriptions and release") is next.
 
 Before starting new plan work, read `CLAUDE.md`'s Calendar and pet-selection
 sections: reuse `usePetSelection()` / `<PetSelector>`, follow the
