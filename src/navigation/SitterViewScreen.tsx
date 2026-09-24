@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, FlatList, Text } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { subscribeToMySitterGrants } from '../sitters/sitterService';
-import { subscribeToPets } from '../pets/petService';
+import { subscribeToSitterPets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { SitterAccessGrant } from '../types/sitterAccess';
 import { Pet } from '../types/pet';
@@ -33,10 +33,9 @@ export function SitterViewScreen() {
   useEffect(() => {
     const activeGrants = grants.filter((g) => !g.revoked && g.expiresAt > Date.now());
     const unsubs = activeGrants.map((grant) =>
-      subscribeToPets(firestore, grant.householdId, (allPets) => {
+      subscribeToSitterPets(firestore, grant.householdId, grant.petIds, (grantedPets) => {
         setGranted((prev) => {
           const withoutThis = prev.filter((g) => g.grant.householdId !== grant.householdId);
-          const grantedPets = allPets.filter((p) => grant.petIds.includes(p.id));
           return [...withoutThis, { grant, pets: grantedPets }];
         });
       })
