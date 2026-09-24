@@ -323,7 +323,25 @@ service cloud.firestore {
       // (2), so a household member's own sitters list silently failed with
       // permission-denied — every list of a KNOWN collection still needs its
       // own explicit allow, `allow get` does not imply `allow list`.
-      allow list: if isHouseholdMember(householdId) || (request.auth != null && resource.data.sitterUid == request.auth.uid);
+      // Split into two separate `allow list` statements rather than one
+      // `||` line — a real on-device bug (found redeeming a real invite code
+      // against deployed rules): a single OR'd expression mixing a get()-based
+      // condition (isHouseholdMember) with a plain resource.data equality
+      // condition made Firestore's provability check reject the collection-
+      // group query (subscribeToMySitterGrants) outright, even though the
+      // equality branch alone is trivially provable from the query's own
+      // where('sitterUid','==',uid) clause and even though the identical
+      // combined-OR line passed cleanly under the emulator. Firestore
+      // evaluates multiple `allow list` statements for the same operation as
+      // independent alternatives, each checked for provability on its own,
+      // so splitting them (same combined semantics) fixes it. The redeem
+      // write itself (`allow create` below) was never the problem — it
+      // succeeded even while the client displayed a spurious permission-
+      // denied, because the simultaneous failing collection-group listen
+      // stream was tearing down the shared connection out from under the
+      // in-flight write's acknowledgment.
+      allow list: if isHouseholdMember(householdId);
+      allow list: if request.auth != null && resource.data.sitterUid == request.auth.uid;
       // The sitter creates their own grant by redeeming a code — the write
       // must exactly match what that code specifies, so a sitter can never
       // grant themselves broader pets or a later expiry than the code
