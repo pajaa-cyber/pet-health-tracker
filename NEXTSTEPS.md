@@ -9,18 +9,59 @@ it** — this file is written by a session that may not have finished cleanly.
 ## In flight
 
 **Plan 9, sub-project A ("sitter access + trial/limits wiring") — all 9 tasks'
-code is done, tested, committed, and pushed. On-device verification is
-partway through and paused mid-checklist.** Plan 9 ("Subscriptions and
-release") was brainstormed and split into three sub-projects since real
-Google Play Billing can't be tested until the owner's Play Console/merchant
-setup exists (owner's own call, 2026-09-23): **A** = sitter access + trial
-wiring (this one), **B** = real Play Billing (later), **C** = release prep —
-icon/store listing/privacy policy (later, close to publish).
+code is done, tested, committed, and pushed. On-device verification found and
+fixed three real bugs on 2026-09-24 (see below); redemption end-to-end is now
+confirmed working. Revoke and expiry are the only checklist items left.**
+Plan 9 ("Subscriptions and release") was brainstormed and split into three
+sub-projects since real Google Play Billing can't be tested until the owner's
+Play Console/merchant setup exists (owner's own call, 2026-09-23): **A** =
+sitter access + trial wiring (this one), **B** = real Play Billing (later),
+**C** = release prep — icon/store listing/privacy policy (later, close to
+publish).
+
+**2026-09-24 device session — three real bugs found and fixed, full account
+in `docs/history/2026-09-24-sitter-redemption-device-verification.md`
+(written in the `sitter-access-and-trial` worktree, not yet merged):**
+
+1. **Deployed Firestore rules were stale** — `master`'s `firestore.rules` has
+   no trace of the sitter-access feature at all, and something had deployed
+   rules from `master` (or an equivalent) after this branch's rules were last
+   live, silently wiping the sitter-access block from production. Fixed by
+   redeploying from the worktree. **Lesson: always deploy rules from the
+   branch whose rules should be live — deploying from the wrong directory
+   actively regresses production, it doesn't just fail to help.**
+2. **`subscribeToMySitterGrants`'s collectionGroup query was structurally
+   unauthorizable** — a nested `match /households/{householdId}/sitterAccess/{sitterUid}`
+   block can never authorize a `collectionGroup()` query, no matter what its
+   `allow list` says; that needs its own recursive wildcard block
+   (`match /{path=**}/sitterAccess/{sitterUid}`). Also needed an explicit
+   `COLLECTION_GROUP`-scoped index for `sitterUid` (new
+   `firestore.indexes.json`, index builds took a few minutes even for two
+   documents). Until this was fixed, a sitter's redemption could silently
+   succeed in Firestore while the app could never detect it and route them
+   to their view.
+3. **`SitterViewScreen` fetched the whole household's pets and filtered
+   client-side** — same class of bug as #2 (Firestore refuses to authorize a
+   list whose unfiltered potential result set the rule can't prove for every
+   document). Fixed with a new `subscribeToSitterPets` that queries
+   `where(documentId(), 'in', petIds)` directly.
+
+All three fixes are committed and pushed to `sitter-access-and-trial`
+(commits `88de570`, `5bfbe4f`, `efc6336`) and deployed live. Confirmed
+end-to-end on-device: sign up a throwaway account → redeem the real invite
+code `94T7TDUP` → land on the sitter view → see exactly the granted pet
+("Dona"), zero errors.
+
+Two pieces of harmless real test data left behind this session (see that
+file's Housekeeping section for detail): a phantom empty household from a
+misdirected tap, and a second throwaway sitter account
+(`sittertest2.pethealthtracker@gmail.com`) now holding a real active grant
+against the owner's real household, expiring 2026-09-30 on its own.
 
 - Design spec: `docs/superpowers/specs/2026-09-23-sitter-access-and-trial-design.md`
 - Implementation plan (9 tasks): `docs/superpowers/plans/2026-09-23-sitter-access-and-trial.md`
 - Worktree: `C:\dev\sitter-access-and-trial`, branch `sitter-access-and-trial`,
-  off `master` at `a58a875`, fully pushed through commit `8ac18cb`.
+  off `master` at `a58a875`, fully pushed through commit `efc6336`.
 
 **What it built:** two new optional `Household` fields (`trialStartedAt`/
 `trialEndsAt`), a `HouseholdContext` effect that auto-starts a 14-day trial
@@ -52,29 +93,35 @@ re-verified before deploy:**
 correctly got "Free trial — 14 days left" on first load after this build
 (confirms the auto-start effect works retroactively, not just for new
 households). Generated a real sitter invite code (`94T7TDUP`, Macmac +
-Dona, expires 9/30/2026) from the owner's own account — confirmed working
-end-to-end against deployed rules.
+Dona, expires 9/30/2026) from the owner's own account. Redemption from the
+sitter's side is now also confirmed working end-to-end (see the three-bugs
+account above and the linked history file) — signed up a throwaway account,
+redeemed `94T7TDUP`, landed on `SitterViewScreen`, saw exactly the granted
+pet ("Dona"), zero errors.
 
-**Not yet done — redemption was mid-test when the session paused:** testing
-the *other* side (sign up as a throwaway sitter account, redeem the code,
-confirm `SitterViewScreen` shows only the granted pet, confirm revoke and
-expiry both actually cut off access) requires a second account on the test
-device. There is **no in-app sign-out UI** (a real, pre-existing gap —
+**Not yet done:** confirming revoke and expiry actually cut off a sitter's
+access. There is **no in-app sign-out UI** (a real, pre-existing gap —
 `AuthContext.tsx` has a working `signOut()` but nothing in the UI calls it),
-so testing this ran `adb shell pm clear com.pethealthtracker.app` to force a
-sign-out on the owner's own test device. **The owner needs to sign back into
-`mpajevic7@gmail.com` on that device** — `pm clear` also wiped local-only
-state (reminder settings/snoozes are per-device `AsyncStorage`, per
-`CLAUDE.md`), which just needs reconfiguring, not data recovery. Resume by
-building from the `sitter-access-and-trial` worktree, signing up a throwaway
-sitter account, redeeming `94T7TDUP`, and working through the rest of Task
-9 Step 3's checklist in the plan.
+so testing this used `adb shell pm clear com.pethealthtracker.app` to force
+account switches on the owner's own test device, repeatedly. **The owner
+needs to sign back into `mpajevic7@gmail.com` on that device** — `pm clear`
+also wipes local-only state (reminder settings/snoozes are per-device
+`AsyncStorage`, per `CLAUDE.md`), which just needs reconfiguring, not data
+recovery. Resume by building from the `sitter-access-and-trial` worktree
+(now at commit `efc6336`), signing back in as the owner, revoking the
+existing `sittertest2.pethealthtracker@gmail.com` grant from the Household
+screen, then confirming that account's `SitterViewScreen` goes back to "No
+active sitter access." Expiry can't be tested by waiting (the code expires
+2026-09-30) — either redeem a fresh code with a near-future `expiresAt`, or
+inspect the `isValidSitterForPet`/`isValidSitterForAnyPet` rules logic and
+the emulator test coverage for it directly instead.
 
-**Remaining before merge:** finish the on-device checklist (redemption,
-revoke, expiry), then Task 9 Step 4's docs (a `docs/history/` entry, a
-`plan-log.md` line, a CLAUDE.md architecture paragraph covering the
-`sitterAccess`/rules approach and the trial fields), then the merge itself —
-both need the owner's say-so same as every prior plan.
+**Remaining before merge:** finish the on-device checklist (revoke,
+expiry), then Task 9 Step 4's docs (a `plan-log.md` line, a CLAUDE.md
+architecture paragraph covering the `sitterAccess`/rules approach — including
+the collection-group-query and list-provability lessons from this session —
+and the trial fields), then the merge itself — both need the owner's say-so
+same as every prior plan.
 
 The `documents-passport` worktree (`C:\dev\documents-passport`) and its
 branch still exist — not deleted, since that needs the owner's explicit
@@ -177,8 +224,18 @@ Firebase console whenever convenient.
 - One test document from Plan 8's device pass: **"LabResult"** on Dona
   (category "TestDocTask10", one page, a real family photo used as stand-in
   page content — not sensitive, but not a real lab result either).
-- One unredeemed sitter invite code from Plan 9 sub-project A's device pass:
-  **`94T7TDUP`** (`sitterInviteCodes/94T7TDUP`), grants Macmac + Dona,
-  expires 9/30/2026. Harmless if left alone (expires on its own; redeeming it
-  doesn't touch the household's real membership at all), but delete the
-  Firestore doc by hand if you'd rather not leave a live test code around.
+- One sitter invite code from Plan 9 sub-project A's device pass: **`94T7TDUP`**
+  (`sitterInviteCodes/94T7TDUP`), grants Dona, expires 9/30/2026 — since
+  redeemed twice during 2026-09-24's session (see below), so leaving it live
+  lets it be redeemed again by anyone who has it; delete the Firestore doc by
+  hand once revoke/expiry testing no longer needs it.
+- Two real `sitterAccess` grants against the owner's real household from
+  2026-09-24's redemption testing, both expiring 2026-09-30 on their own:
+  one for a throwaway account that ended up creating its own phantom
+  household instead of staying a sitter (harmless, orphaned), one for
+  `sittertest2.pethealthtracker@gmail.com` (this is the grant used to confirm
+  the sitter view works — needed for revoke testing next, don't delete until
+  that's done).
+- One phantom empty household ("Sittertest.pethealthtracker", 0 pets) created
+  by a misdirected tap during 2026-09-24's testing — harmless, tied to a
+  disposable throwaway account.
