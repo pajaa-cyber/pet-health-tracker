@@ -309,39 +309,41 @@ service cloud.firestore {
       // Direct-path access: any household member managing sitters, or the
       // sitter reading their own grant.
       allow get: if isHouseholdMember(householdId) || (request.auth != null && request.auth.uid == sitterUid);
-      // Two distinct list shapes need to work: (1) subscribeToSitterGrants —
-      // a household member listing every sitterAccess doc under their OWN
-      // household (HouseholdScreen's sitters list); isHouseholdMember(householdId)
-      // doesn't touch resource.data at all, so it's trivially provable for
-      // every doc this plain (non-collectionGroup) query could match, same
-      // as every other subcollection's isHouseholdMember-gated read. (2)
+      // subscribeToSitterGrants — a household member listing every
+      // sitterAccess doc under their OWN household (HouseholdScreen's
+      // sitters list). isHouseholdMember(householdId) doesn't touch
+      // resource.data at all, so it's trivially provable for every doc this
+      // plain (non-collectionGroup) query could match, same as every other
+      // subcollection's isHouseholdMember-gated read. A real on-device bug
+      // (found during Task 9's checklist): the original version of this rule
+      // only granted the collection-group case below, so a household
+      // member's own sitters list silently failed with permission-denied —
+      // every list of a KNOWN collection still needs its own explicit
+      // allow, `allow get` does not imply `allow list`.
+      //
       // subscribeToMySitterGrants — a sitter's collectionGroup query across
-      // every household, filtered to just their own uid; provable per-
-      // document since the query's own where('sitterUid','==',uid) clause
-      // matches this condition exactly. A real on-device bug (found during
-      // Task 9's checklist): the original version of this rule only granted
-      // (2), so a household member's own sitters list silently failed with
-      // permission-denied — every list of a KNOWN collection still needs its
-      // own explicit allow, `allow get` does not imply `allow list`.
-      // Split into two separate `allow list` statements rather than one
-      // `||` line — a real on-device bug (found redeeming a real invite code
-      // against deployed rules): a single OR'd expression mixing a get()-based
-      // condition (isHouseholdMember) with a plain resource.data equality
-      // condition made Firestore's provability check reject the collection-
-      // group query (subscribeToMySitterGrants) outright, even though the
-      // equality branch alone is trivially provable from the query's own
-      // where('sitterUid','==',uid) clause and even though the identical
-      // combined-OR line passed cleanly under the emulator. Firestore
-      // evaluates multiple `allow list` statements for the same operation as
-      // independent alternatives, each checked for provability on its own,
-      // so splitting them (same combined semantics) fixes it. The redeem
-      // write itself (`allow create` below) was never the problem — it
-      // succeeded even while the client displayed a spurious permission-
-      // denied, because the simultaneous failing collection-group listen
-      // stream was tearing down the shared connection out from under the
-      // in-flight write's acknowledgment.
+      // every household, filtered to just their own uid — is NOT authorized
+      // by this nested match block at all, no matter what its `allow list`
+      // says. Two more real on-device bugs (found redeeming a real invite
+      // code against deployed rules, after the one above): first, this rule
+      // used to be a single `isHouseholdMember(householdId) || (...)` line;
+      // that combined-OR line passed cleanly under the emulator but Firestore
+      // rejected the collectionGroup query outright on the real backend, so
+      // it was split into two separate `allow list` statements on a theory
+      // that Firestore checks each independently for provability — that
+      // theory was also wrong, confirmed by redeploying and testing again:
+      // still denied. The actual issue is structural, not about how the
+      // boolean expression is written: **a collectionGroup query is only
+      // ever authorized by a recursive wildcard match block**
+      // (`match /{path=**}/sitterAccess/{sitterUid}`, see below), never by a
+      // nested match block like this one, regardless of what that nested
+      // block's `allow list` contains. The redeem write itself (`allow
+      // create` below) was never the problem — it succeeded even while the
+      // client displayed a spurious permission-denied, because the
+      // simultaneous failing collection-group listen stream was tearing down
+      // the shared connection out from under the in-flight write's
+      // acknowledgment.
       allow list: if isHouseholdMember(householdId);
-      allow list: if request.auth != null && resource.data.sitterUid == request.auth.uid;
       // The sitter creates their own grant by redeeming a code — the write
       // must exactly match what that code specifies, so a sitter can never
       // grant themselves broader pets or a later expiry than the code
@@ -361,6 +363,16 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked']) &&
         request.resource.data.revoked == true;
       allow delete: if false;
+    }
+
+    // Dedicated recursive-wildcard block purely so subscribeToMySitterGrants'
+    // collectionGroup(db, 'sitterAccess') query has something to authorize
+    // it — see the long comment on the nested match block above for why this
+    // has to be a separate block rather than folded into that one. Every
+    // other operation (get/create/update/delete) is already fully governed
+    // by the nested block; this one exists for `list` only.
+    match /{path=**}/sitterAccess/{sitterUid} {
+      allow list: if request.auth != null && resource.data.sitterUid == request.auth.uid;
     }
 
     // Maps a shareable sitter-invite code to what it grants, mirroring
