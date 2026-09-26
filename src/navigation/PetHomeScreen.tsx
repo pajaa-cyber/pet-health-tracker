@@ -1,6 +1,6 @@
 // src/navigation/PetHomeScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, Text, FlatList } from 'react-native';
+import { View, Pressable, Text, FlatList, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs } from '../pets/weightLogService';
@@ -25,7 +25,7 @@ import { Vet } from '../types/vet';
 import { Pet } from '../types/pet';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, AvatarPicker, Button, ErrorText } from '../components/ui';
-import { shell, text, spacing, colors } from '../theme/theme';
+import { shell, text, spacing, colors, radii } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 
@@ -90,6 +90,7 @@ export function PetHomeScreen({ route, navigation }: any) {
   const [vets, setVets] = useState<Vet[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [statusSaving, setStatusSaving] = useState(false);
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [generatingPassport, setGeneratingPassport] = useState(false);
   const [passportError, setPassportError] = useState<string | null>(null);
   const pet = pets.find((p) => p.id === petId);
@@ -207,16 +208,26 @@ export function PetHomeScreen({ route, navigation }: any) {
           </View>
         </View>
         <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.md }}>
-          <AvatarPicker
-            photoUri={pet.photoUrl}
-            onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
-            size={82}
-            emojiSize={40}
-            fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
-            backgroundColor="rgba(255,255,255,0.30)"
-            borderWidth={0}
-            caption="none"
-          />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <View style={{ width: 26 }} />
+            <AvatarPicker
+              photoUri={pet.photoUrl}
+              onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
+              size={82}
+              emojiSize={40}
+              fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
+              backgroundColor="rgba(255,255,255,0.30)"
+              borderWidth={0}
+              caption="none"
+            />
+            <Pressable
+              onPress={() => setColorPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Change identity colour"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: color, borderWidth: 3, borderColor: '#FFFFFF' }}
+            />
+          </View>
           <Text style={{ fontSize: 30, fontWeight: '800', color: ink }}>{pet.name}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' }}>
             <TagChip label={`${speciesDisplay(pet)}${age != null ? ` · ${age} yr` : ''}`} ink={ink} />
@@ -225,45 +236,55 @@ export function PetHomeScreen({ route, navigation }: any) {
             <TagChip label={pet.livingEnvironment ? pet.livingEnvironment.charAt(0).toUpperCase() + pet.livingEnvironment.slice(1) : 'Environment not set'} ink={ink} />
           </View>
         </View>
-        <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
-          <Text style={{ fontSize: 10, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', color: text.onColourMuted, textAlign: 'center' }}>
-            Identity colour
-          </Text>
-          <View style={{ flexDirection: 'row', gap: spacing.xs, justifyContent: 'center' }}>
+      </View>
+
+      <Modal visible={colorPickerOpen} transparent animationType="fade" onRequestClose={() => setColorPickerOpen(false)}>
+        <Pressable
+          onPress={() => setColorPickerOpen(false)}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <View style={{ backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.md, flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', maxWidth: 260, justifyContent: 'center' }}>
             {PET_COLORS.map((c) => (
               <Pressable
                 key={c}
-                onPress={() => updatePetColor(firestore, household.id, petId, c)}
+                onPress={() => {
+                  updatePetColor(firestore, household.id, petId, c);
+                  setColorPickerOpen(false);
+                }}
                 accessibilityRole="button"
                 accessibilityLabel={`Set colour to ${c}`}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c, borderWidth: color === c ? 3 : 0, borderColor: '#FFFFFF' }}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c, borderWidth: color === c ? 3 : 0, borderColor: colors.text }}
               />
             ))}
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Modal>
 
       <View style={{ paddingHorizontal: spacing.md, gap: spacing.md }}>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {SECTIONS.map((s) => (
             <Pressable key={s.key} onPress={() => navigation.navigate(s.key, { petId })} style={{ width: '47%' }}>
-              <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 14, minHeight: 100, justifyContent: 'flex-start', gap: spacing.xs }}>
+              <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 12, minHeight: 85, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: s.color + '40', alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 19 }}>{s.emoji}</Text>
                 </View>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{s.label}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{s.count(hubData)}</Text>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{s.label}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{s.count(hubData)}</Text>
+                </View>
               </View>
             </Pressable>
           ))}
           <Pressable onPress={openCalendarForThisPet} style={{ width: '47%' }}>
-            <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 14, minHeight: 100, justifyContent: 'flex-start', gap: spacing.xs }}>
+            <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 12, minHeight: 85, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
               <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: '#EC489940', alignItems: 'center', justifyContent: 'center' }}>
                 <Text style={{ fontSize: 19 }}>📅</Text>
               </View>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>Calendar</Text>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>View this pet's calendar</Text>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>Calendar</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>View this pet's calendar</Text>
+              </View>
             </View>
           </Pressable>
         </View>
