@@ -1,10 +1,13 @@
 import {
   collection,
   doc,
+  documentId,
+  query,
   setDoc,
   getDoc,
   updateDoc,
   onSnapshot,
+  where,
   type Firestore,
   type Unsubscribe,
 } from '@react-native-firebase/firestore';
@@ -83,6 +86,37 @@ export function subscribeToPets(
     // reset to a safe empty state rather than leave stale data on screen.
     (error) => {
       console.error('subscribeToPets listener error', error);
+      callback([]);
+    }
+  );
+}
+
+// A sitter's grant only covers specific pets, never the whole household, so
+// SitterViewScreen can't use subscribeToPets above: fetching the unfiltered
+// pets collection and filtering to grant.petIds client-side is exactly the
+// pattern Firestore's list-query provability rejects (a real on-device bug,
+// found alongside subscribeToMySitterGrants's collectionGroup-query
+// authorization gap) — the rule (isValidSitterForPet) is only true for the
+// sitter's own granted pets, not every doc the unfiltered query could
+// return, so Firestore refuses the whole list. A where(documentId(),'in',…)
+// filter constrains the query's own potential result set to exactly the
+// granted pets, which is provable the same way sitterUid equality made the
+// collection-group query provable.
+export function subscribeToSitterPets(
+  db: Firestore,
+  householdId: string,
+  petIds: string[],
+  callback: (pets: Pet[]) => void
+): Unsubscribe {
+  if (petIds.length === 0) {
+    callback([]);
+    return () => {};
+  }
+  return onSnapshot(
+    query(collection(db, 'households', householdId, 'pets'), where(documentId(), 'in', petIds)),
+    (snap) => callback(snap.docs.map((d) => d.data() as Pet)),
+    (error) => {
+      console.error('subscribeToSitterPets listener error', error);
       callback([]);
     }
   );

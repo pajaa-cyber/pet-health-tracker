@@ -139,6 +139,45 @@ service cloud.firestore {
         request.auth.uid in get(/databases/$(database)/documents/households/$(householdId)).data.memberIds;
     }
 
+    // Sub-project A of Plan 9. A sitter's read grant lives at a document ID
+    // equal to their own uid — this is what makes every check below a
+    // single known-path get(), the same idiom isHouseholdMember uses, with
+    // no query needed. get() on a missing document errors, which Firestore
+    // treats as a denial — same fail-closed reasoning as isHouseholdMember,
+    // so there is no explicit "grant exists" check below. Each function
+    // reads the grant document exactly once (a `let` binding, not a
+    // repeated get() per field) — referencing sitterGrant(...) three times
+    // in one expression would otherwise cost three separate reads per check.
+    function isValidSitterForPet(householdId, petId) {
+      let grant = get(/databases/$(database)/documents/households/$(householdId)/sitterAccess/$(request.auth.uid)).data;
+      return request.auth != null &&
+        grant.revoked == false &&
+        grant.expiresAt > request.time.toMillis() &&
+        petId in grant.petIds;
+    }
+
+    // For events/vets, which carry petIds as a field rather than being
+    // nested under one pet.
+    function isValidSitterForAnyPet(householdId, petIds) {
+      let grant = get(/databases/$(database)/documents/households/$(householdId)/sitterAccess/$(request.auth.uid)).data;
+      return request.auth != null &&
+        grant.revoked == false &&
+        grant.expiresAt > request.time.toMillis() &&
+        grant.petIds.hasAny(petIds);
+    }
+
+    // Used only by sitterAccess's own create rule below — a `let` inside a
+    // named function (Firestore rules only allows `let` bindings inside a
+    // function body, never inline within an `allow` expression itself, so
+    // this cannot be written directly in the match block below). One get(),
+    // not three, for the same reason as the functions above.
+    function matchesSitterInviteCode(code, householdId, petIds, expiresAt) {
+      let inviteCode = get(/databases/$(database)/documents/sitterInviteCodes/$(code)).data;
+      return inviteCode.householdId == householdId &&
+        inviteCode.petIds == petIds &&
+        inviteCode.expiresAt == expiresAt;
+    }
+
     match /households/{householdId} {
       allow read: if isMember(resource.data);
       // Fourth site of the invalid `.filter()` idiom (see isMember above);
@@ -163,7 +202,7 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/pets/{petId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly([
           'id', 'householdId', 'name', 'species', 'speciesOther', 'breed',
@@ -178,7 +217,7 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/pets/{petId}/vaccines/{vaccineId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'petId', 'name', 'dateGiven', 'nextDueDate', 'vetName']);
       allow update: if isHouseholdMember(householdId);
@@ -186,7 +225,7 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/pets/{petId}/medications/{medicationId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'petId', 'name', 'dosage', 'schedule', 'startDate', 'endDate', 'log']);
       allow update: if isHouseholdMember(householdId);
@@ -194,7 +233,7 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/pets/{petId}/weightLogs/{logId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'weight']);
       allow update: if isHouseholdMember(householdId);
@@ -202,7 +241,7 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/pets/{petId}/expenses/{expenseId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'category', 'amountCents', 'note']);
       allow update: if isHouseholdMember(householdId);
@@ -210,7 +249,7 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/pets/{petId}/vetVisits/{visitId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'petId', 'date', 'reason', 'notes', 'followUpDate']);
       allow update: if isHouseholdMember(householdId);
@@ -220,7 +259,7 @@ service cloud.firestore {
     // Household-level (not per-pet) collection — a single calendar entry can
     // span multiple pets (petIds), e.g. one vet trip covering two pets.
     match /households/{householdId}/events/{eventId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForAnyPet(householdId, resource.data.petIds);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'householdId', 'petIds', 'type', 'title', 'notes', 'date', 'status']);
       allow update: if isHouseholdMember(householdId);
@@ -230,7 +269,7 @@ service cloud.firestore {
     // Household-level (not per-pet) collection, matching events' precedent —
     // a vet clinic can serve multiple pets in the household (petIds).
     match /households/{householdId}/vets/{vetId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForAnyPet(householdId, resource.data.petIds);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly([
           'id', 'householdId', 'clinicName', 'doctorName', 'address', 'phone',
@@ -245,7 +284,7 @@ service cloud.firestore {
     // one Firestore document per photo is the actual fix for the old
     // VetVisit.documentUrls array's 1 MiB-per-document failure mode.
     match /households/{householdId}/documents/{documentId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, resource.data.petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly([
           'id', 'householdId', 'petId', 'title', 'category', 'date',
@@ -256,11 +295,98 @@ service cloud.firestore {
     }
 
     match /households/{householdId}/documents/{documentId}/pages/{pageId} {
-      allow read: if isHouseholdMember(householdId);
+      allow read: if isHouseholdMember(householdId) ||
+        isValidSitterForPet(householdId, get(/databases/$(database)/documents/households/$(householdId)/documents/$(documentId)).data.petId);
       allow create: if isHouseholdMember(householdId) &&
         request.resource.data.keys().hasOnly(['id', 'order', 'photoUrl']);
       allow update: if isHouseholdMember(householdId);
       allow delete: if isHouseholdMember(householdId);
+    }
+
+    // Sub-project A of Plan 9. Document ID == the sitter's own uid — see
+    // isValidSitterForPet() above for why.
+    match /households/{householdId}/sitterAccess/{sitterUid} {
+      // Direct-path access: any household member managing sitters, or the
+      // sitter reading their own grant.
+      allow get: if isHouseholdMember(householdId) || (request.auth != null && request.auth.uid == sitterUid);
+      // subscribeToSitterGrants — a household member listing every
+      // sitterAccess doc under their OWN household (HouseholdScreen's
+      // sitters list). isHouseholdMember(householdId) doesn't touch
+      // resource.data at all, so it's trivially provable for every doc this
+      // plain (non-collectionGroup) query could match, same as every other
+      // subcollection's isHouseholdMember-gated read. A real on-device bug
+      // (found during Task 9's checklist): the original version of this rule
+      // only granted the collection-group case below, so a household
+      // member's own sitters list silently failed with permission-denied —
+      // every list of a KNOWN collection still needs its own explicit
+      // allow, `allow get` does not imply `allow list`.
+      //
+      // subscribeToMySitterGrants — a sitter's collectionGroup query across
+      // every household, filtered to just their own uid — is NOT authorized
+      // by this nested match block at all, no matter what its `allow list`
+      // says. Two more real on-device bugs (found redeeming a real invite
+      // code against deployed rules, after the one above): first, this rule
+      // used to be a single `isHouseholdMember(householdId) || (...)` line;
+      // that combined-OR line passed cleanly under the emulator but Firestore
+      // rejected the collectionGroup query outright on the real backend, so
+      // it was split into two separate `allow list` statements on a theory
+      // that Firestore checks each independently for provability — that
+      // theory was also wrong, confirmed by redeploying and testing again:
+      // still denied. The actual issue is structural, not about how the
+      // boolean expression is written: **a collectionGroup query is only
+      // ever authorized by a recursive wildcard match block**
+      // (`match /{path=**}/sitterAccess/{sitterUid}`, see below), never by a
+      // nested match block like this one, regardless of what that nested
+      // block's `allow list` contains. The redeem write itself (`allow
+      // create` below) was never the problem — it succeeded even while the
+      // client displayed a spurious permission-denied, because the
+      // simultaneous failing collection-group listen stream was tearing down
+      // the shared connection out from under the in-flight write's
+      // acknowledgment.
+      allow list: if isHouseholdMember(householdId);
+      // The sitter creates their own grant by redeeming a code — the write
+      // must exactly match what that code specifies, so a sitter can never
+      // grant themselves broader pets or a later expiry than the code
+      // allows. This is the same "cross-check against the exact document
+      // driving this write" pattern isJoining() uses for joinCodeUsed.
+      allow create: if request.auth != null && request.auth.uid == sitterUid &&
+        request.resource.data.sitterUid == sitterUid &&
+        request.resource.data.householdId == householdId &&
+        request.resource.data.revoked == false &&
+        request.resource.data.keys().hasOnly(['sitterUid', 'householdId', 'petIds', 'expiresAt', 'revoked', 'code']) &&
+        request.resource.data.code is string &&
+        matchesSitterInviteCode(request.resource.data.code, householdId, request.resource.data.petIds, request.resource.data.expiresAt);
+      // Revoking early: any household member can flip revoked to true, and
+      // only that field — no other field on an existing grant is ever
+      // updatable via this rule.
+      allow update: if isHouseholdMember(householdId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked']) &&
+        request.resource.data.revoked == true;
+      allow delete: if false;
+    }
+
+    // Dedicated recursive-wildcard block purely so subscribeToMySitterGrants'
+    // collectionGroup(db, 'sitterAccess') query has something to authorize
+    // it — see the long comment on the nested match block above for why this
+    // has to be a separate block rather than folded into that one. Every
+    // other operation (get/create/update/delete) is already fully governed
+    // by the nested block; this one exists for `list` only.
+    match /{path=**}/sitterAccess/{sitterUid} {
+      allow list: if request.auth != null && resource.data.sitterUid == request.auth.uid;
+    }
+
+    // Maps a shareable sitter-invite code to what it grants, mirroring
+    // inviteCodes exactly: allow get ONLY, never list (see inviteCodes'
+    // own comment for why an unrestricted list would let any signed-in
+    // user dump every code -> household mapping).
+    match /sitterInviteCodes/{code} {
+      allow get: if request.auth != null;
+      allow list: if false;
+      allow create: if isHouseholdMember(request.resource.data.householdId) &&
+        request.resource.data.keys().hasOnly(['householdId', 'petIds', 'expiresAt']) &&
+        request.resource.data.expiresAt > request.time.toMillis();
+      allow update: if false;
+      allow delete: if false;
     }
 
     // Maps a shareable invite code to its household ID. Readable by any

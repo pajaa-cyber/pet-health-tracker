@@ -30,7 +30,7 @@ export function AddDocumentScreen({ route, navigation }: any) {
   const petPageCountSoFar = existingDocuments.reduce((sum, d) => sum + d.pageCount, 0);
 
   const handleCapture = async (source: 'camera' | 'library') => {
-    if (!canAddDocumentPage(petPageCountSoFar + pageUrls.length)) {
+    if (!canAddDocumentPage(petPageCountSoFar + pageUrls.length, household ?? { trialEndsAt: null })) {
       setError(documentPhotoLimitMessage());
       return;
     }

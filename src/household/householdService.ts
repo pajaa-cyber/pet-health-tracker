@@ -278,3 +278,23 @@ export async function getHousehold(
   const docSnap = await getDoc(doc(db, 'households', householdId));
   return docSnap.exists() ? (docSnap.data() as Household) : null;
 }
+
+const TRIAL_LENGTH_MS = 14 * 24 * 60 * 60 * 1000;
+
+// Called from HouseholdContext's trial-start effect (see that file) — a
+// no-op once trialStartedAt is set, so it's safe to call on every load.
+// A literal computed timestamp, not any kind of increment/transform, so
+// this carries none of the increment()-on-RNFB risk documented elsewhere
+// in this codebase.
+export async function startTrialIfNeeded(
+  db: Firestore,
+  householdId: string,
+  household: Pick<Household, 'trialStartedAt'>
+): Promise<void> {
+  if (household.trialStartedAt) return;
+  const now = Date.now();
+  await updateDoc(doc(db, 'households', householdId), {
+    trialStartedAt: now,
+    trialEndsAt: now + TRIAL_LENGTH_MS,
+  });
+}

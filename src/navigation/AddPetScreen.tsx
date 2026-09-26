@@ -312,7 +312,7 @@ export function AddPetScreen({ navigation }: any) {
           </>
         );
       case 7: {
-        const atLimit = !canAddCustomField(data);
+        const atLimit = !canAddCustomField(data, household ?? { trialEndsAt: null });
         return (
           <>
             <Text style={{ fontSize: 30, fontWeight: '800', lineHeight: 34, color: text.primary }}>Custom fields</Text>

@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
+import { subscribeToMySitterGrants } from '../sitters/sitterService';
+import { firestore } from '../firebase/config';
+import { SitterAccessGrant } from '../types/sitterAccess';
 import { SignInScreen } from '../auth/SignInScreen';
 import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
@@ -13,6 +16,8 @@ import { EditEventScreen } from './EditEventScreen';
 import { DayDetailScreen } from './DayDetailScreen';
 import { AddVetScreen } from './AddVetScreen';
 import { EditVetScreen } from './EditVetScreen';
+import { InviteSitterScreen } from './InviteSitterScreen';
+import { SitterViewScreen } from './SitterViewScreen';
 import { ReminderRescheduler } from '../reminders/ReminderRescheduler';
 import { colors } from '../theme/theme';
 
@@ -21,6 +26,17 @@ const Stack = createNativeStackNavigator();
 export function RootNavigator() {
   const { user, initializing } = useAuth();
   const { household, loading: householdLoading } = useHousehold();
+  const [sitterGrants, setSitterGrants] = useState<SitterAccessGrant[]>([]);
+
+  useEffect(() => {
+    if (!user || household) {
+      setSitterGrants([]);
+      return;
+    }
+    return subscribeToMySitterGrants(firestore, user.uid, setSitterGrants);
+  }, [user, household]);
+
+  const activeSitterGrants = sitterGrants.filter((g) => !g.revoked && g.expiresAt > Date.now());
 
   if (initializing) return null;
   if (user && householdLoading) return null;
@@ -63,7 +79,14 @@ export function RootNavigator() {
               component={EditVetScreen}
               options={{ headerShown: true, title: 'Edit vet', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
             />
+            <Stack.Screen
+              name="InviteSitter"
+              component={InviteSitterScreen}
+              options={{ headerShown: true, title: 'Invite a sitter', headerStyle: { backgroundColor: colors.primary }, headerTintColor: '#FFFFFF' }}
+            />
           </>
+        ) : activeSitterGrants.length > 0 ? (
+          <Stack.Screen name="SitterView" component={SitterViewScreen} />
         ) : (
           <Stack.Screen name="HouseholdSetup" component={HouseholdSetupScreen} />
         )}

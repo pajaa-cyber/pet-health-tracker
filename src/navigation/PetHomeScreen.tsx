@@ -12,6 +12,7 @@ import { subscribeToDocuments } from '../documents/documentService';
 import { subscribeToPets, updatePetPhoto, updatePetColor, updatePet } from '../pets/petService';
 import { subscribeToVets } from '../vets/vetService';
 import { generatePassport } from '../documents/passportService';
+import { canGeneratePassport, passportLimitMessage } from '../limits/limits';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { firestore } from '../firebase/config';
 import { WeightLog } from '../types/weightLog';
@@ -153,6 +154,10 @@ export function PetHomeScreen({ route, navigation }: any) {
   };
 
   const handleGeneratePassport = async () => {
+    if (!household || !canGeneratePassport(household)) {
+      setPassportError(passportLimitMessage());
+      return;
+    }
     setGeneratingPassport(true);
     setPassportError(null);
     try {

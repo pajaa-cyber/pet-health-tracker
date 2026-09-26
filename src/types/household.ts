@@ -26,4 +26,9 @@ export interface Household {
   // absent on any household that existed before this field, and on a
   // brand-new household until its first document.
   documentsStorageBytes?: number;
+  // Sub-project A of Plan 9 ("Subscriptions and release"). Set once, together,
+  // by HouseholdContext's trial-start effect — never changed after. Optional:
+  // absent until that effect has run at least once for this household.
+  trialStartedAt?: number | null;
+  trialEndsAt?: number | null;
 }
