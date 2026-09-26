@@ -56,7 +56,7 @@ export function WeightTrendChart({
               }}
             />
             <Text style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5, color: labelColor, fontFamily: 'monospace' }}>
-              {new Date(log.date).toLocaleDateString(undefined, { month: 'short' })}
+              {new Date(log.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
             </Text>
           </Pressable>
         );
