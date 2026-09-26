@@ -241,6 +241,45 @@ passport is never stored as a `Document`; it's built and handed to the OS share
 sheet fresh each time, and truncates a long vaccination history to the 8 most
 recent (`MOST_RECENT_VACCINES_SHOWN`) so it stays one page.
 
+**Sitter access and trial (Plan 9 sub-project A).** Two new optional
+`Household` fields, `trialStartedAt`/`trialEndsAt`, auto-set by a
+`HouseholdContext` effect the first time any household (new or pre-existing)
+is seen with neither set — `limits.ts`'s per-feature caps
+(`canAddCustomField`/`canAddHouseholdMember`/`canAddDocumentPage`/
+`canGeneratePassport`/`canShareDocument`) all take a `household` parameter and
+return unlimited while `isSubscriptionActive(household)`. A sitter's read
+grant lives at `households/{householdId}/sitterAccess/{sitterUid}` — document
+ID == the sitter's own uid, so every rule check is a single known-path
+`get()`, no query needed (`isValidSitterForPet`/`isValidSitterForAnyPet` in
+`firestore.rules`). `sitterInviteCodes/{code} -> {householdId, petIds,
+expiresAt}` mirrors `inviteCodes`'s "resolve a shareable code via one
+`get()`" pattern; redeeming cross-checks the write against that exact
+document (`matchesSitterInviteCode`), the same "can't grant yourself more
+than the code allows" idiom `isJoining()` uses.
+
+**A nested `match` block never authorizes a `collectionGroup()` query, no
+matter what its `allow list` says.** `subscribeToMySitterGrants` (a sitter's
+own "which households granted me access" query, needed since a sitter's
+client has no other way to discover them) is a
+`collectionGroup(db, 'sitterAccess').where('sitterUid','==',uid)` query, and
+authorizing it took a **separate, dedicated recursive-wildcard match block**
+(`match /{path=**}/sitterAccess/{sitterUid}`) containing only the
+`sitterUid`-equality condition — the nested block's own `allow list`
+(`isHouseholdMember(householdId)`, for a household member's plain,
+non-collectionGroup listing of their own sitters) does not extend to it, and
+combining both conditions into one OR'd (or even split-into-two-statements)
+`allow list` line on the nested block does not work either, despite passing
+cleanly under the emulator — confirmed by deploying and testing against the
+real backend twice. A `COLLECTION_GROUP`-scoped index
+(`firestore.indexes.json`'s `fieldOverrides`) is additionally required for
+this field; single-field indexes default to per-collection scope only. The
+same reasoning applies to fetching a sitter's *granted pets*:
+`subscribeToSitterPets` (`petService.ts`) queries
+`where(documentId(),'in', grant.petIds)` rather than fetching the whole
+household's pets and filtering client-side — an unfiltered list's potential
+result set can't be proven safe for a non-member no matter how narrow the
+client-side filter afterward is.
+
 **Pet records.** `households/{householdId}/pets/{petId}`, with `vaccines/`,
 `medications/`, `vetVisits/`, `weightLogs/`, `expenses/` as subcollections of each
 pet. No untrusted-write path exists for any of them, so their rules blocks are a

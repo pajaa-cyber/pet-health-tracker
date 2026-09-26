@@ -126,6 +126,21 @@ Full build record and the eight device-found bugs:
 
 ---
 
+## Plan 9, sub-project A — "Sitter access + trial/limits wiring" — device-verified, merge pending
+
+Design spec `docs/superpowers/specs/2026-09-23-sitter-access-and-trial-design.md`,
+implementation plan `docs/superpowers/plans/2026-09-23-sitter-access-and-trial.md`.
+Two-day on-device pass, spanning 2026-09-24 and 2026-09-26 (an interrupting
+gap needed the phone reconnected and Metro restarted), found and fixed three
+real bugs no code review or emulator test suite run had caught — a stale
+deployed ruleset, a structurally-unauthorizable `collectionGroup()` query,
+and an unfiltered pets list for the sitter view — full account in
+[`2026-09-24-sitter-redemption-device-verification.md`](./2026-09-24-sitter-redemption-device-verification.md).
+Redemption, revoke, and expiry are all confirmed working end-to-end against
+real production Firestore.
+
+---
+
 ## Bolt-connected purple theme — merged and verified on-device, 2026-09-15
 
 After Plan 6 merged, the owner connected this GitHub repo to Bolt (bolt.new),

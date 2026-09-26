@@ -109,12 +109,22 @@ three fixes are committed to `sitter-access-and-trial`
 kept rather than rewritten since it was already pushed) and deployed to
 `pet-tracker-app-63512`.
 
-**Not yet done:** the plan's checklist also calls for confirming revoke and
-expiry actually cut off a sitter's access — not yet tested this session.
-Task 9 Step 4's remaining docs (this file, a `plan-log.md` line, a
-`CLAUDE.md` architecture paragraph) should be finished once that's done, not
-before, per this project's own rule about writing durable docs once, when a
-plan is actually complete.
+**Revoke and expiry — confirmed 2026-09-26.** Revoking
+`sittertest2.pethealthtracker@gmail.com`'s grant from the Household screen
+took effect immediately: that account's next launch routed to "Set up your
+household" instead of `SitterViewScreen`, zero errors. Expiry was **not**
+tested by waiting on the device — `InviteSitterScreen`'s `DateField` is
+day-granularity only (the invite code in use expires 2026-09-30, days away),
+and more importantly, the security-relevant check is server-side
+(`grant.expiresAt > request.time.toMillis()`, evaluated against Firestore's
+own clock, not the device's), so a device-clock-based test would exercise
+nothing a rules-level test doesn't already cover. That coverage already
+exists and passes: `'denies an expired sitter'`
+(`__tests__/firestore.rules.test.ts:906`) seeds a grant with
+`expiresAt: Date.now() - 1000` and asserts the read is denied — the same
+comparison construct as the one Task 9's first pass had to fix with
+`.toMillis()` in the first place. Both checklist items are done; nothing
+else is pending before Task 9 Step 4's docs and merge.
 
 ## Housekeeping this session left behind
 
