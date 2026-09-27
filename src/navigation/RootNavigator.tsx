@@ -9,6 +9,7 @@ import { SitterAccessGrant } from '../types/sitterAccess';
 import { SignInScreen } from '../auth/SignInScreen';
 import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
+import { WeightUnitSetupScreen } from './WeightUnitSetupScreen';
 import { MainTabs } from './MainTabs';
 import { ReminderSettingsScreen } from './ReminderSettingsScreen';
 import { AddEventScreen } from './AddEventScreen';
@@ -50,6 +51,8 @@ export function RootNavigator() {
             <Stack.Screen name="SignIn" component={SignInScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
           </>
+        ) : household && !household.weightUnit ? (
+          <Stack.Screen name="WeightUnitSetup" component={WeightUnitSetupScreen} />
         ) : household ? (
           <>
             <Stack.Screen name="Main" component={MainTabs} />

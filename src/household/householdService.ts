@@ -298,3 +298,11 @@ export async function startTrialIfNeeded(
     trialEndsAt: now + TRIAL_LENGTH_MS,
   });
 }
+
+export async function setWeightUnit(
+  db: Firestore,
+  householdId: string,
+  weightUnit: 'kg' | 'lb'
+): Promise<void> {
+  await updateDoc(doc(db, 'households', householdId), { weightUnit });
+}

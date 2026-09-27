@@ -18,6 +18,7 @@ import { Medication } from '../types/medication';
 import { VetVisit } from '../types/vetVisit';
 import { WeightLog } from '../types/weightLog';
 import { Expense } from '../types/expense';
+import { kgToDisplay, unitLabel } from '../pets/units';
 import { ScreenContainer, Button, PetSelector } from '../components/ui';
 import { shell, text, accentLavender, spacing, radii } from '../theme/theme';
 import { petColor, onPetColorInk } from '../theme/petColors';
@@ -74,7 +75,9 @@ function PetCard({ pet, navigation, nextDue }: { pet: Pet; navigation: any; next
   }, [anim]);
 
   const recordsCount = vaccines.length + medications.length + vetVisits.length;
-  const latestWeight = [...weightLogs].sort((a, b) => b.date - a.date)[0]?.weight ?? null;
+  const weightUnit = household?.weightUnit ?? 'kg';
+  const latestWeightKg = [...weightLogs].sort((a, b) => b.date - a.date)[0]?.weight ?? null;
+  const latestWeight = latestWeightKg != null ? kgToDisplay(latestWeightKg, weightUnit) : null;
   const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
   const yearSpendCents = expenses.filter((e) => e.date >= yearStart).reduce((sum, e) => sum + e.amountCents, 0);
 
@@ -128,7 +131,7 @@ function PetCard({ pet, navigation, nextDue }: { pet: Pet; navigation: any; next
           </View>
           <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
             <View style={{ flex: 1, borderRadius: 14, backgroundColor: shell.onColour, paddingVertical: 9, paddingHorizontal: 11, gap: 2 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{latestWeight != null ? `${latestWeight} kg` : '—'}</Text>
+              <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{latestWeight != null ? `${latestWeight.toFixed(1)} ${unitLabel(weightUnit)}` : '—'}</Text>
               <Text style={{ fontSize: 9, fontWeight: '800', letterSpacing: 1.3, textTransform: 'uppercase', color: 'rgba(255,255,255,0.8)' }}>Weight</Text>
             </View>
             <View style={{ flex: 1, borderRadius: 14, backgroundColor: shell.onColour, paddingVertical: 9, paddingHorizontal: 11, gap: 2 }}>

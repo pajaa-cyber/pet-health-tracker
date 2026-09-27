@@ -8,8 +8,8 @@ interface GuidedEmptyStateProps {
   emoji: string;
   title: string;
   message: string;
-  actionLabel: string;
-  onAction: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
   variant?: 'light' | 'dark';
 }
 
@@ -29,7 +29,7 @@ export function GuidedEmptyState({ emoji, title, message, actionLabel, onAction,
       ) : (
         <MutedText style={{ textAlign: 'center' }}>{message}</MutedText>
       )}
-      <Button title={actionLabel} onPress={onAction} />
+      {actionLabel && onAction && <Button title={actionLabel} onPress={onAction} />}
     </View>
   );
 

@@ -31,4 +31,8 @@ export interface Household {
   // absent until that effect has run at least once for this household.
   trialStartedAt?: number | null;
   trialEndsAt?: number | null;
+  // Chosen once via WeightUnitSetupScreen, gated in RootNavigator until set.
+  // WeightLog.weight itself is always stored in kilograms — this only
+  // controls what unit the UI displays/accepts (see src/pets/units.ts).
+  weightUnit?: 'kg' | 'lb';
 }

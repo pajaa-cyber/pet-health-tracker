@@ -28,6 +28,7 @@ import { ScreenContainer, AvatarPicker, Button, ErrorText } from '../components/
 import { shell, text, spacing, colors, radii } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
+import { kgToDisplay, unitLabel } from '../pets/units';
 
 interface SectionTile {
   key: string;
@@ -298,10 +299,12 @@ export function PetHomeScreen({ route, navigation }: any) {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
             <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>Weight trend</Text>
             <Text style={{ fontSize: 13, fontWeight: '700', color }}>
-              {weightLogs.length > 0 ? `${[...weightLogs].sort((a, b) => b.date - a.date)[0].weight} kg` : 'No entries yet'}
+              {weightLogs.length > 0
+                ? `${kgToDisplay([...weightLogs].sort((a, b) => b.date - a.date)[0].weight, household?.weightUnit ?? 'kg').toFixed(1)} ${unitLabel(household?.weightUnit ?? 'kg')}`
+                : 'No entries yet'}
             </Text>
           </View>
-          <WeightTrendChart logs={weightLogs} color={color} />
+          <WeightTrendChart logs={weightLogs} color={color} unit={household?.weightUnit ?? 'kg'} />
         </View>
 
         <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
