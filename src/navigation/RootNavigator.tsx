@@ -10,6 +10,7 @@ import { SignInScreen } from '../auth/SignInScreen';
 import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
 import { WeightUnitSetupScreen } from './WeightUnitSetupScreen';
+import { SettingsScreen } from './SettingsScreen';
 import { MainTabs } from './MainTabs';
 import { ReminderSettingsScreen } from './ReminderSettingsScreen';
 import { AddEventScreen } from './AddEventScreen';
@@ -56,6 +57,7 @@ export function RootNavigator() {
         ) : household ? (
           <>
             <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen
               name="ReminderSettings"
               component={ReminderSettingsScreen}

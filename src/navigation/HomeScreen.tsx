@@ -197,9 +197,14 @@ export function HomeScreen({ navigation }: any) {
           )}
           <Text style={{ fontSize: 27, fontWeight: '800', color: text.primary, lineHeight: 30 }}>Hey {displayName} 👋</Text>
         </View>
-        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable
+          onPress={() => navigation.navigate('Settings')}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' }}
+        >
           <Text style={{ fontSize: 15, fontWeight: '800', color: '#FFFFFF' }}>{initial}</Text>
-        </View>
+        </Pressable>
       </View>
 
       {pets.length > 0 && <PetSelector pets={pets} variant="dark" />}
