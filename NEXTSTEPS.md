@@ -63,6 +63,9 @@ pass, all committed to `master` directly:**
   `WeightLogScreen`, unit-aware display everywhere a weight shows, and a
   delete button on `WeightTrendChart`'s selected bar. Full detail in
   `CLAUDE.md`'s Pet records section.
+- **New `SettingsScreen`**, reachable via `HomeScreen`'s header avatar
+  (previously decorative) — Sign out (confirmed) and a Reminder settings
+  link. Closes open gap #18 below.
 
 ## Done and merged
 
@@ -156,11 +159,9 @@ Deliberately parked, roughly by weight.
     briefly shows a raw `[firestore/permission-denied]` string, even though
     the first request already succeeded. Same class as #4 above. Found during
     Plan 7's device pass.
-18. **No in-app sign-out UI anywhere** — `AuthContext.tsx`'s `signOut()` works
-    but nothing in the UI calls it. Found during Plan 9 sub-project A's
-    on-device pass, when testing a second (sitter) account required
-    `adb shell pm clear` on the test device instead. Worth adding a real
-    "Sign out" button next time any settings-ish screen is touched.
+18. ~~No in-app sign-out UI anywhere~~ — fixed 2026-09-27: `HomeScreen`'s
+    header avatar now opens a new `SettingsScreen` with a confirmed
+    Sign out button and a Reminder settings link.
 
 ## Housekeeping in the live Firestore project
 
