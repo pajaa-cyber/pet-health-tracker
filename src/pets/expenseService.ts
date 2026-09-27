@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   setDoc,
+  deleteDoc,
   onSnapshot,
   type Firestore,
   type Unsubscribe,
@@ -39,4 +40,13 @@ export function subscribeToExpenses(
       callback([]);
     }
   );
+}
+
+export async function deleteExpense(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  expenseId: string
+): Promise<void> {
+  await deleteDoc(doc(db, 'households', householdId, 'pets', petId, 'expenses', expenseId));
 }

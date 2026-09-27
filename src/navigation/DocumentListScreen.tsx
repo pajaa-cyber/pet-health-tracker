@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, View, Text, Image, Pressable } from 'react-native';
+import { FlatList, View, Text, Image, Pressable, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToDocuments, subscribeToDocumentPages, reconcileDocumentsStorageBytes } from '../documents/documentService';
+import { subscribeToDocuments, subscribeToDocumentPages, reconcileDocumentsStorageBytes, deleteDocument } from '../documents/documentService';
 import { subscribeToPets } from '../pets/petService';
 import { canShareDocument, shareDocumentLimitMessage } from '../limits/limits';
 import { firestore } from '../firebase/config';
@@ -9,7 +10,7 @@ import { Document } from '../types/document';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
 import { ScreenContainer, RecordListHeader, DashedAddButton, GuidedEmptyState, ErrorText } from '../components/ui';
-import { shell, text, spacing } from '../theme/theme';
+import { shell, text, colors, spacing } from '../theme/theme';
 
 // Well under the Spark plan's real 1 GiB total-storage ceiling, to leave
 // headroom for the rest of the project's Firestore usage.
@@ -40,6 +41,14 @@ export function DocumentListScreen({ route, navigation }: any) {
 
   const rail = pet ? petColor(pet) : shell.control;
   const showStorageWarning = (household?.documentsStorageBytes ?? 0) > STORAGE_WARNING_THRESHOLD_BYTES;
+
+  const handleDelete = (item: Document) => {
+    if (!household) return;
+    Alert.alert('Delete this document?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteDocument(firestore, household.id, item.id) },
+    ]);
+  };
 
   return (
     <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
@@ -89,6 +98,15 @@ export function DocumentListScreen({ route, navigation }: any) {
               style={{ padding: 14, justifyContent: 'center' }}
             >
               <Text style={{ fontSize: 18 }}>↗️</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleDelete(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${item.title}`}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ paddingHorizontal: 14, justifyContent: 'center' }}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
             </Pressable>
           </View>
         )}

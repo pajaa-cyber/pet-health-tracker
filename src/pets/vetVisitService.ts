@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   type Firestore,
   type Unsubscribe,
@@ -50,4 +51,13 @@ export async function updateVetVisit(
   updates: Partial<VetVisit>
 ): Promise<void> {
   await updateDoc(doc(db, 'households', householdId, 'pets', petId, 'vetVisits', visitId), updates);
+}
+
+export async function deleteVetVisit(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  visitId: string
+): Promise<void> {
+  await deleteDoc(doc(db, 'households', householdId, 'pets', petId, 'vetVisits', visitId));
 }

@@ -70,6 +70,19 @@ export async function reconcileDocumentsStorageBytes(db: Firestore, householdId:
   await updateDoc(doc(db, 'households', householdId), { documentsStorageBytes: totalBytes });
 }
 
+// All-delete()s batch for the parent + every page (same homogeneous-batch
+// rule as createDocument's all-set()s batch — never mix delete() with
+// update() in one writeBatch), then reconcileDocumentsStorageBytes recomputes
+// the freed total rather than duplicating the byte math here.
+export async function deleteDocument(db: Firestore, householdId: string, documentId: string): Promise<void> {
+  const pagesSnap = await getDocs(collection(db, 'households', householdId, 'documents', documentId, 'pages'));
+  const batch = writeBatch(db);
+  pagesSnap.docs.forEach((pageDoc) => batch.delete(pageDoc.ref));
+  batch.delete(doc(db, 'households', householdId, 'documents', documentId));
+  await batch.commit();
+  await reconcileDocumentsStorageBytes(db, householdId);
+}
+
 export function subscribeToDocuments(
   db: Firestore,
   householdId: string,

@@ -3,6 +3,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   arrayUnion,
   type Firestore,
@@ -68,4 +69,13 @@ export async function skipMedicationDose(
     doc(db, 'households', householdId, 'pets', petId, 'medications', medicationId),
     { log: arrayUnion({ givenBy: skippedBy, givenAt: Date.now(), skipped: true }) }
   );
+}
+
+export async function deleteMedication(
+  db: Firestore,
+  householdId: string,
+  petId: string,
+  medicationId: string
+): Promise<void> {
+  await deleteDoc(doc(db, 'households', householdId, 'pets', petId, 'medications', medicationId));
 }

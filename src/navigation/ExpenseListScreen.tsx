@@ -1,14 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, FlatList, Text } from 'react-native';
+import { View, FlatList, Text, Pressable, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToExpenses } from '../pets/expenseService';
+import { subscribeToExpenses, deleteExpense } from '../pets/expenseService';
 import { subscribeToPets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { Expense, ExpenseCategory } from '../types/expense';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
 import { ScreenContainer, RecordListHeader, DashedAddButton, Chip } from '../components/ui';
-import { shell, text, spacing } from '../theme/theme';
+import { shell, text, colors, spacing } from '../theme/theme';
 
 const CATEGORIES: (ExpenseCategory | 'all')[] = ['all', 'food', 'vet', 'grooming', 'insurance', 'supplies', 'other'];
 
@@ -36,6 +37,14 @@ export function ExpenseListScreen({ route, navigation }: any) {
   );
   const totalCents = useMemo(() => filtered.reduce((sum, e) => sum + e.amountCents, 0), [filtered]);
   const rail = pet ? petColor(pet) : shell.control;
+
+  const handleDelete = (expense: Expense) => {
+    if (!household) return;
+    Alert.alert('Delete this expense?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteExpense(firestore, household.id, petId, expense.id) },
+    ]);
+  };
 
   return (
     <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
@@ -81,6 +90,15 @@ export function ExpenseListScreen({ route, navigation }: any) {
                 ${(item.amountCents / 100).toFixed(2)}
               </Text>
             </View>
+            <Pressable
+              onPress={() => handleDelete(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${item.category} expense`}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </Pressable>
           </View>
         )}
         ListEmptyComponent={

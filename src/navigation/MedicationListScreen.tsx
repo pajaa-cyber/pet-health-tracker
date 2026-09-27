@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, View, Text } from 'react-native';
+import { FlatList, View, Text, Pressable, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToMedications, logMedicationDose, skipMedicationDose } from '../pets/medicationService';
+import { subscribeToMedications, logMedicationDose, skipMedicationDose, deleteMedication } from '../pets/medicationService';
 import { subscribeToPets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { Medication } from '../types/medication';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
 import { ScreenContainer, RecordListHeader, DashedAddButton, Button, ErrorText } from '../components/ui';
-import { shell, text, spacing } from '../theme/theme';
+import { shell, text, colors, spacing } from '../theme/theme';
 
 export function MedicationListScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -55,6 +56,14 @@ export function MedicationListScreen({ route, navigation }: any) {
 
   const rail = pet ? petColor(pet) : shell.control;
 
+  const handleDelete = (medication: Medication) => {
+    if (!household) return;
+    Alert.alert('Delete this medication?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteMedication(firestore, household.id, petId, medication.id) },
+    ]);
+  };
+
   return (
     <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
       <RecordListHeader
@@ -77,7 +86,17 @@ export function MedicationListScreen({ route, navigation }: any) {
             <View style={{ flexDirection: 'row', borderRadius: 18, backgroundColor: shell.card, overflow: 'hidden' }}>
               <View style={{ width: 6, backgroundColor: rail }} />
               <View style={{ flex: 1, padding: 14, gap: spacing.xs }}>
-                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{item.name} — {item.dosage}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ flex: 1, fontSize: 15, fontWeight: '800', color: text.primary }}>{item.name} — {item.dosage}</Text>
+                  <Pressable
+                    onPress={() => handleDelete(item)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Delete ${item.name}`}
+                    hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color={colors.danger} />
+                  </Pressable>
+                </View>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>
                   {item.schedule.timesPerDay}x/day, every {item.schedule.intervalDays}d
                 </Text>

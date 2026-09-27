@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { FlatList, View, Text } from 'react-native';
+import { FlatList, View, Text, Pressable, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToVetVisits } from '../pets/vetVisitService';
+import { subscribeToVetVisits, deleteVetVisit } from '../pets/vetVisitService';
 import { subscribeToPets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { VetVisit } from '../types/vetVisit';
 import { Pet } from '../types/pet';
 import { petColor } from '../theme/petColors';
 import { ScreenContainer, RecordListHeader, DashedAddButton } from '../components/ui';
-import { shell, text, spacing } from '../theme/theme';
+import { shell, text, colors, spacing } from '../theme/theme';
 
 export function VetVisitListScreen({ route, navigation }: any) {
   const { petId } = route.params;
@@ -28,6 +29,14 @@ export function VetVisitListScreen({ route, navigation }: any) {
   }, [household]);
 
   const rail = pet ? petColor(pet) : shell.control;
+
+  const handleDelete = (visit: VetVisit) => {
+    if (!household) return;
+    Alert.alert('Delete this vet visit?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteVetVisit(firestore, household.id, petId, visit.id) },
+    ]);
+  };
 
   return (
     <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
@@ -52,6 +61,15 @@ export function VetVisitListScreen({ route, navigation }: any) {
                 <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{item.notes}</Text>
               ) : null}
             </View>
+            <Pressable
+              onPress={() => handleDelete(item)}
+              accessibilityRole="button"
+              accessibilityLabel={`Delete ${item.reason}`}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={{ paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.danger} />
+            </Pressable>
           </View>
         )}
         ListEmptyComponent={
