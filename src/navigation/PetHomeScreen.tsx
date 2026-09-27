@@ -211,21 +211,25 @@ export function PetHomeScreen({ route, navigation }: any) {
         <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             <View style={{ width: 26 }} />
-            {/* A same-colour ring would be invisible here — this header's own
-                background already is `color` — so this stays a plain white
-                ring; the pet-colour ring itself lives on HomeScreen's list
-                card, where the background isn't already that colour. */}
+            {/* White outer separator, then the colour ring, then the avatar
+                (its own translucent-white background is the inner separator)
+                — same technique as HomeScreen's list card, needed here too
+                since this header's own background already IS `color`; a
+                ring in that colour with no white gap on either side would
+                otherwise disappear into it entirely. */}
             <View style={{ padding: 3, borderRadius: 999, backgroundColor: '#FFFFFF' }}>
-              <AvatarPicker
-                photoUri={pet.photoUrl}
-                onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
-                size={82}
-                emojiSize={40}
-                fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
-                backgroundColor="rgba(255,255,255,0.30)"
-                borderWidth={0}
-                caption="none"
-              />
+              <View style={{ padding: 3, borderRadius: 999, backgroundColor: color }}>
+                <AvatarPicker
+                  photoUri={pet.photoUrl}
+                  onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
+                  size={82}
+                  emojiSize={40}
+                  fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
+                  backgroundColor="rgba(255,255,255,0.30)"
+                  borderWidth={0}
+                  caption="none"
+                />
+              </View>
             </View>
             <Pressable
               onPress={() => setColorPickerOpen(true)}

@@ -77,8 +77,15 @@ export function PetSelector({ pets, variant = 'light' }: PetSelectorProps) {
                 backgroundColor: dark
                   ? (selected ? petColor(pet) : 'rgba(255,255,255,0.08)')
                   : colors.surfaceTint,
-                borderWidth: dark ? (selected ? 3 : 0) : 3,
-                borderColor: dark ? 'rgba(255,255,255,0.85)' : (selected ? petColor(pet) : 'transparent'),
+                // Dark variant always shows this pet's identity-colour ring —
+                // white when selected (for contrast against the now-coloured
+                // fill), the colour itself otherwise (against the plain
+                // translucent fill, which isn't that colour, so it reads fine
+                // with no extra separator needed).
+                borderWidth: 3,
+                borderColor: dark
+                  ? (selected ? 'rgba(255,255,255,0.85)' : petColor(pet))
+                  : (selected ? petColor(pet) : 'transparent'),
               }}
             >
               {pet.photoUrl ? (
