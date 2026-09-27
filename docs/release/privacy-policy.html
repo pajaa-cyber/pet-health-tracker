@@ -1,0 +1,180 @@
+<title>Privacy Policy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF8; --surface:#FFFFFF; --ink:#211D2E; --muted:#6B6478;
+    --accent:#7C3AED; --accent-soft:#F1E9FE; --border:#E7E2ED;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#161320; --surface:#1D1929; --ink:#F0ECF7; --muted:#A79FBA;
+      --accent:#B79CFB; --accent-soft:#2B2340; --border:#2E2740;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#161320; --surface:#1D1929; --ink:#F0ECF7; --muted:#A79FBA;
+    --accent:#B79CFB; --accent-soft:#2B2340; --border:#2E2740;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink); margin:0;
+    font-family:"Source Sans 3","Inter",system-ui,-apple-system,sans-serif;
+    font-size:16px; line-height:1.65;
+  }
+  h1,h2{ font-family:"Lora",Georgia,"Times New Roman",serif; }
+
+  .topbar{
+    position:sticky; top:env(safe-area-inset-top,0px);
+    background:color-mix(in srgb, var(--surface) 92%, transparent);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    padding:14px 20px; display:flex; align-items:center; gap:12px;
+    justify-content:space-between; z-index:10;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; font-weight:600; }
+  .brand .mark{
+    width:28px; height:28px; border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),#F97316);
+    flex:none;
+  }
+  .updated{
+    font-size:12px; color:var(--muted); background:var(--accent-soft);
+    padding:4px 10px; border-radius:999px; white-space:nowrap;
+  }
+
+  main{ max-width:680px; margin:0 auto; padding:48px 20px 80px; }
+
+  h1.title{ font-size:2.1rem; margin:0 0 6px; letter-spacing:-0.01em; text-wrap:balance; }
+  .subtitle{ color:var(--muted); margin:0 0 40px; font-size:1.05rem; }
+
+  nav.toc{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:18px 22px; margin-bottom:44px;
+  }
+  nav.toc .label{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.08em;
+    color:var(--muted); font-weight:700; margin-bottom:10px; display:block;
+  }
+  nav.toc ol{ margin:0; padding-left:1.2em; columns:2; column-gap:24px; }
+  nav.toc li{ margin-bottom:6px; break-inside:avoid; }
+  nav.toc a{ color:var(--ink); text-decoration:none; font-size:0.94rem; }
+  nav.toc a:hover{ color:var(--accent); }
+
+  section{ margin-bottom:38px; scroll-margin-top:90px; }
+  h2{
+    font-size:1.3rem; margin:0 0 14px; padding-left:14px;
+    border-left:3px solid var(--accent);
+  }
+  p{ margin:0 0 14px; }
+  ul{ margin:0 0 14px; padding-left:1.3em; }
+  li{ margin-bottom:8px; }
+  strong{ font-weight:700; }
+
+  .callout{
+    background:var(--accent-soft); border-radius:12px; padding:16px 20px;
+    font-size:0.95rem;
+  }
+  .callout p:last-child{ margin-bottom:0; }
+
+  footer{
+    border-top:1px solid var(--border); padding:28px 20px 60px;
+    max-width:680px; margin:0 auto; color:var(--muted); font-size:0.9rem;
+  }
+  footer a{ color:var(--accent); }
+
+  @media (max-width:480px){
+    nav.toc ol{ columns:1; }
+    h1.title{ font-size:1.7rem; }
+  }
+</style>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark"></div>
+    Pet Health Tracker
+  </div>
+  <div class="updated">Updated Sep 27, 2026</div>
+</div>
+
+<main>
+  <h1 class="title">Privacy Policy</h1>
+  <p class="subtitle">What Pet Health Tracker collects, why, and how your household's data is kept.</p>
+
+  <nav class="toc">
+    <span class="label">On this page</span>
+    <ol>
+      <li><a href="#what-it-is">What this app is</a></li>
+      <li><a href="#collect">What we collect</a></li>
+      <li><a href="#dont">What we don't do</a></li>
+      <li><a href="#storage">Where data is stored</a></li>
+      <li><a href="#who">Who can see it</a></li>
+      <li><a href="#retention">How long we keep it</a></li>
+      <li><a href="#children">Children's privacy</a></li>
+      <li><a href="#changes">Changes to this policy</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ol>
+  </nav>
+
+  <section id="what-it-is">
+    <h2>What this app is</h2>
+    <p>Pet Health Tracker helps a household track their pets' vaccines, medications, vet visits, weight, expenses, and documents, shared in real time between household members you invite.</p>
+  </section>
+
+  <section id="collect">
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Account info:</strong> the email address you sign up with (via Firebase Authentication). We never see or store your password directly.</li>
+      <li><strong>Pet and household data you enter:</strong> pet profiles and photos, vaccines, medications, vet visits, weight logs, expenses, documents, and household member/invite information. Photos are stored as part of this data, not in a separate media service.</li>
+      <li><strong>Sitter access:</strong> if you invite a pet sitter, we store a time-limited grant recording which pets they can view and when that access expires.</li>
+    </ul>
+    <p>We do not collect location data, device identifiers for advertising, or any data beyond what you and your household members enter into the app.</p>
+  </section>
+
+  <section id="dont">
+    <h2>What we don't do</h2>
+    <ul>
+      <li>No ads, and no ad-tracking SDKs of any kind.</li>
+      <li>No analytics or crash-reporting service &mdash; the app doesn't include one.</li>
+      <li>We never sell or share your data with third parties for marketing.</li>
+    </ul>
+  </section>
+
+  <section id="storage">
+    <h2>Where your data is stored</h2>
+    <p>All data is stored in Google Firebase (Cloud Firestore and Firebase Authentication), Google's cloud infrastructure. We do not run our own servers.</p>
+  </section>
+
+  <section id="who">
+    <h2>Who can see your data</h2>
+    <p>Only members of your household (and any sitter you've explicitly and temporarily granted access to) can see your pets' data. Household membership is invite-only.</p>
+  </section>
+
+  <section id="retention">
+    <h2>How long we keep it</h2>
+    <p>Your data is kept as long as your account and household exist. There is currently no self-service account deletion in the app; contact us below to request deletion of your account and associated data.</p>
+  </section>
+
+  <section id="children">
+    <h2>Children's privacy</h2>
+    <p>This app is not directed at children and is not intended to knowingly collect data from children under 13.</p>
+  </section>
+
+  <section id="changes">
+    <h2>Changes to this policy</h2>
+    <p>If this policy changes, the "Updated" date at the top of this page will change accordingly.</p>
+  </section>
+
+  <section id="contact">
+    <h2>Contact</h2>
+    <div class="callout">
+      <p>Questions about this policy or your data: <strong>mpajevic7@gmail.com</strong></p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Pet Health Tracker — this policy covers the app only, not any third-party service you use separately.
+</footer>
