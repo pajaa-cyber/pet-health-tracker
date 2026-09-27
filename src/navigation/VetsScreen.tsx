@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FlatList, View, Linking, Alert, Pressable } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
-import { subscribeToVets } from '../vets/vetService';
+import { subscribeToVets, deleteVet } from '../vets/vetService';
 import { firestore } from '../firebase/config';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { petColor } from '../theme/petColors';
@@ -20,20 +20,30 @@ function openMaps(address: string) {
   );
 }
 
+// No location permission needed here — the Google Maps app itself asks for
+// (and uses) the device's current location once it opens this search, same
+// as typing the query into Maps directly would.
+function findNearestVet() {
+  const url = 'https://www.google.com/maps/search/?api=1&query=emergency+veterinarian';
+  Linking.openURL(url).catch(() =>
+    Alert.alert('Could not open Maps', 'Check your connection and try again.')
+  );
+}
+
 function callPhone(phone: string) {
   Linking.openURL(`tel:${phone}`).catch(() =>
     Alert.alert('Could not start a call', 'Check the phone number and try again.')
   );
 }
 
-function VetCard({ vet, pets, navigation }: { vet: Vet; pets: Pet[]; navigation: any }) {
+function VetCard({ vet, pets, navigation, onDelete }: { vet: Vet; pets: Pet[]; navigation: any; onDelete: (vet: Vet) => void }) {
   const vetPets = pets.filter((p) => vet.petIds.includes(p.id));
   return (
     <Card style={{ gap: spacing.xs }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Subtitle>{vet.clinicName}</Subtitle>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 4 }}>
+        <Subtitle style={{ flexShrink: 1, flexBasis: '60%' }}>{vet.clinicName}</Subtitle>
         {vet.isEmergency24h && (
-          <View style={{ backgroundColor: colors.danger, borderRadius: radii.pill, paddingVertical: 2, paddingHorizontal: spacing.sm }}>
+          <View style={{ backgroundColor: colors.danger, borderRadius: radii.pill, paddingVertical: 2, paddingHorizontal: spacing.sm, flexShrink: 0 }}>
             <MutedText style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 12 }}>24h emergency</MutedText>
           </View>
         )}
@@ -62,7 +72,22 @@ function VetCard({ vet, pets, navigation }: { vet: Vet; pets: Pet[]; navigation:
           ))}
         </View>
       )}
-      <Button title="Edit" variant="outline" onPress={() => navigation.navigate('EditVet', { vetId: vet.id })} />
+      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+        <Button
+          title="Edit"
+          variant="outline"
+          style={{ flex: 1 }}
+          onPress={() => navigation.navigate('EditVet', { vetId: vet.id })}
+        />
+        <Button
+          title="Delete"
+          variant="outline"
+          borderColor={colors.danger}
+          textColor={colors.danger}
+          style={{ flex: 1 }}
+          onPress={() => onDelete(vet)}
+        />
+      </View>
     </Card>
   );
 }
@@ -85,9 +110,23 @@ export function VetsScreen({ navigation }: any) {
 
   const filteredVets = vets.filter((v) => selectedPetId === 'all' || v.petIds.includes(selectedPetId));
 
+  const handleDelete = (vet: Vet) => {
+    if (!household) return;
+    Alert.alert('Delete this vet?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteVet(firestore, household.id, vet.id) },
+    ]);
+  };
+
   return (
     <ScreenContainer style={{ flex: 1 }}>
       <Title>Vets</Title>
+      <Button
+        title="🚨 Find nearest vet (emergency)"
+        bg={colors.danger}
+        textColor="#FFFFFF"
+        onPress={findNearestVet}
+      />
       <PetSelector pets={pets} />
       <Button title="Add a vet" onPress={() => navigation.navigate('AddVet')} />
       <FlatList
@@ -95,7 +134,7 @@ export function VetsScreen({ navigation }: any) {
         data={filteredVets}
         keyExtractor={(v) => v.id}
         contentContainerStyle={{ gap: spacing.sm, paddingTop: spacing.sm }}
-        renderItem={({ item }) => <VetCard vet={item} pets={pets} navigation={navigation} />}
+        renderItem={({ item }) => <VetCard vet={item} pets={pets} navigation={navigation} onDelete={handleDelete} />}
         ListEmptyComponent={
           <GuidedEmptyState
             emoji="🩺"
