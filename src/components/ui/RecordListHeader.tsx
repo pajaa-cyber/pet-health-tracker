@@ -5,7 +5,7 @@ import { shell, text, spacing } from '../../theme/theme';
 
 interface RecordListHeaderProps {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   onBack: () => void;
 }
 
@@ -29,7 +29,7 @@ export function RecordListHeader({ title, subtitle, onBack }: RecordListHeaderPr
       </Pressable>
       <View style={styles.titles}>
         <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>{subtitle}</Text>
+        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
     </View>
   );

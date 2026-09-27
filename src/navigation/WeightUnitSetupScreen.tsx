@@ -20,7 +20,7 @@ export function WeightUnitSetupScreen() {
     <ScreenContainer style={{ justifyContent: 'center', flexGrow: 1 }}>
       <Title style={{ marginBottom: spacing.sm }}>Kilograms or pounds?</Title>
       <MutedText style={{ marginBottom: spacing.md }}>
-        Choose how weight is shown throughout the app. You can't change this later.
+        Choose how weight is shown throughout the app. You can change this later in Settings.
       </MutedText>
       <Button title="Kilograms (kg)" onPress={() => choose('kg')} loading={saving === 'kg'} disabled={saving !== null} />
       <Button

@@ -11,6 +11,9 @@ import { SignUpScreen } from '../auth/SignUpScreen';
 import { HouseholdSetupScreen } from './HouseholdSetupScreen';
 import { WeightUnitSetupScreen } from './WeightUnitSetupScreen';
 import { SettingsScreen } from './SettingsScreen';
+import { ProfileScreen } from './ProfileScreen';
+import { PreferencesScreen } from './PreferencesScreen';
+import { SubscriptionsScreen } from './SubscriptionsScreen';
 import { MainTabs } from './MainTabs';
 import { ReminderSettingsScreen } from './ReminderSettingsScreen';
 import { AddEventScreen } from './AddEventScreen';
@@ -58,6 +61,9 @@ export function RootNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
+            <Stack.Screen name="Preferences" component={PreferencesScreen} />
+            <Stack.Screen name="Subscriptions" component={SubscriptionsScreen} />
             <Stack.Screen
               name="ReminderSettings"
               component={ReminderSettingsScreen}
