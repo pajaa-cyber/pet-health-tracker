@@ -103,7 +103,7 @@ function PetCard({ pet, navigation, nextDue }: { pet: Pet; navigation: any; next
             {SPECIES_EMOJI[pet.species] ?? '🐾'}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: shell.onColour, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: shell.onColour, alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderWidth: 2.5, borderColor: color }}>
               {pet.photoUrl ? (
                 <Image source={{ uri: pet.photoUrl }} style={{ width: 56, height: 56 }} resizeMode="cover" />
               ) : (

@@ -211,16 +211,22 @@ export function PetHomeScreen({ route, navigation }: any) {
         <View style={{ alignItems: 'center', gap: spacing.xs, marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             <View style={{ width: 26 }} />
-            <AvatarPicker
-              photoUri={pet.photoUrl}
-              onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
-              size={82}
-              emojiSize={40}
-              fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
-              backgroundColor="rgba(255,255,255,0.30)"
-              borderWidth={0}
-              caption="none"
-            />
+            {/* A same-colour ring would be invisible here — this header's own
+                background already is `color` — so this stays a plain white
+                ring; the pet-colour ring itself lives on HomeScreen's list
+                card, where the background isn't already that colour. */}
+            <View style={{ padding: 3, borderRadius: 999, backgroundColor: '#FFFFFF' }}>
+              <AvatarPicker
+                photoUri={pet.photoUrl}
+                onPicked={(uri) => updatePetPhoto(firestore, household.id, petId, uri)}
+                size={82}
+                emojiSize={40}
+                fallbackEmoji={SPECIES_EMOJI[pet.species] ?? '🐾'}
+                backgroundColor="rgba(255,255,255,0.30)"
+                borderWidth={0}
+                caption="none"
+              />
+            </View>
             <Pressable
               onPress={() => setColorPickerOpen(true)}
               accessibilityRole="button"
