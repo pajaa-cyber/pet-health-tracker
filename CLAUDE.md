@@ -395,7 +395,15 @@ root route is named `PetList` and **that exact string is a load-bearing contract
 tab-bar visibility. Don't rename it without updating `MainTabs.tsx` in the same
 change. Screens outside the Pets tab reach routes inside it with
 `navigation.navigate('PetsTab', { screen: '<route>', params: {...} })`; a bare
-`navigate('<route>')` does not work from outside that nested stack.
+`navigate('<route>')` does not work from outside that nested stack. That one
+extra nesting level is enough **only when the calling screen is itself
+already inside `MainTabs`** (e.g. `HouseholdScreen` navigating to a Pets-tab
+route). A screen mounted as a **root-stack sibling of `"Main"`** — `Settings`
+and everything it opens (`Profile`, `Preferences`, etc.) — needs one level
+deeper still, through `"Main"` itself:
+`navigation.navigate('Main', { screen: 'PetsTab', params: { screen: '<route>' } })`.
+Found the hard way wiring `SettingsScreen`'s "Pets"/"Users" rows: the
+shallower call silently failed with a `NAVIGATE`-payload error toast.
 
 **One pet-selection primitive — do not build a second.**
 `src/selection/PetSelectionContext.tsx`'s `usePetSelection()`
