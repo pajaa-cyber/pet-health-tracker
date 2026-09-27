@@ -299,6 +299,22 @@ float; dollar/cents conversion happens only in the expense screens.
 `WeightTrendChart.tsx` is a hand-rolled bar chart (plain `View`s) rather than a
 charting library, to avoid a native dependency.
 
+**Weight unit is a household preference, not a hardcoded kg assumption.**
+`Household.weightUnit` (`'kg' | 'lb'`, set once via a one-time
+`WeightUnitSetupScreen` gated in `RootNavigator` right after household setup)
+controls what unit the UI shows — `WeightLog.weight` itself is **always**
+stored in kilograms regardless. `src/pets/units.ts`'s `kgToDisplay`/
+`displayToKg` are the only conversion point; every screen that shows a weight
+(`HomeScreen`'s pet-card stat, `PetHomeScreen`'s hub tile and chart,
+`WeightTrendChart`'s bars, `WeightLogScreen`'s form) converts through them
+rather than assuming kg. `WeightLogScreen`'s "Weighing method" toggle
+("Just pet" vs. "Owner + pet") is a data-entry convenience only — "Owner +
+pet" enters two numbers (combined, owner-alone) and saves their computed
+difference; there's no separate storage shape for it. `WeightTrendChart`
+also takes an optional `onDelete` — tapping a bar selects it (shows the
+value), and only then does a trash icon appear next to that value,
+confirmed via `Alert` before it deletes.
+
 **Two pure modules — keep them pure.** `src/reminders/computeUpcoming.ts` (with its
 sibling `notificationTiming.ts`) and `src/calendar/calendarEntries.ts` have **zero
 Firebase, React or React Native imports**, take `now` as an explicit parameter, and

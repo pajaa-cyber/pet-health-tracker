@@ -57,6 +57,12 @@ pass, all committed to `master` directly:**
 - `VaccineListScreen` gained a delete button per row (trash icon, confirm
   dialog, actually deletes from Firestore — rules already allowed it, no UI
   had ever called it).
+- **Household weight-unit preference (kg/lb) + weighing method + per-entry
+  delete**, device-verified same day: a one-time `WeightUnitSetupScreen`
+  gate, a "Just pet"/"Owner + pet" (subtract) entry toggle on
+  `WeightLogScreen`, unit-aware display everywhere a weight shows, and a
+  delete button on `WeightTrendChart`'s selected bar. Full detail in
+  `CLAUDE.md`'s Pet records section.
 
 ## Done and merged
 
@@ -121,8 +127,10 @@ Deliberately parked, roughly by weight.
    except the Add-Pet wizard's Review step.
 6. **No query limit or pagination on the `events` collection** — fine at MVP
    scale, will matter once a household accumulates years of completed events.
-7. `GuidedEmptyState`'s weight-log "Log weight" CTA is a **no-op button** — fix
-   whenever that component is next touched.
+7. ~~`GuidedEmptyState`'s weight-log "Log weight" CTA is a no-op button~~ —
+   fixed 2026-09-27 (`actionLabel`/`onAction` are now optional; the Weight
+   screen's empty state omits both since the log form is always visible
+   right below it).
 8. **No Android notification channel** is created; notifications land in
    `expo-notifications`' generic fallback channel.
 9. **Snooze entries are never pruned** — a re-dated vaccine inherits its old
