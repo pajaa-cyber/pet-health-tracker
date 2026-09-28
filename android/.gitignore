@@ -17,3 +17,11 @@ app/src/main/java/inline/
 
 # Bundle artifacts
 *.jsbundle
+
+# Release signing — the app's permanent Play Store identity. Never commit
+# this: losing it is unrecoverable (can never update the app again under
+# this listing), and leaking it lets anyone sign a build as this app.
+# debug.keystore above this line is NOT secret (a well-known, shared key
+# Android generates for every project) and stays tracked on purpose.
+app/release.keystore
+keystore.properties
