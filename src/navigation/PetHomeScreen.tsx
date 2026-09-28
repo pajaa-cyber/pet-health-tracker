@@ -11,7 +11,7 @@ import { subscribeToExpenses } from '../pets/expenseService';
 import { subscribeToDocuments } from '../documents/documentService';
 import { subscribeToPets, updatePetPhoto, updatePetColor, updatePet } from '../pets/petService';
 import { subscribeToVets } from '../vets/vetService';
-import { subscribeToEvents, createEvent } from '../calendar/eventService';
+import { subscribeToEvents } from '../calendar/eventService';
 import { generatePassport } from '../documents/passportService';
 import { canGeneratePassport, passportLimitMessage } from '../limits/limits';
 import { usePetSelection } from '../selection/PetSelectionContext';
@@ -24,7 +24,7 @@ import { Expense, ExpenseCategory } from '../types/expense';
 import { Document } from '../types/document';
 import { Vet } from '../types/vet';
 import { Pet } from '../types/pet';
-import { CalendarEvent, EventType } from '../types/calendarEvent';
+import { CalendarEvent } from '../types/calendarEvent';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, AvatarPicker, Button, ErrorText } from '../components/ui';
 import { shell, text, spacing, colors, radii } from '../theme/theme';
@@ -33,8 +33,7 @@ import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 import { kgToDisplay, unitLabel } from '../pets/units';
 import { computeWeightTrend } from '../pets/weightTrend';
 import { formatGracefulDate, formatArrivalDate, formatPetAge } from '../pets/dateGrace';
-import { PREVENTIVE_CARE_TYPES, lastDoneByType, formatLastDone } from '../pets/preventiveCare';
-import { EVENT_TYPE_LABEL, EVENT_TYPE_EMOJI } from '../calendar/eventTypes';
+import { PREVENTIVE_CARE_TYPES } from '../pets/preventiveCare';
 
 interface SectionTile {
   key: string;
@@ -56,13 +55,6 @@ interface HubData {
 function recordsLabel(n: number): string {
   return `${n} record${n === 1 ? '' : 's'}`;
 }
-
-// The Preventive Care grid's tiles are narrower than EVENT_TYPE_LABEL's
-// full text assumes elsewhere (e.g. the "Add to Calendar" chip row) —
-// override just the ones that don't fit in one line at this width.
-const CARE_TILE_LABEL: Partial<Record<EventType, string>> = {
-  fleaTick: 'Flea/tick',
-};
 
 const SECTIONS: SectionTile[] = [
   { key: 'VaccineList', label: 'Vaccines', emoji: '💉', color: '#EF4444', count: (d) => recordsLabel(d.vaccines.length) },
@@ -117,8 +109,6 @@ export function PetHomeScreen({ route, navigation }: any) {
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [generatingPassport, setGeneratingPassport] = useState(false);
   const [passportError, setPassportError] = useState<string | null>(null);
-  const [loggingCareType, setLoggingCareType] = useState<EventType | null>(null);
-  const [careError, setCareError] = useState<string | null>(null);
   const pet = pets.find((p) => p.id === petId);
 
   useEffect(() => {
@@ -169,7 +159,9 @@ export function PetHomeScreen({ route, navigation }: any) {
 
   const age = pet.birthDate != null ? formatPetAge(pet.birthDate, Date.now()) : null;
   const weightTrend = computeWeightTrend(weightLogs);
-  const lastDone = lastDoneByType(events, petId);
+  const hygieneRecordCount = events.filter(
+    (e) => e.status === 'completed' && e.petIds.includes(petId) && PREVENTIVE_CARE_TYPES.includes(e.type)
+  ).length;
   const neuteredLabel = pet.neutered === true ? 'Neutered' : pet.neutered === false ? 'Not neutered' : 'Neutering not set';
   const isRemembered = pet.status === 'remembered';
 
@@ -208,22 +200,6 @@ export function PetHomeScreen({ route, navigation }: any) {
     }
   };
 
-  // One tap = logged, immediately, as already done — no form, no
-  // confirmation. This is a lightweight checklist, not a record type with
-  // its own edit/delete UI; the events collection already gives it history
-  // (lastDoneByType) for free.
-  const handleLogCare = async (type: EventType) => {
-    if (!household) return;
-    setCareError(null);
-    setLoggingCareType(type);
-    try {
-      await createEvent(firestore, household.id, [petId], type, EVENT_TYPE_LABEL[type], '', Date.now(), 'completed');
-    } catch (e: any) {
-      setCareError(e.message);
-    } finally {
-      setLoggingCareType(null);
-    }
-  };
 
   return (
     <ScreenContainer scroll background={shell.bg} style={{ padding: 0, gap: spacing.md }}>
@@ -359,6 +335,17 @@ export function PetHomeScreen({ route, navigation }: any) {
               </View>
             </View>
           </Pressable>
+          <Pressable onPress={() => navigation.navigate('Hygiene', { petId })} style={{ width: '47%' }}>
+            <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 12, minHeight: 85, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: '#F59E0B40', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 19 }}>🧼</Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>Hygiene</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{recordsLabel(hygieneRecordCount)}</Text>
+              </View>
+            </View>
+          </Pressable>
         </View>
 
         <View>
@@ -390,39 +377,6 @@ export function PetHomeScreen({ route, navigation }: any) {
               ))}
             </>
           )}
-        </View>
-
-        <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
-          <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>Preventive care</Text>
-          {careError && <ErrorText>{careError}</ErrorText>}
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {PREVENTIVE_CARE_TYPES.map((careType) => (
-              <Pressable
-                key={careType}
-                onPress={() => handleLogCare(careType)}
-                disabled={loggingCareType === careType}
-                accessibilityRole="button"
-                accessibilityLabel={`Log ${EVENT_TYPE_LABEL[careType]} done today`}
-                style={{ width: '47%' }}
-              >
-                <View
-                  style={{
-                    borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', padding: 10, minHeight: 70,
-                    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-                    opacity: loggingCareType === careType ? 0.5 : 1,
-                  }}
-                >
-                  <View style={{ width: 34, height: 34, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 16 }}>{EVENT_TYPE_EMOJI[careType]}</Text>
-                  </View>
-                  <View style={{ flex: 1, gap: 1 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '800', color: text.primary }} numberOfLines={1}>{CARE_TILE_LABEL[careType] ?? EVENT_TYPE_LABEL[careType]}</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '600', color: text.secondary }} numberOfLines={1}>{formatLastDone(lastDone[careType], Date.now())}</Text>
-                  </View>
-                </View>
-              </Pressable>
-            ))}
-          </View>
         </View>
 
         <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
