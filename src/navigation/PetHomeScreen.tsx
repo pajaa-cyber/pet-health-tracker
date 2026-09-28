@@ -1,6 +1,6 @@
 // src/navigation/PetHomeScreen.tsx
 import React, { useEffect, useState } from 'react';
-import { View, Pressable, Text, FlatList, Modal } from 'react-native';
+import { View, Pressable, Text, FlatList, Modal, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs } from '../pets/weightLogService';
@@ -151,13 +151,39 @@ export function PetHomeScreen({ route, navigation }: any) {
   const neuteredLabel = pet.neutered === true ? 'Neutered' : pet.neutered === false ? 'Not neutered' : 'Neutering not set';
   const isRemembered = pet.status === 'remembered';
 
-  const toggleRemembered = async () => {
+  const setRemembered = async () => {
     setStatusSaving(true);
     try {
-      await updatePet(firestore, household.id, petId, { status: isRemembered ? 'active' : 'remembered' });
+      await updatePet(firestore, household.id, petId, { status: 'remembered' });
     } finally {
       setStatusSaving(false);
     }
+  };
+
+  // Bringing an active pet back is the safe, one-tap direction — no
+  // confirmation needed there. Marking one remembered moves it off every
+  // active list in the app (Home, PetSelector, reminders) until someone
+  // finds their way back to this exact screen to undo it, which reads as
+  // "did this just delete my pet?" the first time it's tapped by accident.
+  // A confirmation here is the same guard the delete buttons already use.
+  const toggleRemembered = async () => {
+    if (isRemembered) {
+      setStatusSaving(true);
+      try {
+        await updatePet(firestore, household.id, petId, { status: 'active' });
+      } finally {
+        setStatusSaving(false);
+      }
+      return;
+    }
+    Alert.alert(
+      `Mark ${pet.name} as remembered?`,
+      `${pet.name} will move out of your active pets list. Their records are kept safe and you can bring them back anytime from this same screen.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Mark remembered', style: 'destructive', onPress: setRemembered },
+      ]
+    );
   };
 
   const openCalendarForThisPet = () => {
