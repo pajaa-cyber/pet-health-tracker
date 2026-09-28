@@ -319,7 +319,7 @@ export function PetHomeScreen({ route, navigation }: any) {
           <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>About {pet.name}</Text>
           <DetailRow label="Birth date" value={formatGracefulDate(pet.birthDate, pet.birthDatePrecision, pet.approximateAgeMonths)} />
           <DetailRow label="Arrival" value={formatArrivalDate(pet.arrivalDate, pet.arrivalDatePrecision)} />
-          <DetailRow label="Sex" value={pet.sex === 'unknown' ? "Don't know" : pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1)} />
+          <DetailRow label="Sex" value={!pet.sex || pet.sex === 'unknown' ? "Don't know" : pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1)} />
           <DetailRow label="Colour / markings" value={pet.colorMarkings || 'Not set'} />
           {(pet.microchipProvider || pet.microchipNumber || pet.microchipDate || pet.microchipRegistry) && (
             <>
@@ -331,7 +331,7 @@ export function PetHomeScreen({ route, navigation }: any) {
               {!!pet.microchipRegistry && <DetailRow label="Registry" value={pet.microchipRegistry} />}
             </>
           )}
-          {pet.customFields.length > 0 && (
+          {pet.customFields && pet.customFields.length > 0 && (
             <>
               <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 }} />
               {pet.customFields.map((f, i) => (
