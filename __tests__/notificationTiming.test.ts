@@ -37,4 +37,20 @@ describe('computeNotificationTime', () => {
     const expected = new Date('2026-09-25T09:00:00').getTime();
     expect(result).toBe(expected);
   });
+
+  // Regression test for a real DST bug: subtracting `leadDays * DAY_MS` in
+  // raw milliseconds (the old implementation) picks the wrong calendar day
+  // whenever the subtraction crosses a DST transition close to midnight.
+  // 2026-03-29 is EU spring-forward (clocks 02:00 -> 03:00, a 23-hour day).
+  // A due date just after midnight on the day after picks the WRONG day
+  // (one day too early) under raw ms subtraction, because 24 real hours
+  // earlier than 2026-03-30T00:30 lands on 2026-03-28, not 2026-03-29 —
+  // addDays()'s calendar-based subtraction gets this right.
+  it('picks the correct calendar day across a DST spring-forward transition', () => {
+    const now = new Date('2026-03-20T00:00:00').getTime();
+    const dstReminder = reminder({ dueDate: new Date('2026-03-30T00:30:00').getTime() });
+    const result = computeNotificationTime(dstReminder, settings, now);
+    const expected = new Date('2026-03-29T09:00:00').getTime();
+    expect(result).toBe(expected);
+  });
 });
