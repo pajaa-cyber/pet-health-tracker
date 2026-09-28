@@ -29,7 +29,7 @@ import { shell, text, spacing, colors, radii } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 import { kgToDisplay, unitLabel } from '../pets/units';
-import { formatGracefulDate, formatArrivalDate } from '../pets/dateGrace';
+import { formatGracefulDate, formatArrivalDate, formatPetAge } from '../pets/dateGrace';
 
 interface SectionTile {
   key: string;
@@ -147,7 +147,7 @@ export function PetHomeScreen({ route, navigation }: any) {
     .map((cat) => ({ cat, cents: yearExpenses.filter((e) => e.category === cat).reduce((sum, e) => sum + e.amountCents, 0) }))
     .filter((c) => c.cents > 0);
 
-  const age = pet.birthDate != null ? Math.floor((Date.now() - pet.birthDate) / (365.25 * 24 * 60 * 60 * 1000)) : null;
+  const age = pet.birthDate != null ? formatPetAge(pet.birthDate, Date.now()) : null;
   const neuteredLabel = pet.neutered === true ? 'Neutered' : pet.neutered === false ? 'Not neutered' : 'Neutering not set';
   const isRemembered = pet.status === 'remembered';
 
@@ -251,7 +251,7 @@ export function PetHomeScreen({ route, navigation }: any) {
           </View>
           <Text style={{ fontSize: 30, fontWeight: '800', color: ink }}>{pet.name}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, justifyContent: 'center' }}>
-            <TagChip label={`${speciesDisplay(pet)}${age != null ? ` · ${age} yr` : ''}`} ink={ink} />
+            <TagChip label={`${speciesDisplay(pet)}${age != null ? ` · ${age}` : ''}`} ink={ink} />
             <TagChip label={pet.breed || 'No breed set'} ink={ink} />
             <TagChip label={neuteredLabel} ink={ink} />
             <TagChip label={pet.livingEnvironment ? pet.livingEnvironment.charAt(0).toUpperCase() + pet.livingEnvironment.slice(1) : 'Environment not set'} ink={ink} />

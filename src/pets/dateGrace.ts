@@ -6,6 +6,19 @@ export function monthsToApproxBirthDate(months: number, now: number): number {
   return Math.round(now - months * MS_PER_MONTH);
 }
 
+const YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
+
+// "0 yr" for a pet born this year reads like a placeholder/error, not an
+// age — under a year old, show whole months instead (HomeScreen's list
+// card and PetHomeScreen's header chip both display age this way).
+export function formatPetAge(birthDate: number, now: number): string {
+  const ageMs = now - birthDate;
+  const years = Math.floor(ageMs / YEAR_MS);
+  if (years >= 1) return `${years} yr`;
+  const months = Math.max(0, Math.round(ageMs / MS_PER_MONTH));
+  return `${months} mo`;
+}
+
 // Read-only counterpart to GracefulDateField's input UI — same four
 // precisions, phrased for display rather than editing (AddPetScreen's
 // Review step and PetHomeScreen's About card both format birth date

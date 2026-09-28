@@ -19,6 +19,7 @@ import { VetVisit } from '../types/vetVisit';
 import { WeightLog } from '../types/weightLog';
 import { Expense } from '../types/expense';
 import { kgToDisplay, unitLabel } from '../pets/units';
+import { formatPetAge } from '../pets/dateGrace';
 import { ScreenContainer, Button, PetSelector } from '../components/ui';
 import { shell, text, accentLavender, spacing, radii } from '../theme/theme';
 import { petColor, onPetColorInk } from '../theme/petColors';
@@ -116,7 +117,7 @@ function PetCard({ pet, navigation, nextDue }: { pet: Pet; navigation: any; next
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={{ fontSize: 24, fontWeight: '800', color: text.primary }}>{pet.name}</Text>
               <Text style={{ fontSize: 13, fontWeight: '600', color: text.secondary }}>
-                {speciesDisplay(pet)}{pet.breed ? ` · ${pet.breed}` : ''}{pet.birthDate != null ? ` · ${Math.floor((Date.now() - pet.birthDate) / (365.25 * 24 * 60 * 60 * 1000))} yr` : ''}
+                {speciesDisplay(pet)}{pet.breed ? ` · ${pet.breed}` : ''}{pet.birthDate != null ? ` · ${formatPetAge(pet.birthDate, Date.now())}` : ''}
               </Text>
             </View>
           </View>

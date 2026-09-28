@@ -1,4 +1,4 @@
-import { monthsToApproxBirthDate, formatGracefulDate, formatArrivalDate } from '../src/pets/dateGrace';
+import { monthsToApproxBirthDate, formatGracefulDate, formatArrivalDate, formatPetAge } from '../src/pets/dateGrace';
 
 describe('monthsToApproxBirthDate', () => {
   it('computes a birth date roughly N months before now', () => {
@@ -65,5 +65,29 @@ describe('formatArrivalDate', () => {
 
   it('prefixes a rough date with "Roughly"', () => {
     expect(formatArrivalDate(date, 'roughly')).toBe(`Roughly ${new Date(date).toLocaleDateString()}`);
+  });
+});
+
+describe('formatPetAge', () => {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  it('shows whole years once at least a year old', () => {
+    const now = Date.now();
+    const birthDate = now - 3 * 365.25 * DAY_MS;
+    expect(formatPetAge(birthDate, now)).toBe('3 yr');
+  });
+
+  // The bug this guards against: a pet born this year used to show "0 yr",
+  // which reads like a placeholder or an error rather than an age.
+  it('shows months, not "0 yr", for a pet under a year old', () => {
+    const now = Date.now();
+    const birthDate = now - 2 * 30.44 * DAY_MS;
+    expect(formatPetAge(birthDate, now)).toBe('2 mo');
+  });
+
+  it('never shows a negative month count for a birth date at/after now', () => {
+    const now = Date.now();
+    expect(formatPetAge(now, now)).toBe('0 mo');
+    expect(formatPetAge(now + DAY_MS, now)).toBe('0 mo');
   });
 });
