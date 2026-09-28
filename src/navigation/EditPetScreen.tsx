@@ -109,7 +109,7 @@ export function EditPetScreen({ route, navigation }: any) {
         <Chip label="Neutered: No" selected={pet.neutered === false} onPress={() => patch({ neutered: false })} />
         <Chip label="Don't know" selected={pet.neutered === null} onPress={() => patch({ neutered: null })} />
       </View>
-      <TextField label="Colour / markings" value={pet.colorMarkings} onChangeText={(t) => patch({ colorMarkings: t })} />
+      <TextField label="Colour / markings" value={pet.colorMarkings ?? ''} onChangeText={(t) => patch({ colorMarkings: t })} />
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         {(['indoor', 'outdoor', 'both'] as const).map((e) => (
           <Chip
@@ -120,36 +120,36 @@ export function EditPetScreen({ route, navigation }: any) {
           />
         ))}
       </View>
-      <TextField label="Microchip provider" value={pet.microchipProvider} onChangeText={(t) => patch({ microchipProvider: t })} />
-      <TextField label="Microchip number" value={pet.microchipNumber} onChangeText={(t) => patch({ microchipNumber: t })} />
+      <TextField label="Microchip provider" value={pet.microchipProvider ?? ''} onChangeText={(t) => patch({ microchipProvider: t })} />
+      <TextField label="Microchip number" value={pet.microchipNumber ?? ''} onChangeText={(t) => patch({ microchipNumber: t })} />
       <DateField
         label="Microchip date implanted"
         value={pet.microchipDate}
         onChange={(v) => patch({ microchipDate: v })}
         onClear={() => patch({ microchipDate: null })}
       />
-      <TextField label="Microchip registry" value={pet.microchipRegistry} onChangeText={(t) => patch({ microchipRegistry: t })} />
+      <TextField label="Microchip registry" value={pet.microchipRegistry ?? ''} onChangeText={(t) => patch({ microchipRegistry: t })} />
       <Title>Custom fields</Title>
-      {pet.customFields.map((f, i) => (
+      {(pet.customFields ?? []).map((f, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>
           <View style={{ flex: 1 }}>
             <TextField
               label="Label"
               value={f.label}
-              onChangeText={(t) => patch({ customFields: pet.customFields.map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
+              onChangeText={(t) => patch({ customFields: (pet.customFields ?? []).map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
             />
           </View>
           <View style={{ flex: 1 }}>
             <TextField
               label="Value"
               value={f.value}
-              onChangeText={(t) => patch({ customFields: pet.customFields.map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
+              onChangeText={(t) => patch({ customFields: (pet.customFields ?? []).map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
             />
           </View>
           <Button
             title="Remove"
             variant="outline"
-            onPress={() => patch({ customFields: pet.customFields.filter((_, j) => j !== i) })}
+            onPress={() => patch({ customFields: (pet.customFields ?? []).filter((_, j) => j !== i) })}
           />
         </View>
       ))}
@@ -157,7 +157,7 @@ export function EditPetScreen({ route, navigation }: any) {
         title={!canAddCustomField(pet, household ?? { trialEndsAt: null }) ? customFieldLimitMessage() : 'Add a custom field'}
         variant="outline"
         disabled={!canAddCustomField(pet, household ?? { trialEndsAt: null })}
-        onPress={() => patch({ customFields: [...pet.customFields, { label: '', value: '' }] })}
+        onPress={() => patch({ customFields: [...(pet.customFields ?? []), { label: '', value: '' }] })}
       />
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Save changes" onPress={handleSave} loading={loading} />
