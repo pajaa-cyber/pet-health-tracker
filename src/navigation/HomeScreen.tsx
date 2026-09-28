@@ -103,19 +103,15 @@ function PetCard({ pet, navigation, nextDue }: { pet: Pet; navigation: any; next
             {SPECIES_EMOJI[pet.species] ?? '🐾'}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            {/* White outer separator guarantees the colour ring reads against
-                the dark card even for a muted/dark pet colour (e.g. warm
-                gray) that would otherwise blend in with barely any contrast. */}
-            <View style={{ padding: 2, borderRadius: 33, backgroundColor: '#FFFFFF' }}>
-              <View style={{ padding: 2, borderRadius: 31, backgroundColor: color }}>
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: shell.onColour, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {pet.photoUrl ? (
-                    <Image source={{ uri: pet.photoUrl }} style={{ width: 56, height: 56 }} resizeMode="cover" />
-                  ) : (
-                    <Text style={{ fontSize: 27 }}>{SPECIES_EMOJI[pet.species] ?? '🐾'}</Text>
-                  )}
-                </View>
-              </View>
+            {/* Same single-ring technique as the PetSelector strip at the
+                top of this screen — a plain coloured border directly on the
+                avatar, no white separator layer. */}
+            <View style={{ width: 60, height: 60, borderRadius: 30, borderWidth: 3, borderColor: color, backgroundColor: shell.onColour, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {pet.photoUrl ? (
+                <Image source={{ uri: pet.photoUrl }} style={{ width: 60, height: 60 }} resizeMode="cover" />
+              ) : (
+                <Text style={{ fontSize: 27 }}>{SPECIES_EMOJI[pet.species] ?? '🐾'}</Text>
+              )}
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={{ fontSize: 24, fontWeight: '800', color: text.primary }}>{pet.name}</Text>
