@@ -1,4 +1,4 @@
-# Where we left off (2026-09-27)
+# Where we left off (2026-09-28)
 
 Resume state only. Permanent rules live in `CLAUDE.md`; per-plan build and
 verification history lives in `docs/history/` (`plan-log.md` is the index).
@@ -39,12 +39,14 @@ policy (this one).
   text ever changes, edit both the `.md` and `.html` and republish the same
   artifact file path to keep the URL stable.
 
-**Not yet done on C:** app screenshots for the store listing, and actually
-submitting anything — both blocked on the same Play Console/merchant account
-gap as sub-project B.
+**Screenshots are now done too** (3, in `docs/release/screenshots/`: pet
+profile hub, weight trend + expenses, calendar month view) — device-captured
+2026-09-27. **Not yet done on C:** actually submitting anything, still
+blocked on the Play Console/merchant account gap shared with sub-project B.
 
-**Also done 2026-09-26/27, not tied to any specific plan — small UI polish
-pass, all committed to `master` directly:**
+**Also done 2026-09-26/27/28, not tied to any specific plan — a large,
+mostly owner-directed UI polish pass, all committed to `master` directly,
+device-verified screen by screen as each landed:**
 - `PetHomeScreen`: the 8-swatch identity-colour row replaced with one circle
   beside the avatar that opens a picker popup on tap; section tiles
   (Vaccines/Medications/etc.) shrunk ~15% and switched from icon-above-text
@@ -54,18 +56,37 @@ pass, all committed to `master` directly:**
   bit of content on every scroll screen.
 - `WeightTrendChart` labels now show day+month per entry instead of month
   only (five entries in the same month used to all read "Sep").
-- `VaccineListScreen` gained a delete button per row (trash icon, confirm
-  dialog, actually deletes from Firestore — rules already allowed it, no UI
-  had ever called it).
 - **Household weight-unit preference (kg/lb) + weighing method + per-entry
-  delete**, device-verified same day: a one-time `WeightUnitSetupScreen`
-  gate, a "Just pet"/"Owner + pet" (subtract) entry toggle on
-  `WeightLogScreen`, unit-aware display everywhere a weight shows, and a
-  delete button on `WeightTrendChart`'s selected bar. Full detail in
-  `CLAUDE.md`'s Pet records section.
+  delete** — a one-time `WeightUnitSetupScreen` gate (now changeable later
+  from Settings → Preferences), a "Just pet"/"Owner + pet" (subtract) entry
+  toggle on `WeightLogScreen`, unit-aware display everywhere a weight shows.
+  Full detail in `CLAUDE.md`'s Pet records section.
+- **Delete added to every record-list screen** (vaccines, weight logs, vet
+  visits, medications, expenses, documents, vets) — trash icon + Alert
+  confirm, actually deletes from Firestore. Rules already allowed delete for
+  household members on all of them; no UI had ever called it until now.
+  `deleteDocument` also cleans up the `pages` subcollection and reconciles
+  `documentsStorageBytes`.
 - **New `SettingsScreen`**, reachable via `HomeScreen`'s header avatar
-  (previously decorative) — Sign out (confirmed) and a Reminder settings
-  link. Closes open gap #18 below.
+  (previously decorative), restructured into grouped sections matching a
+  reference app the owner pointed to: My settings (Profile, Preferences,
+  Notifications), Household (Pets, Users), Support (Share this app,
+  Subscriptions), Log out. Closes open gap #18 below. Uncovered a real
+  navigation gotcha, now in `CLAUDE.md`: reaching a nested-tab route from a
+  screen mounted as a root-stack sibling of `"Main"` needs one nesting level
+  deeper than the same pattern between two screens both already inside
+  `MainTabs`.
+- **Emergency nearest-vet finder** on `VetsScreen` — opens Google Maps'
+  search for "emergency veterinarian" near the device's current location
+  (Maps handles the location permission itself). Also fixed the "24h
+  emergency" badge clipping off-screen for a long clinic name.
+- **Pet identity-colour ring around the pet's photo**, in three places:
+  `HomeScreen`'s list-card thumbnail, `PetHomeScreen`'s header avatar, and
+  the shared `PetSelector` strip (now shown for every pet, not just the
+  selected one). Needed a white separator layer in two of the three spots —
+  a ring drawn directly in the pet's own colour is invisible either against
+  a background that's already that same colour, or for a muted/dark shade
+  (warm gray) with no contrast against the dark card otherwise.
 
 ## Done and merged
 
