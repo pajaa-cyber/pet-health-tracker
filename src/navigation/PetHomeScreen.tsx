@@ -178,7 +178,7 @@ export function PetHomeScreen({ route, navigation }: any) {
     setGeneratingPassport(true);
     setPassportError(null);
     try {
-      await generatePassport(pet, vaccines, vets);
+      await generatePassport(pet, vaccines, vets, household);
     } catch (e: any) {
       setPassportError(e.message);
     } finally {
