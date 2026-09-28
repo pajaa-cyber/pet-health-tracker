@@ -364,6 +364,74 @@ effect (`setNotificationHandler`); without it `expo-notifications` silently
 swallows foreground notifications. Reminder cards show **Done/Skip only** — the
 snooze storage and filtering are intact but unreachable from any button.
 
+**Scan Food and Blood Tests (2026-09-28, not tied to a plan).** Both built off
+owner-supplied reference screenshots from another app, and both hit the "no
+AI/vision backend" constraint above the same way — see that Non-negotiable
+before touching either.
+
+- **Scan Food** (`ScanFoodScreen.tsx`) is allergen-matching only, nothing more:
+  camera or library photo → `@react-native-ml-kit/text-recognition` (on-device
+  OCR, a native dependency requiring a full `expo prebuild` + native rebuild)
+  → `src/pets/foodScan.ts`'s `findAllergenMatches()`, a plain
+  case-insensitive substring match against the pet's `Pet.allergies` field,
+  deliberately over-inclusive. No ingredient/calorie/protein breakdown — that
+  needs the AI backend this project can't safely add. Device-verified
+  2026-09-28: both the green "no match" and red "match found" paths confirmed
+  working end to end.
+- **Blood Tests** (`households/{id}/pets/{id}/bloodTests/{id}`,
+  `BloodTestListScreen`/`AddBloodTestScreen`/`BloodTestDetailScreen`) is
+  manually entered, not photo-extracted — a reference-range comparison on a
+  health value is not something to get wrong via unverified OCR. Deliberately
+  layered per the owner's own spec so the app never states or implies a
+  medical conclusion, and **this layering must not be collapsed**:
+  `bloodTestAnalysis.ts`'s `computeMarkerStatus()` (mechanical
+  high/low/normal/unknown reference-range comparison only) →
+  `bloodMarkerGlossary.ts` (~25 common markers, a static, unconditional
+  description of what the marker generally is) → `generateVetQuestions()`
+  (generic templated prompts, same wording regardless of marker or how far
+  out of range) → `markerTrend()`/`describeTrend()` (a marker's value across
+  every one of a pet's recorded tests, oldest first, matched
+  case-insensitively; states only a plain numbers-only direction — increased/
+  decreased/stable, comparing first vs. last point with a 5% stability
+  threshold — never a clinical read). Rules for the new collection needed a
+  real deploy (the standing "ask first, every time" `firebase deploy` rule
+  above was followed) after a real on-device permission-denied error
+  confirmed it. Device-verified 2026-09-28 for a single test's summary/
+  notable-results/glossary/questions rendering; the cross-test trend
+  sentence's on-device rendering is still unconfirmed (see `NEXTSTEPS.md`).
+
+**Every screen needs `SafeAreaProvider` at the app root — it was missing
+entirely until 2026-09-28.** `App.tsx` now wraps the whole app in
+`react-native-safe-area-context`'s `SafeAreaProvider`; before that,
+*every* `useSafeAreaInsets()` call anywhere in the app silently returned all
+zeroes, which was the real root cause of a whole class of "bottom buttons
+hidden behind the nav bar" reports that had been fixed piecemeal, screen by
+screen, without anyone noticing the common cause. `ScreenContainer` handles
+safe-area padding automatically for anything that uses it; a bottom sheet,
+full-screen modal, or bare `FlatList` that doesn't go through
+`ScreenContainer` (e.g. `AddSheet`, `BreedPicker`, `CalendarScreen`,
+`DayDetailScreen`) still needs its own explicit `insets.bottom`/`insets.top`
+padding.
+
+**One shared branded PDF template for both generated reports.**
+`src/documents/pdfTemplate.ts`'s `wrapPdfDocument(pet, headerSubtitle,
+disclaimer, bodyHtml)` is the only place that builds the `<html>` wrapper —
+a coloured header in the pet's own `petColor()` (text via `onPetColorInk()`
+for contrast), the pet's photo if set, purple headers with an orange
+underline, and a "Generated with SupaPet" footer. Both
+`passportService.ts`'s `buildPassportHtml` and `vetPrepService.ts`'s
+`buildVetPrepHtml` build only their own body HTML and call this shared
+wrapper — don't write a full HTML document in a new report builder; extend
+this one instead. **Prepare for Vet** (`PrepareForVetScreen.tsx` →
+`vetPrepService.ts`'s `generateVetPrepReport()`) is the newer of the two
+reports: a short, never-persisted form (reason for visit, started date,
+recent changes, free-text questions) whose answers are appended *after* the
+pet's full app-known history in the generated PDF (weight, vaccination
+status, recent medical history, current medications, known allergies, vet
+contacts) — app-known data first, transient form answers after a `<hr/>`,
+not the other way around; that ordering was a deliberate owner correction
+mid-build, not the original design.
+
 **Calendar.** `events` is a household-level collection
 (`households/{householdId}/events/{eventId}`) with `petIds: string[]` so one event
 can cover several pets — deliberately not nested under a single pet.
