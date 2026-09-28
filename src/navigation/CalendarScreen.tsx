@@ -194,7 +194,7 @@ export function CalendarScreen({ navigation }: any) {
         }
         data={listData}
         keyExtractor={(e) => e.id}
-        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl, gap: spacing.sm }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xl + insets.bottom, gap: spacing.sm }}
         renderItem={renderEntry}
         ListEmptyComponent={
           <GuidedEmptyState

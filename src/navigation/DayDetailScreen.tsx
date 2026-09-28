@@ -69,7 +69,7 @@ export function DayDetailScreen({ route, navigation }: any) {
         style={{ flex: 1 }}
         data={dayEntries}
         keyExtractor={(e) => e.id}
-        contentContainerStyle={{ paddingHorizontal: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl }}
+        contentContainerStyle={{ paddingHorizontal: spacing.md, gap: spacing.sm, paddingBottom: spacing.xl + insets.bottom }}
         renderItem={({ item }) => (
           <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }}>
             <Text style={{ width: 56, paddingTop: 16, fontSize: 12, fontWeight: '600', color: text.secondary }}>
