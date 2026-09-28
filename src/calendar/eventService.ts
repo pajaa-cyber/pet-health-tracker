@@ -7,8 +7,11 @@ import {
   type Firestore,
   type Unsubscribe,
 } from '@react-native-firebase/firestore';
-import { CalendarEvent, EventType } from '../types/calendarEvent';
+import { CalendarEvent, EventType, EventStatus } from '../types/calendarEvent';
 
+// status defaults to 'upcoming' (the AddEventScreen wizard's case) — the
+// Preventive Care quick-log grid is the one caller that passes 'completed'
+// directly, since tapping one of those buttons means "just did this now."
 export async function createEvent(
   db: Firestore,
   householdId: string,
@@ -16,10 +19,11 @@ export async function createEvent(
   type: EventType,
   title: string,
   notes: string,
-  date: number
+  date: number,
+  status: EventStatus = 'upcoming'
 ): Promise<CalendarEvent> {
   const docRef = doc(collection(db, 'households', householdId, 'events'));
-  const event: CalendarEvent = { id: docRef.id, householdId, petIds, type, title, notes, date, status: 'upcoming' };
+  const event: CalendarEvent = { id: docRef.id, householdId, petIds, type, title, notes, date, status };
   await setDoc(docRef, event);
   return event;
 }

@@ -13,15 +13,27 @@ export const EVENT_TYPE_LABEL: Record<EventType, string> = {
   behaviour: 'Behaviour',
   symptom: 'Symptom',
   other: 'Other',
+  teeth: 'Teeth',
+  bath: 'Bath',
+  nails: 'Nails',
+  ears: 'Ears',
+  deworming: 'Deworming',
+  fleaTick: 'Flea/tick prevention',
 };
 
 export const EVENT_TYPE_EMOJI: Record<EventType, string> = {
   medical: '💊',
-  grooming: '✂️',
+  grooming: '🪮',
   fitness: '🏃',
   food: '🍖',
   potty: '🚽',
   behaviour: '🐾',
   symptom: '🤒',
   other: '📌',
+  teeth: '🦷',
+  bath: '🛁',
+  nails: '✂️',
+  ears: '👂',
+  deworming: '💊',
+  fleaTick: '🦟',
 };

@@ -1,4 +1,9 @@
-export type EventType = 'medical' | 'grooming' | 'fitness' | 'food' | 'potty' | 'behaviour' | 'symptom' | 'other';
+export type EventType =
+  | 'medical' | 'grooming' | 'fitness' | 'food' | 'potty' | 'behaviour' | 'symptom' | 'other'
+  // Preventive-care quick-log types (PetHomeScreen's "Preventive care" grid) — each
+  // one is a plain CalendarEvent created already status: 'completed', so the
+  // existing events collection is the only place this history lives.
+  | 'teeth' | 'bath' | 'nails' | 'ears' | 'deworming' | 'fleaTick';
 export type EventStatus = 'upcoming' | 'completed' | 'skipped';
 
 export interface CalendarEvent {
