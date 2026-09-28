@@ -27,12 +27,18 @@ interface EntryCardProps {
   // Toggles skipped <-> upcoming for an event, or performs the
   // one-directional skip for a reminder (see onDone's note — reminders
   // have no reverse). Relabelled ("Skip" vs "Bring back") from
-  // entry.skipped.
+  // entry.skipped. Reminder-source entries only — an event's row has no
+  // Skip button (see onDelete).
   onSkip: () => void;
   onEdit?: () => void;
+  // Event-source entries only. Replaced Skip on that row — a quick-logged
+  // entry (e.g. one of Hygiene's seven types) that was tapped by mistake
+  // needs removing outright, not a skip/upcoming toggle that still leaves
+  // it cluttering the day.
+  onDelete?: () => void;
 }
 
-export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProps) {
+export function EntryCard({ entry, pets, onDone, onSkip, onEdit, onDelete }: EntryCardProps) {
   const emoji = entry.event ? EVENT_TYPE_EMOJI[entry.event.type] : entry.reminder ? REMINDER_EMOJI[entry.reminder.type] : '📌';
   const entryPets = pets.filter((p) => entry.petIds.includes(p.id));
   const rail = entryPets.length > 0 ? petColor(entryPets[0]) : shell.control;
@@ -98,22 +104,13 @@ export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProp
         ) : (
           <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
             <Button
-              title={entry.completed ? 'Not done' : 'Mark done'}
+              title={entry.completed ? 'Not done' : 'Done'}
               variant={entry.completed ? 'outline' : 'accent'}
               borderColor={entry.completed ? 'rgba(255,255,255,0.25)' : undefined}
               textColor={entry.completed ? text.primary : undefined}
               onPress={onDone}
-              style={{ flex: 1 }}
-              fontSize={13}
-            />
-            <Button
-              title={entry.skipped ? 'Bring back' : 'Skip'}
-              variant="outline"
-              borderColor="rgba(255,255,255,0.25)"
-              textColor={text.primary}
-              onPress={onSkip}
-              style={{ flex: 1 }}
-              fontSize={13}
+              style={{ flex: 1, paddingHorizontal: 4 }}
+              fontSize={12}
             />
             <Button
               title="Edit"
@@ -121,8 +118,17 @@ export function EntryCard({ entry, pets, onDone, onSkip, onEdit }: EntryCardProp
               borderColor="rgba(255,255,255,0.25)"
               textColor={text.primary}
               onPress={onEdit}
-              style={{ flex: 1 }}
-              fontSize={13}
+              style={{ flex: 1, paddingHorizontal: 4 }}
+              fontSize={12}
+            />
+            <Button
+              title="Delete"
+              variant="outline"
+              borderColor={colors.danger}
+              textColor={colors.danger}
+              onPress={onDelete}
+              style={{ flex: 1, paddingHorizontal: 4 }}
+              fontSize={12}
             />
           </View>
         )}

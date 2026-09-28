@@ -44,7 +44,7 @@ export function CalendarScreen({ navigation }: any) {
   const [snoozes, setSnoozes] = useState<Record<string, SnoozeEntry>>({});
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedDate, setSelectedDate] = useState(startOfDay(Date.now()));
-  const { handleDone, handleSkip, handleEdit, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
+  const { handleDone, handleSkip, handleEdit, handleDelete, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
 
   useEffect(() => {
     if (!household) return;
@@ -80,6 +80,7 @@ export function CalendarScreen({ navigation }: any) {
       onDone={() => handleDone(item)}
       onSkip={() => handleSkip(item)}
       onEdit={item.source === 'event' ? () => handleEdit(item) : undefined}
+      onDelete={item.source === 'event' ? () => handleDelete(item) : undefined}
     />
   );
 

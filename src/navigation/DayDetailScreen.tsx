@@ -24,7 +24,7 @@ export function DayDetailScreen({ route, navigation }: any) {
   const insets = useSafeAreaInsets();
   const [pets, setPets] = useState<Pet[]>([]);
   const [snoozes, setSnoozes] = useState<Record<string, SnoozeEntry>>({});
-  const { handleDone, handleSkip, handleEdit, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
+  const { handleDone, handleSkip, handleEdit, handleDelete, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
 
   useEffect(() => {
     if (!household) return;
@@ -82,6 +82,7 @@ export function DayDetailScreen({ route, navigation }: any) {
                 onDone={() => handleDone(item)}
                 onSkip={() => handleSkip(item)}
                 onEdit={item.source === 'event' ? () => handleEdit(item) : undefined}
+                onDelete={item.source === 'event' ? () => handleDelete(item) : undefined}
               />
             </View>
           </View>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Alert } from 'react-native';
 import { markDone, skip } from '../reminders/reminderActions';
-import { updateEvent } from './eventService';
+import { updateEvent, deleteEvent } from './eventService';
 import { CalendarEntry } from './calendarEntries';
 import { firestore } from '../firebase/config';
 import type { Household } from '../types/household';
@@ -61,5 +62,27 @@ export function useCalendarEntryActions(household: Household | null, userId: str
     navigation.navigate('EditEvent', { eventId: entry.event.id });
   };
 
-  return { handleDone, handleSkip, handleEdit, error };
+  // Event-source only — replaced that row's Skip button. Confirms first,
+  // same guard the record-list delete buttons already use elsewhere,
+  // since this is permanent (unlike Skip, which was always reversible).
+  const handleDelete = (entry: CalendarEntry) => {
+    if (!household || !entry.event) return;
+    const event = entry.event;
+    Alert.alert('Delete this entry?', "This can't be undone.", [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteEvent(firestore, household.id, event.id);
+          } catch (e: any) {
+            setError(e.message);
+          }
+        },
+      },
+    ]);
+  };
+
+  return { handleDone, handleSkip, handleEdit, handleDelete, error };
 }
