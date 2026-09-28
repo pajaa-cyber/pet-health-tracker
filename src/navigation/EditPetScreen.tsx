@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Alert } from 'react-native';
+import { View } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { getPet, updatePet, updatePetPhoto } from '../pets/petService';
 import { firestore } from '../firebase/config';
@@ -161,38 +161,27 @@ export function EditPetScreen({ route, navigation }: any) {
       />
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Save changes" onPress={handleSave} loading={loading} />
-      <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing.md }} />
-      <Button
-        title={isRemembered ? 'Mark as active again' : 'This pet has passed away'}
-        variant={isRemembered ? 'outline' : 'danger'}
-        onPress={() => {
-          if (!household) return;
-          if (isRemembered) {
-            updatePet(firestore, household.id, petId, { status: 'active' });
-            patch({ status: 'active' });
-            return;
-          }
-          // Same guard as PetHomeScreen's identical toggle — a single
-          // accidental tap here used to move a pet off every active list
-          // in the app with no confirmation at all.
-          Alert.alert(
-            `Mark ${pet.name} as remembered?`,
-            `${pet.name} will move out of your active pets list. Their records are kept safe and you can bring them back anytime from this same button.`,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Mark remembered',
-                style: 'destructive',
-                onPress: () => {
-                  updatePet(firestore, household.id, petId, { status: 'remembered' });
-                  patch({ status: 'remembered' });
-                },
-              },
-            ]
-          );
-        }}
-      />
-      {isRemembered && <MutedText>{`${pet.name} will be moved out of your active pets list. Their records are kept safe and can be restored anytime with this same button.`}</MutedText>}
+      {/* Marking a pet remembered in the first place has no UI entry point
+          anywhere now, by request — a single accidental tap on it used to
+          move a pet off every active list in the app with no confirmation,
+          which read as the pet having been deleted. A pet that's already
+          remembered (from before this change) still needs a one-tap way
+          back, so that direction alone stays. */}
+      {isRemembered && (
+        <>
+          <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing.md }} />
+          <Button
+            title="Mark as active again"
+            variant="outline"
+            onPress={() => {
+              if (!household) return;
+              updatePet(firestore, household.id, petId, { status: 'active' });
+              patch({ status: 'active' });
+            }}
+          />
+          <MutedText>{`${pet.name} will be moved out of your active pets list. Their records are kept safe and can be restored anytime with this same button.`}</MutedText>
+        </>
+      )}
     </ScreenContainer>
   );
 }
