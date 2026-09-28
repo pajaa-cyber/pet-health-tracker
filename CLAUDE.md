@@ -443,11 +443,21 @@ are each nullable, meaning "don't know" — never forced to a lie.
 and will read a real subscription in Plan 9 with no call site changing.
 
 **There is no delete-pet feature anywhere, by design.**
-`Pet.status: 'active' | 'remembered'` is a reversible toggle (EditPetScreen's "This
-pet has passed away" / "Mark as active again", which commits immediately rather
-than on Save). `src/pets/petService.ts`'s `activePets(pets)` is the one shared
-filter every pet-list screen reads through — route new list screens through it
-rather than re-deriving `(p.status ?? 'active') === 'active'`.
+`Pet.status: 'active' | 'remembered'` is the underlying reversible toggle, but
+as of 2026-09-28 **there is no UI path to mark a pet remembered in the first
+place** — only "Bring back" (an already-remembered pet's one-tap way to
+`active`, on both PetHomeScreen and EditPetScreen) still ships, commits
+immediately, no confirmation needed since it's the safe direction. The
+forward action ("This pet has passed away") existed earlier, briefly grew a
+confirmation dialog after a single accidental tap read as "did this delete my
+pet?" (there's no in-app list of remembered pets to recover from), and was
+then removed outright at the owner's request rather than kept behind the
+confirmation. `src/pets/petService.ts`'s `activePets(pets)` is still the one
+shared filter every pet-list screen reads through — route new list screens
+through it rather than re-deriving `(p.status ?? 'active') === 'active'`. A
+pet already remembered from before this change (or via direct Firestore
+edits) still gets filtered out and still has its way back; there's just no
+way to newly remember one from the app itself.
 
 Pet creation goes through `NewPetInput` and a 9-step wizard (`AddPetScreen.tsx`,
 single-component internal step state, not separate nav routes); editing is a
