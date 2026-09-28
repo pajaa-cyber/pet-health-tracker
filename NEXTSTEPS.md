@@ -8,6 +8,51 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**Two new record-type features, 2026-09-28, not tied to any plan — owner-directed,
+built off reference screenshots from another app, committed straight to
+`master`. Both hit the same real constraint and handled it the same way: no
+AI/vision service is safe to add (Cloud Functions on the free Spark plan can't
+call non-Google APIs, and Blaze needs billing info the owner's personal account
+can't supply — the same blocker `CLAUDE.md` already documents for Cloud
+Storage), so both do the honest on-device/manual-entry version instead of
+faking an AI feature.**
+
+- **Scan Food** (`ScanFoodScreen.tsx`) — on-device OCR only
+  (`@react-native-ml-kit/text-recognition`, a new native dependency — required
+  a full `expo prebuild` + native rebuild, see below), checks the scanned
+  label text against the pet's new **Allergies** profile field
+  (`src/pets/foodScan.ts`'s `findAllergenMatches`, plain case-insensitive
+  substring match, deliberately over-inclusive). No ingredient/calorie/protein
+  breakdown — that needs the AI service this project can't safely add.
+- **Blood Tests** (`BloodTestListScreen`/`AddBloodTestScreen`/
+  `BloodTestDetailScreen`) — a new per-pet record type, manually entered (no
+  auto-extraction from a photo — reference-range comparison on a health value
+  is not something to get wrong via unverified OCR). Deliberately layered per
+  the owner's own spec so the app never states a medical conclusion:
+  mechanical reference-range comparison → static marker glossary (~25 common
+  markers, `bloodMarkerGlossary.ts`) → generic templated vet-questions
+  (`generateVetQuestions`) → per-marker trend across a pet's full history
+  stated as a plain numbers-only direction (`describeTrend`), never a clinical
+  read. New Firestore collection
+  (`households/{id}/pets/{id}/bloodTests/{id}`) — **rules deployed** with the
+  owner's explicit go-ahead after a real on-device permission-denied error
+  confirmed it was needed.
+- **Found and fixed mid-session:** `expo prebuild` deletes and regenerates
+  the entire `android/` directory from scratch on every run — it doesn't
+  respect `.gitignore`, it wipes everything untracked there first. This
+  destroyed the just-generated release-signing keystore the moment prebuild
+  ran again for the OCR module. Both the keystore and its properties file now
+  live at the project root instead (see `CLAUDE.md`'s build-environment list,
+  item 6, and `android/app/build.gradle`'s signing config comment).
+- **Not yet verified end-to-end on device** — the owner was using the phone
+  for other things (a game, a calculator, a locked screen) for most of this
+  work, so on-device testing only got as far as: confirming the OCR native
+  module links and the app still runs after the rebuild, and confirming the
+  Firestore permission-denied error cleared after the rules deploy. Neither
+  screen's actual camera → OCR → match flow, nor the Add/List/Detail Blood
+  Test flow, has been walked through on the phone yet. Do that before
+  considering either feature done.
+
 **Plan 9, sub-project C (release prep) — started 2026-09-27, in progress.**
 Plan 9 ("Subscriptions and release") is split into three sub-projects: **A**
 = sitter access + trial wiring (done, merged — see below), **B** = real Play
