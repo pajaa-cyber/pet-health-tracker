@@ -19,3 +19,31 @@ export function computeWeightTrend(logs: { date: number; weight: number }[]): We
   const direction = Math.abs(percent) < 0.05 ? 'flat' : percent > 0 ? 'up' : 'down';
   return { percent, direction };
 }
+
+export interface WeightWindowChange {
+  currentKg: number;
+  deltaKg: number; // signed, current minus the reference point
+  referenceDate: number;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// For the vet-prep report's "29.4 kg, +1.1 kg / 30 days" line — a fixed
+// window makes sense there (a vet reads it as "change over the last
+// month"), unlike the dashboard trend above. Reference point is the most
+// recent log AT OR BEFORE the window start; if logging is too sparse for
+// anything that old, falls back to the very first log on record rather
+// than returning nothing.
+export function computeWeightChangeOverDays(
+  logs: { date: number; weight: number }[],
+  days: number,
+  now: number
+): WeightWindowChange | null {
+  if (logs.length < 2) return null;
+  const sorted = [...logs].sort((a, b) => a.date - b.date);
+  const current = sorted[sorted.length - 1];
+  const cutoff = now - days * DAY_MS;
+  const reference = [...sorted].reverse().find((l) => l.date <= cutoff) ?? sorted[0];
+  if (reference === current) return null;
+  return { currentKg: current.weight, deltaKg: current.weight - reference.weight, referenceDate: reference.date };
+}

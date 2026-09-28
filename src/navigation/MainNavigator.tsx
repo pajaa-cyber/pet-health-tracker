@@ -18,6 +18,7 @@ import { AddDocumentScreen } from './AddDocumentScreen';
 import { DocumentViewerScreen } from './DocumentViewerScreen';
 import { ShareDocumentScreen } from './ShareDocumentScreen';
 import { HygieneScreen } from './HygieneScreen';
+import { PrepareForVetScreen } from './PrepareForVetScreen';
 import { ChoosePetForAddScreen } from './ChoosePetForAddScreen';
 import { DevStyleGuideScreen } from './DevStyleGuideScreen';
 import { colors } from '../theme/theme';
@@ -53,6 +54,7 @@ export function MainNavigator() {
       <Stack.Screen name="DocumentViewer" component={DocumentViewerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ShareDocument" component={ShareDocumentScreen} options={{ headerShown: false, presentation: 'transparentModal' }} />
       <Stack.Screen name="Hygiene" component={HygieneScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PrepareForVet" component={PrepareForVetScreen} options={{ title: 'Prepare for vet' }} />
       <Stack.Screen name="ChoosePetForAdd" component={ChoosePetForAddScreen} options={{ title: 'Choose a pet' }} />
       <Stack.Screen name="DevStyleGuide" component={DevStyleGuideScreen} options={{ title: 'Style Guide' }} />
     </Stack.Navigator>
