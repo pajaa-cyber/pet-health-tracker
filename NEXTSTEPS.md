@@ -44,14 +44,23 @@ faking an AI feature.**
   ran again for the OCR module. Both the keystore and its properties file now
   live at the project root instead (see `CLAUDE.md`'s build-environment list,
   item 6, and `android/app/build.gradle`'s signing config comment).
-- **Not yet verified end-to-end on device** — the owner was using the phone
-  for other things (a game, a calculator, a locked screen) for most of this
-  work, so on-device testing only got as far as: confirming the OCR native
-  module links and the app still runs after the rebuild, and confirming the
-  Firestore permission-denied error cleared after the rules deploy. Neither
-  screen's actual camera → OCR → match flow, nor the Add/List/Detail Blood
-  Test flow, has been walked through on the phone yet. Do that before
-  considering either feature done.
+- **Verified end-to-end on device, 2026-09-28 (Dona, a test pet).** Scan Food:
+  both paths confirmed — a photo with no allergen text produces the green
+  "No known allergens detected" card, and (after temporarily setting Dona's
+  Allergies to "Chicken" for the test, then reverting it) a photo containing
+  "Chicken" text produces the red "⚠️ Possible allergen match" card naming the
+  matched allergen. Blood Tests: added one test (ALT 120 U/L, reference
+  10–100) via `AddBloodTestScreen`; `BloodTestListScreen` showed the correct
+  red out-of-range summary dot; `BloodTestDetailScreen` showed the right
+  summary count, the notable-result card with its glossary description ("An
+  enzyme associated with the liver") and status label, and the two
+  auto-generated vet questions. Cross-test `markerTrend`/`describeTrend`
+  (adding a second test with the same marker to see the trend sentence
+  appear) was not reached this session — an adb/device-tool outage interrupted
+  testing partway through entering the second test. The trend logic itself is
+  unit-tested (`__tests__/bloodTestAnalysis.test.ts`) and code-reviewed; only
+  the on-device rendering of the trend sentence in `BloodTestDetailScreen`
+  remains unconfirmed. Do that next before considering Blood Tests fully done.
 
 **Plan 9, sub-project C (release prep) — started 2026-09-27, in progress.**
 Plan 9 ("Subscriptions and release") is split into three sub-projects: **A**
@@ -307,3 +316,15 @@ Firebase console whenever convenient.
   by a misdirected tap during testing, and its own orphaned (never-redeemed)
   `sitterAccess` attempt — both harmless, tied to a disposable throwaway
   account.
+- **From tonight's (2026-09-28) Scan Food / Blood Tests device verification:**
+  one test blood test on Dona ("City Vet Lab", 9/28/2026, ALT 120 U/L,
+  reference 10–100) — delete via the Blood Tests screen's own trash icon
+  whenever. Two Hygiene entries also got logged on Dona as a side effect of
+  a misdirected tap while navigating between screens during testing (list
+  showed "2 records" afterward where it should read 0) — harmless, delete
+  from the Hygiene screen if it matters. On the physical device itself (not
+  the repo): a copy of a Google-search screenshot was saved to
+  `Pictures/Screenshots/allergen_test_chicken.png` to use as OCR test input —
+  safe to delete from the phone's gallery whenever. Dona's `Allergies` field
+  was temporarily set to "Chicken" for the red-path test and was reverted to
+  empty before the session ended — confirmed back to "None known" in the UI.
