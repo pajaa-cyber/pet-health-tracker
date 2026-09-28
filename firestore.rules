@@ -256,6 +256,19 @@ service cloud.firestore {
       allow delete: if isHouseholdMember(householdId);
     }
 
+    // `results` is a nested array of {marker, value, unit, referenceLow,
+    // referenceHigh} objects — like every other pet record, this rule
+    // allowlists top-level fields only, not the array's own contents
+    // (see CLAUDE.md: no hasAll/diff() hijack protection on these blocks).
+    // No allow update: blood test results are entered once and not edited,
+    // matching the app having no EditBloodTest screen.
+    match /households/{householdId}/pets/{petId}/bloodTests/{bloodTestId} {
+      allow read: if isHouseholdMember(householdId) || isValidSitterForPet(householdId, petId);
+      allow create: if isHouseholdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['id', 'petId', 'testDate', 'laboratory', 'results']);
+      allow delete: if isHouseholdMember(householdId);
+    }
+
     // Household-level (not per-pet) collection — a single calendar entry can
     // span multiple pets (petIds), e.g. one vet trip covering two pets.
     match /households/{householdId}/events/{eventId} {
