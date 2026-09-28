@@ -61,6 +61,16 @@ it fails with a 404 / "terminated the upload session", not a permissions error.
 `storage.rules` and `firebase.json`'s storage config are dead but left in place in
 case a future business-entity upgrade changes this.
 
+**No AI/vision backend is safe to add, for the same billing reason.** Cloud
+Functions on the free Spark plan can't call non-Google external APIs, and
+upgrading to Blaze hits the identical billing/tax blocker as Cloud Storage
+above. Any feature that sounds like it wants "AI reads a photo and tells you
+what it means" (Scan Food, Blood Tests — see Architecture invariants) has to
+be designed as an honest on-device/manual-entry feature instead: on-device
+OCR (ML Kit) for text extraction, and mechanical/rule-based logic — never a
+call to an external vision or LLM API — for anything that looks at that text
+and says something about it.
+
 **Plan documents contain stale snippets** flagged inline with "STALE — DO NOT
 COPY". Always copy from current source files, never from plan text.
 
