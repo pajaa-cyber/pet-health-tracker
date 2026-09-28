@@ -28,7 +28,11 @@ export async function pickAndProcessImage(source: ImageSource): Promise<string |
   return `data:image/jpeg;base64,${result.base64}`;
 }
 
-async function pickImage(source: ImageSource): Promise<string | null> {
+// Exported for callers that need the raw local file (e.g. on-device OCR,
+// src/navigation/ScanFoodScreen.tsx) rather than a resized/base64 data URI
+// meant for storing on a Firestore document — OCR wants full resolution,
+// not 640px-wide, and never touches Firestore at all.
+export async function pickImage(source: ImageSource): Promise<string | null> {
   if (source === 'camera') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) throw new Error('Camera permission was not granted.');
