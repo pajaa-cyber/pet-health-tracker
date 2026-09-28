@@ -9,6 +9,7 @@ import { formatPetAge } from '../pets/dateGrace';
 import { kgToDisplay, unitLabel, WeightUnit } from '../pets/units';
 import { computeWeightChangeOverDays } from '../pets/weightTrend';
 import { buildAndSharePdf } from './pdfService';
+import { wrapPdfDocument } from './pdfTemplate';
 
 const RECENT_VISITS_SHOWN = 5;
 const WEIGHT_WINDOW_DAYS = 30;
@@ -83,13 +84,7 @@ export function buildVetPrepHtml(
     ? `<ol>${answers.questions.map((q) => `<li>${q}</li>`).join('')}</ol>`
     : '';
 
-  return `
-<html>
-  <head><meta charset="utf-8" /></head>
-  <body style="font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 32px; color: #1E1B2E;">
-    <h1 style="margin-bottom: 4px;">${pet.name}</h1>
-    <p style="color: #555; margin-top: 0;">${speciesDisplay(pet)}${pet.breed ? ` · ${pet.breed}` : ''}${pet.sex && pet.sex !== 'unknown' ? ` · ${pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1)}` : ''}${age ? ` · ${age}` : ''}</p>
-
+  const bodyHtml = `
     <h2>Weight</h2>
     ${weightHtml}
 
@@ -107,7 +102,7 @@ export function buildVetPrepHtml(
 
     ${vetsHtml ? `<h2>Vet contacts</h2>${vetsHtml}` : ''}
 
-    <hr style="margin: 24px 0; border: none; border-top: 1px solid #ddd;" />
+    <hr />
 
     <h2>Reason for visit</h2>
     <p>${answers.reasonForVisit || 'Not specified'}</p>
@@ -115,9 +110,11 @@ export function buildVetPrepHtml(
     ${answers.startedDate != null ? `<h2>Started</h2><p>${new Date(answers.startedDate).toLocaleDateString()}</p>` : ''}
     ${answers.recentChanges ? `<h2>Recent changes</h2><p>${answers.recentChanges}</p>` : ''}
 
-    ${questionsHtml ? `<h2>Questions for veterinarian</h2>${questionsHtml}` : ''}
-  </body>
-</html>`;
+    ${questionsHtml ? `<h2>Questions for veterinarian</h2>${questionsHtml}` : ''}`;
+
+  const subtitle = `${speciesDisplay(pet)}${pet.breed ? ` · ${pet.breed}` : ''}${pet.sex && pet.sex !== 'unknown' ? ` · ${pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1)}` : ''}${age ? ` · ${age}` : ''}`;
+
+  return wrapPdfDocument(pet, subtitle, null, bodyHtml);
 }
 
 export async function generateVetPrepReport(

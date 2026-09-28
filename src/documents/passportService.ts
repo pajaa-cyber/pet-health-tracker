@@ -5,6 +5,7 @@ import { Household } from '../types/household';
 import { speciesDisplay } from '../pets/species';
 import { formatGracefulDate, formatArrivalDate } from '../pets/dateGrace';
 import { buildAndSharePdf } from './pdfService';
+import { wrapPdfDocument } from './pdfTemplate';
 
 // This is a personal health-record summary the owner can hand to a sitter,
 // boarder or new vet — NOT an official travel document. A real pet passport
@@ -49,32 +50,26 @@ export function buildPassportHtml(pet: Pet, vaccines: Vaccine[], vets: Vet[], ho
     ? petVets.map((v) => `<tr><td>${v.clinicName}${v.doctorName ? ` (${v.doctorName})` : ''}</td><td>${v.phone || '—'}</td></tr>`).join('')
     : '<tr><td colspan="2">No vet assigned yet.</td></tr>';
 
-  return `
-<html>
-  <head><meta charset="utf-8" /></head>
-  <body style="font-family: -apple-system, Helvetica, Arial, sans-serif; padding: 32px; color: #1E1B2E;">
-    <p style="font-size: 11px; color: #888; margin: 0 0 16px;">Personal pet health summary — not an official travel document.</p>
-    <div style="display: flex; align-items: center; gap: 16px;">
-      ${pet.photoUrl ? `<img src="${pet.photoUrl}" style="width: 96px; height: 96px; border-radius: 48px; object-fit: cover;" />` : ''}
-      <div>
-        <h1 style="margin-bottom: 4px;">${pet.name}</h1>
-        <p style="color: #555; margin-top: 0;">${speciesDisplay(pet)}${pet.breed ? ` · ${pet.breed}` : ''}</p>
-      </div>
-    </div>
+  const bodyHtml = `
     <h2>Owner</h2>
-    <table style="width:100%; border-collapse: collapse;">
+    <table>
       <tr><td>Household</td><td>${household.name}</td></tr>
       <tr><td>Owner(s)</td><td>${ownerNames}</td></tr>
     </table>
     <h2>Profile</h2>
-    <table style="width:100%; border-collapse: collapse;">${profileRows}</table>
-    ${microchipRows ? `<h2>Microchip</h2><table style="width:100%; border-collapse: collapse;">${microchipRows}</table>` : ''}
+    <table>${profileRows}</table>
+    ${microchipRows ? `<h2>Microchip</h2><table>${microchipRows}</table>` : ''}
     <h2>Vaccination history</h2>
-    <table style="width:100%; border-collapse: collapse;">${vaccineRows}</table>
+    <table>${vaccineRows}</table>
     <h2>Vet contacts</h2>
-    <table style="width:100%; border-collapse: collapse;">${vetRows}</table>
-  </body>
-</html>`;
+    <table>${vetRows}</table>`;
+
+  return wrapPdfDocument(
+    pet,
+    `${speciesDisplay(pet)}${pet.breed ? ` · ${pet.breed}` : ''}`,
+    'Personal pet health summary — not an official travel document.',
+    bodyHtml
+  );
 }
 
 export async function generatePassport(pet: Pet, vaccines: Vaccine[], vets: Vet[], household: Household): Promise<void> {
