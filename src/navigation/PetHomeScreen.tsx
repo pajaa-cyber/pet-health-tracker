@@ -29,6 +29,7 @@ import { shell, text, spacing, colors, radii } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 import { kgToDisplay, unitLabel } from '../pets/units';
+import { formatGracefulDate, formatArrivalDate } from '../pets/dateGrace';
 
 interface SectionTile {
   key: string;
@@ -73,6 +74,15 @@ function TagChip({ label, ink }: { label: string; ink: string }) {
   return (
     <View style={{ borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.24)', paddingVertical: 5, paddingHorizontal: 11 }}>
       <Text style={{ fontSize: 11, fontWeight: '700', color: ink }}>{label}</Text>
+    </View>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm }}>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: text.secondary }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: text.primary, flexShrink: 1, textAlign: 'right' }}>{value}</Text>
     </View>
   );
 }
@@ -303,6 +313,32 @@ export function PetHomeScreen({ route, navigation }: any) {
         <View>
           <Button title="Generate Passport" onPress={handleGeneratePassport} loading={generatingPassport} />
           {passportError && <ErrorText>{passportError}</ErrorText>}
+        </View>
+
+        <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
+          <Text style={{ fontSize: 17, fontWeight: '800', color: text.primary }}>About {pet.name}</Text>
+          <DetailRow label="Birth date" value={formatGracefulDate(pet.birthDate, pet.birthDatePrecision, pet.approximateAgeMonths)} />
+          <DetailRow label="Arrival" value={formatArrivalDate(pet.arrivalDate, pet.arrivalDatePrecision)} />
+          <DetailRow label="Sex" value={pet.sex === 'unknown' ? "Don't know" : pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1)} />
+          <DetailRow label="Colour / markings" value={pet.colorMarkings || 'Not set'} />
+          {(pet.microchipProvider || pet.microchipNumber || pet.microchipDate || pet.microchipRegistry) && (
+            <>
+              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 }} />
+              <Text style={{ fontSize: 12, fontWeight: '800', color: text.secondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>Microchip</Text>
+              {!!pet.microchipNumber && <DetailRow label="Number" value={pet.microchipNumber} />}
+              {!!pet.microchipProvider && <DetailRow label="Provider" value={pet.microchipProvider} />}
+              {pet.microchipDate != null && <DetailRow label="Implanted" value={new Date(pet.microchipDate).toLocaleDateString()} />}
+              {!!pet.microchipRegistry && <DetailRow label="Registry" value={pet.microchipRegistry} />}
+            </>
+          )}
+          {pet.customFields.length > 0 && (
+            <>
+              <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 }} />
+              {pet.customFields.map((f, i) => (
+                <DetailRow key={i} label={f.label || 'Custom field'} value={f.value || '—'} />
+              ))}
+            </>
+          )}
         </View>
 
         <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
