@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useAuth } from '../auth/AuthContext';
 import { createHousehold, joinHousehold } from '../household/householdService';
@@ -15,9 +15,18 @@ export function HouseholdSetupScreen() {
   const [sitterCode, setSitterCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Button's `disabled` prop only takes effect on the next render, which
+  // isn't synchronous with this handler firing — a fast double-tap can call
+  // handleCreate/handleJoin a second time before that first re-render lands,
+  // firing a redundant request that fails (the user is already a member by
+  // then) with a raw [firestore/permission-denied] string, even though the
+  // first request already succeeded. A ref-guard checked at the very top of
+  // each handler closes that race regardless of render timing.
+  const submittingRef = useRef(false);
 
   const handleCreate = async () => {
-    if (!user) return;
+    if (!user || submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     setLoading(true);
     try {
@@ -25,12 +34,14 @@ export function HouseholdSetupScreen() {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleJoin = async () => {
-    if (!user) return;
+    if (!user || submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     setLoading(true);
     try {
@@ -38,12 +49,14 @@ export function HouseholdSetupScreen() {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleRedeemSitterCode = async () => {
-    if (!user) return;
+    if (!user || submittingRef.current) return;
+    submittingRef.current = true;
     setError(null);
     setLoading(true);
     try {
@@ -51,6 +64,7 @@ export function HouseholdSetupScreen() {
     } catch (e: any) {
       setError(e.message);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

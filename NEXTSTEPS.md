@@ -220,13 +220,14 @@ only failures are `firestore.rules.test.ts`'s pre-existing emulator-required
     harmless, worth a keep/drop call.
 16. Minor pre-existing: no positive-value validation beyond what exists;
     `MedicationListScreen`'s dose log has no filter UI.
-17. **No loading-state guard on "Join household" / "Create household."** A
-    double-tap while the first request is still in flight fires a second,
-    redundant request that fails (the user is already a member by then) and
-    briefly shows a raw `[firestore/permission-denied]` string, even though
-    the first request already succeeded. Same class as #4 above. Found during
-    Plan 7's device pass. **Still open 2026-09-28** — straightforward
-    (disable the button while the request is in flight) but not yet done.
+17. ~~No loading-state guard on "Join household" / "Create household"~~ —
+    fixed 2026-09-28: `Button`'s `loading` prop already maps to `disabled`,
+    but that only takes effect on the next render, which isn't synchronous
+    with the tap handler firing — a fast double-tap could call
+    `handleCreate`/`handleJoin`/`handleRedeemSitterCode` a second time before
+    that re-render landed. `HouseholdSetupScreen` now also checks a
+    `submittingRef` at the top of each handler, closing the race regardless
+    of render timing.
 18. ~~No in-app sign-out UI anywhere~~ — fixed 2026-09-27: `HomeScreen`'s
     header avatar now opens a new `SettingsScreen` with a confirmed
     Sign out button and a Reminder settings link.
