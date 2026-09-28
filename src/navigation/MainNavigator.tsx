@@ -19,6 +19,10 @@ import { DocumentViewerScreen } from './DocumentViewerScreen';
 import { ShareDocumentScreen } from './ShareDocumentScreen';
 import { HygieneScreen } from './HygieneScreen';
 import { PrepareForVetScreen } from './PrepareForVetScreen';
+import { ScanFoodScreen } from './ScanFoodScreen';
+import { BloodTestListScreen } from './BloodTestListScreen';
+import { AddBloodTestScreen } from './AddBloodTestScreen';
+import { BloodTestDetailScreen } from './BloodTestDetailScreen';
 import { ChoosePetForAddScreen } from './ChoosePetForAddScreen';
 import { DevStyleGuideScreen } from './DevStyleGuideScreen';
 import { colors } from '../theme/theme';
@@ -55,6 +59,10 @@ export function MainNavigator() {
       <Stack.Screen name="ShareDocument" component={ShareDocumentScreen} options={{ headerShown: false, presentation: 'transparentModal' }} />
       <Stack.Screen name="Hygiene" component={HygieneScreen} options={{ headerShown: false }} />
       <Stack.Screen name="PrepareForVet" component={PrepareForVetScreen} options={{ title: 'Prepare for vet' }} />
+      <Stack.Screen name="ScanFood" component={ScanFoodScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="BloodTestList" component={BloodTestListScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="AddBloodTest" component={AddBloodTestScreen} options={{ title: 'Add a blood test' }} />
+      <Stack.Screen name="BloodTestDetail" component={BloodTestDetailScreen} options={{ title: 'Blood test' }} />
       <Stack.Screen name="ChoosePetForAdd" component={ChoosePetForAddScreen} options={{ title: 'Choose a pet' }} />
       <Stack.Screen name="DevStyleGuide" component={DevStyleGuideScreen} options={{ title: 'Style Guide' }} />
     </Stack.Navigator>

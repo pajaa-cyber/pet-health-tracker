@@ -12,6 +12,7 @@ import { subscribeToDocuments } from '../documents/documentService';
 import { subscribeToPets, updatePetPhoto, updatePetColor, updatePet } from '../pets/petService';
 import { subscribeToVets } from '../vets/vetService';
 import { subscribeToEvents } from '../calendar/eventService';
+import { subscribeToBloodTests } from '../pets/bloodTestService';
 import { generatePassport } from '../documents/passportService';
 import { canGeneratePassport, passportLimitMessage } from '../limits/limits';
 import { usePetSelection } from '../selection/PetSelectionContext';
@@ -25,6 +26,7 @@ import { Document } from '../types/document';
 import { Vet } from '../types/vet';
 import { Pet } from '../types/pet';
 import { CalendarEvent } from '../types/calendarEvent';
+import { BloodTest } from '../types/bloodTest';
 import { WeightTrendChart } from '../pets/WeightTrendChart';
 import { ScreenContainer, AvatarPicker, Button, ErrorText } from '../components/ui';
 import { shell, text, spacing, colors, radii } from '../theme/theme';
@@ -105,6 +107,7 @@ export function PetHomeScreen({ route, navigation }: any) {
   const [vets, setVets] = useState<Vet[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [bloodTests, setBloodTests] = useState<BloodTest[]>([]);
   const [statusSaving, setStatusSaving] = useState(false);
   const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const [generatingPassport, setGeneratingPassport] = useState(false);
@@ -120,6 +123,7 @@ export function PetHomeScreen({ route, navigation }: any) {
       subscribeToVetVisits(firestore, household.id, petId, setVetVisits),
       subscribeToExpenses(firestore, household.id, petId, setExpenses),
       subscribeToDocuments(firestore, household.id, petId, setDocuments),
+      subscribeToBloodTests(firestore, household.id, petId, setBloodTests),
     ];
     return () => unsubs.forEach((u) => u());
   }, [household, petId]);
@@ -343,6 +347,28 @@ export function PetHomeScreen({ route, navigation }: any) {
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>Hygiene</Text>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{recordsLabel(hygieneRecordCount)}</Text>
+              </View>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('ScanFood', { petId })} style={{ width: '47%' }}>
+            <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 12, minHeight: 85, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: '#22C55E40', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 19 }}>🍖</Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>Scan Food</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>Check for allergens</Text>
+              </View>
+            </View>
+          </Pressable>
+          <Pressable onPress={() => navigation.navigate('BloodTestList', { petId })} style={{ width: '47%' }}>
+            <View style={{ borderRadius: 20, backgroundColor: shell.card, padding: 12, minHeight: 85, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: '#EF444440', alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 19 }}>🧪</Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>Blood Tests</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{recordsLabel(bloodTests.length)}</Text>
               </View>
             </View>
           </Pressable>
