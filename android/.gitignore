@@ -18,10 +18,9 @@ app/src/main/java/inline/
 # Bundle artifacts
 *.jsbundle
 
-# Release signing — the app's permanent Play Store identity. Never commit
-# this: losing it is unrecoverable (can never update the app again under
-# this listing), and leaking it lets anyone sign a build as this app.
-# debug.keystore above this line is NOT secret (a well-known, shared key
-# Android generates for every project) and stays tracked on purpose.
-app/release.keystore
-keystore.properties
+# Release signing secrets live OUTSIDE this folder entirely (project root,
+# not android/) — `expo prebuild` deletes and regenerates this whole
+# directory from scratch on every run (it doesn't respect gitignore, it
+# just wipes everything untracked here first), which already destroyed one
+# copy of the release keystore during this same session. See the root
+# .gitignore and android/app/build.gradle's signingConfigs comment.

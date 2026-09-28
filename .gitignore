@@ -55,3 +55,14 @@ metro.log
 screen.png
 *.log
 .env
+
+# Release signing — the app's permanent Play Store identity. Lives at the
+# project root, not inside android/, because `expo prebuild` deletes and
+# regenerates that whole directory from scratch every run (it wipes
+# everything untracked there first, gitignored or not) — this already cost
+# one copy of the keystore mid-session. Never commit this: losing it is
+# unrecoverable once a real Play Store build has shipped with it (can never
+# update the app under that listing again), and leaking it lets anyone sign
+# a build as this app. Back it up somewhere outside this repo.
+/release.keystore
+/keystore.properties

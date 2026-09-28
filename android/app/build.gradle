@@ -81,14 +81,18 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
-// Release signing — android/keystore.properties is gitignored (it holds the
-// store/key passwords) and android/app/release.keystore is gitignored too
-// (the actual key). Neither exists on a fresh checkout, so this falls back
-// to the debug keystore rather than breaking Gradle sync there; only a
-// checkout that's had the release keystore copied in can actually produce a
-// Play-Store-signable release build. See docs/environment.md for the
-// per-checkout secrets a build needs — this is one more of them.
-def keystorePropertiesFile = rootProject.file("keystore.properties")
+// Release signing — keystore.properties and release.keystore live at the
+// JS PROJECT ROOT (../../ from here), not inside android/, on purpose:
+// `expo prebuild` deletes and regenerates the whole android/ directory from
+// scratch on every run, wiping anything untracked there whether it's
+// gitignored or not — this already destroyed one copy of the release
+// keystore mid-session. Both files are gitignored at the project root.
+// Neither exists on a fresh checkout, so this falls back to the debug
+// keystore rather than breaking Gradle sync there; only a checkout that's
+// had the release keystore copied in can produce a Play-Store-signable
+// release build. See docs/environment.md for the per-checkout secrets a
+// build needs — this is one more of them.
+def keystorePropertiesFile = rootProject.file("../keystore.properties")
 def keystoreProperties = new Properties()
 def hasReleaseKeystore = keystorePropertiesFile.exists()
 if (hasReleaseKeystore) {

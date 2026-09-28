@@ -521,6 +521,16 @@ Full detail and every failure mode: `docs/environment.md`. The five that bite:
    — VS Code's Gradle extension corrupts a shared cache otherwise.
 5. **adb disconnects are this project's biggest blocker** and need a human hand on
    the cable — unplug/replug, unlock the screen, toggle USB debugging.
+6. **`expo prebuild` deletes and regenerates the entire `android/` directory
+   from scratch every run** — it wipes everything untracked there first,
+   gitignored or not, before regenerating from templates + config plugins.
+   This already destroyed a release keystore mid-session (it was gitignored
+   *inside* `android/app/`, which didn't save it). Anything that must survive
+   a prebuild — the release keystore, `keystore.properties` — has to live
+   **outside** `android/` entirely, at the project root (see
+   `android/app/build.gradle`'s signing config comment for the current
+   setup). Never put a secret file inside `android/` and assume `.gitignore`
+   protects it from this.
 
 ## Known gaps
 
