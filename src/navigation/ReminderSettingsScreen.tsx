@@ -59,7 +59,7 @@ export function ReminderSettingsScreen() {
     const reminders = computeUpcoming({ pets, vaccines, medications, vetVisits }, Date.now(), REMINDERS_HORIZON_DAYS);
     const snoozes = await getSnoozes();
     const now = Date.now();
-    const visibleReminders = reminders.filter((r) => !isSnoozed(snoozes, r.id, now));
+    const visibleReminders = reminders.filter((r) => !isSnoozed(snoozes, r.id, r.dueDate, now));
     await rescheduleNotifications(visibleReminders, settings);
   };
 

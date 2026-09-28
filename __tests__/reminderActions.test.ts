@@ -62,11 +62,11 @@ describe('skip', () => {
 });
 
 describe('snooze', () => {
-  it('stores a snooze until now + N days', async () => {
+  it('stores a snooze until now + N days, scoped to the reminder\'s current due date', async () => {
     const realNow = Date.now;
     Date.now = () => 1_000_000;
     await snooze(reminder('vaccine'), 2);
-    expect(mockSnoozeReminder).toHaveBeenCalledWith('vaccine:src-1', 1_000_000 + 2 * 24 * 60 * 60 * 1000);
+    expect(mockSnoozeReminder).toHaveBeenCalledWith('vaccine:src-1', 1_000_000 + 2 * 24 * 60 * 60 * 1000, 1000);
     Date.now = realNow;
   });
 });

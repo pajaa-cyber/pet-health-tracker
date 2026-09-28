@@ -64,7 +64,7 @@ export function ReminderRescheduler(): null {
       const [settings, snoozes] = await Promise.all([getReminderSettings(), getSnoozes()]);
       if (token !== runToken.current) return;
       const now = Date.now();
-      const visibleReminders = reminders.filter((r) => !isSnoozed(snoozes, r.id, now));
+      const visibleReminders = reminders.filter((r) => !isSnoozed(snoozes, r.id, r.dueDate, now));
       if (token !== runToken.current) return;
       const key = JSON.stringify({
         settings,

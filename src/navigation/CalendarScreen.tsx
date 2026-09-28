@@ -7,7 +7,7 @@ import { subscribeToPets, activePets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { useUpcomingReminders } from '../reminders/useUpcomingReminders';
 import { useNotificationPermission } from '../reminders/useNotificationPermission';
-import { getSnoozes, isSnoozed } from '../reminders/snoozeStore';
+import { getSnoozes, isSnoozed, SnoozeEntry } from '../reminders/snoozeStore';
 import { useCalendarEvents } from '../calendar/useCalendarEvents';
 import {
   mergeCalendarEntries, entriesForDay, entriesForPet, overdueEntries,
@@ -41,7 +41,7 @@ export function CalendarScreen({ navigation }: any) {
   const { selectedPetId } = usePetSelection();
   const insets = useSafeAreaInsets();
   const [pets, setPets] = useState<Pet[]>([]);
-  const [snoozes, setSnoozes] = useState<Record<string, number>>({});
+  const [snoozes, setSnoozes] = useState<Record<string, SnoozeEntry>>({});
   const [viewMode, setViewMode] = useState<ViewMode>('week');
   const [selectedDate, setSelectedDate] = useState(startOfDay(Date.now()));
   const { handleDone, handleSkip, handleEdit, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
@@ -60,7 +60,7 @@ export function CalendarScreen({ navigation }: any) {
   const now = Date.now();
 
   const allEntries = mergeCalendarEntries(reminders, events, now)
-    .filter((e) => e.reminder == null || !isSnoozed(snoozes, e.reminder.id, now));
+    .filter((e) => e.reminder == null || !isSnoozed(snoozes, e.reminder.id, e.reminder.dueDate, now));
   const petFilteredEntries = entriesForPet(allEntries, selectedPetId);
 
   const handlePrev = () => {

@@ -36,5 +36,5 @@ export async function skip(db: Firestore, householdId: string, reminder: Upcomin
 }
 
 export async function snooze(reminder: UpcomingReminder, days: number): Promise<void> {
-  await snoozeReminder(reminder.id, Date.now() + days * DAY_MS);
+  await snoozeReminder(reminder.id, Date.now() + days * DAY_MS, reminder.dueDate);
 }

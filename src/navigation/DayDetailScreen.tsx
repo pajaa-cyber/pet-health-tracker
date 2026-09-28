@@ -6,7 +6,7 @@ import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets, activePets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { useUpcomingReminders } from '../reminders/useUpcomingReminders';
-import { getSnoozes, isSnoozed } from '../reminders/snoozeStore';
+import { getSnoozes, isSnoozed, SnoozeEntry } from '../reminders/snoozeStore';
 import { useCalendarEvents } from '../calendar/useCalendarEvents';
 import { mergeCalendarEntries, entriesForPet, entriesForDay } from '../calendar/calendarEntries';
 import { useCalendarEntryActions } from '../calendar/useCalendarEntryActions';
@@ -23,7 +23,7 @@ export function DayDetailScreen({ route, navigation }: any) {
   const { selectedPetId } = usePetSelection();
   const insets = useSafeAreaInsets();
   const [pets, setPets] = useState<Pet[]>([]);
-  const [snoozes, setSnoozes] = useState<Record<string, number>>({});
+  const [snoozes, setSnoozes] = useState<Record<string, SnoozeEntry>>({});
   const { handleDone, handleSkip, handleEdit, error } = useCalendarEntryActions(household, user?.uid ?? null, navigation);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export function DayDetailScreen({ route, navigation }: any) {
   const now = Date.now();
 
   const allEntries = mergeCalendarEntries(reminders, events, now)
-    .filter((e) => e.reminder == null || !isSnoozed(snoozes, e.reminder.id, now));
+    .filter((e) => e.reminder == null || !isSnoozed(snoozes, e.reminder.id, e.reminder.dueDate, now));
   const petFilteredEntries = entriesForPet(allEntries, selectedPetId);
   const dayEntries = entriesForDay(petFilteredEntries, date).slice().sort((a, b) => a.date - b.date);
 
