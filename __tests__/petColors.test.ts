@@ -5,7 +5,7 @@ const fakePet = (colorKey: string): Pet => ({
   id: 'x', householdId: 'h1', name: 'x', species: 'dog', speciesOther: null, breed: '',
   birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
   arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey,
-  sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+  sex: 'unknown', neutered: null, colorMarkings: '', allergies: '', livingEnvironment: null,
   microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
   customFields: [], status: 'active',
 });

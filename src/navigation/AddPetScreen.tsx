@@ -17,7 +17,7 @@ const INITIAL: WizardData = {
   name: '', species: 'dog', speciesOther: null, breed: '',
   birthDate: Date.now(), birthDatePrecision: 'exact', approximateAgeMonths: null,
   arrivalDate: null, arrivalDatePrecision: null,
-  sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+  sex: 'unknown', neutered: null, colorMarkings: '', allergies: '', livingEnvironment: null,
   microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
   customFields: [], status: 'active', photoDataUri: null,
 };
@@ -285,6 +285,16 @@ export function AddPetScreen({ navigation }: any) {
             </View>
             <View style={{ gap: spacing.xs }}>
               <Text style={{ fontSize: 12, lineHeight: 17, color: text.onColourMuted }}>
+                Known allergies — food, medication, anything a vet or sitter should know about.
+              </Text>
+              <WizardTextField
+                label="Allergies (optional)"
+                value={data.allergies}
+                onChangeText={(t) => update({ allergies: t })}
+              />
+            </View>
+            <View style={{ gap: spacing.xs }}>
+              <Text style={{ fontSize: 12, lineHeight: 17, color: text.onColourMuted }}>
                 Where do they spend their time? This changes flea/tick/worm risk, so protection can be tailored to match.
               </Text>
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -367,6 +377,7 @@ export function AddPetScreen({ navigation }: any) {
               <ReviewRow label="Sex" value={data.sex} jumpTo={5} onJump={setStep} />
               <ReviewRow label="Neutered" value={data.neutered === null ? "Don't know" : data.neutered ? 'Yes' : 'No'} jumpTo={5} onJump={setStep} />
               <ReviewRow label="Colour / markings" value={data.colorMarkings} jumpTo={5} onJump={setStep} />
+              <ReviewRow label="Allergies" value={data.allergies || 'None known'} jumpTo={5} onJump={setStep} />
               <ReviewRow label="Environment" value={data.livingEnvironment ?? 'Not set'} jumpTo={5} onJump={setStep} />
               <ReviewRow label="Microchip" value={data.microchipNumber} jumpTo={6} onJump={setStep} />
               <ReviewRow label="Custom fields" value={String(data.customFields.length)} jumpTo={7} onJump={setStep} />

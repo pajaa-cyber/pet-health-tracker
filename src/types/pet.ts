@@ -27,6 +27,7 @@ export interface Pet {
   sex: PetSex;
   neutered: boolean | null; // null = unknown
   colorMarkings: string;
+  allergies: string;
   livingEnvironment: LivingEnvironment | null; // null = not answered
   microchipProvider: string;
   microchipNumber: string;

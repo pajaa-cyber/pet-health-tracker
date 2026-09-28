@@ -14,7 +14,7 @@ const basePet: Pet = {
   id: 'pet-1', householdId: 'h1', name: 'Macmac', species: 'cat', speciesOther: null,
   breed: 'Tabby', birthDate: null, birthDatePrecision: 'unknown', approximateAgeMonths: null,
   arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#F59E0B',
-  sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+  sex: 'unknown', neutered: null, colorMarkings: '', allergies: '', livingEnvironment: null,
   microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
   customFields: [], status: 'active',
 };

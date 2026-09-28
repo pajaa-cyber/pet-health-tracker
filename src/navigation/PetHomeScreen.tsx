@@ -348,9 +348,16 @@ export function PetHomeScreen({ route, navigation }: any) {
           </Pressable>
         </View>
 
-        <View>
+        <View style={{ gap: spacing.sm }}>
           <Button title="Generate Passport" onPress={handleGeneratePassport} loading={generatingPassport} />
           {passportError && <ErrorText>{passportError}</ErrorText>}
+          <Button
+            title="📋 Prepare for Vet"
+            variant="outline"
+            borderColor="rgba(255,255,255,0.25)"
+            textColor={text.primary}
+            onPress={() => navigation.navigate('PrepareForVet', { petId })}
+          />
         </View>
 
         <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
@@ -359,6 +366,7 @@ export function PetHomeScreen({ route, navigation }: any) {
           <DetailRow label="Arrival" value={formatArrivalDate(pet.arrivalDate, pet.arrivalDatePrecision)} />
           <DetailRow label="Sex" value={!pet.sex || pet.sex === 'unknown' ? "Don't know" : pet.sex.charAt(0).toUpperCase() + pet.sex.slice(1)} />
           <DetailRow label="Colour / markings" value={pet.colorMarkings || 'Not set'} />
+          <DetailRow label="Allergies" value={pet.allergies || 'None known'} />
           {(pet.microchipProvider || pet.microchipNumber || pet.microchipDate || pet.microchipRegistry) && (
             <>
               <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 2 }} />

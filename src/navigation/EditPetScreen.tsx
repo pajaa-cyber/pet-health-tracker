@@ -110,6 +110,7 @@ export function EditPetScreen({ route, navigation }: any) {
         <Chip label="Don't know" selected={pet.neutered === null} onPress={() => patch({ neutered: null })} />
       </View>
       <TextField label="Colour / markings" value={pet.colorMarkings ?? ''} onChangeText={(t) => patch({ colorMarkings: t })} />
+      <TextField label="Allergies" value={pet.allergies ?? ''} onChangeText={(t) => patch({ allergies: t })} />
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         {(['indoor', 'outdoor', 'both'] as const).map((e) => (
           <Chip

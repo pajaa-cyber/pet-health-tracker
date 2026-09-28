@@ -28,7 +28,7 @@ const minimalInput: NewPetInput = {
   name: 'Rex', species: 'dog', speciesOther: null, breed: 'Mixed',
   birthDate: 1000, birthDatePrecision: 'exact', approximateAgeMonths: null,
   arrivalDate: null, arrivalDatePrecision: null,
-  sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+  sex: 'unknown', neutered: null, colorMarkings: '', allergies: '', livingEnvironment: null,
   microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
   customFields: [], status: 'active',
 };
