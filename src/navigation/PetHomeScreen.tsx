@@ -29,6 +29,7 @@ import { shell, text, spacing, colors, radii } from '../theme/theme';
 import { PET_COLORS, petColor, onPetColorInk } from '../theme/petColors';
 import { SPECIES_EMOJI, speciesDisplay } from '../pets/species';
 import { kgToDisplay, unitLabel } from '../pets/units';
+import { computeWeightTrend } from '../pets/weightTrend';
 import { formatGracefulDate, formatArrivalDate, formatPetAge } from '../pets/dateGrace';
 
 interface SectionTile {
@@ -148,6 +149,7 @@ export function PetHomeScreen({ route, navigation }: any) {
     .filter((c) => c.cents > 0);
 
   const age = pet.birthDate != null ? formatPetAge(pet.birthDate, Date.now()) : null;
+  const weightTrend = computeWeightTrend(weightLogs);
   const neuteredLabel = pet.neutered === true ? 'Neutered' : pet.neutered === false ? 'Not neutered' : 'Neutering not set';
   const isRemembered = pet.status === 'remembered';
 
@@ -362,6 +364,16 @@ export function PetHomeScreen({ route, navigation }: any) {
                 : 'No entries yet'}
             </Text>
           </View>
+          {weightTrend && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 13 }}>{weightTrend.direction === 'up' ? '📈' : weightTrend.direction === 'down' ? '📉' : '➖'}</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: text.secondary }}>
+                {weightTrend.direction === 'flat'
+                  ? 'No change since last weigh-in'
+                  : `${weightTrend.percent > 0 ? '+' : ''}${weightTrend.percent.toFixed(1)}% since last weigh-in`}
+              </Text>
+            </View>
+          )}
           <WeightTrendChart logs={weightLogs} color={color} unit={household?.weightUnit ?? 'kg'} />
         </View>
 
