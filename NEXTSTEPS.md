@@ -212,12 +212,16 @@ only failures are `firestore.rules.test.ts`'s pre-existing emulator-required
     same fix as #11): any first snapshot with no matching event now surfaces
     "Event not found" immediately, regardless of whether the household has
     other events. Fixed before 2026-09-27; this list just wasn't updated.
-13. `EntryCard`'s per-pet-names row sets `accessibilityLabel` without
-    `accessible={true}`, so a screen reader may not announce it as one label.
-14. `events`' rules `allow delete` has **no test coverage** (matches the
-    pre-existing `vetVisits` precedent, not a regression).
+13. ~~`EntryCard`'s per-pet-names row sets `accessibilityLabel` without
+    `accessible={true}`~~ — already fixed (commit `c194ae7`, the Colourful
+    Reskin Part B EntryCard rewrite already added `accessible` alongside the
+    label). Fixed 2026-09-21; this list just wasn't updated.
+14. ~~`events`' rules `allow delete` has no test coverage~~ — already fixed
+    (`firestore.rules.test.ts` covers both the member-succeeds and
+    stranger-fails cases). Fixed 2026-09-23; this list just wasn't updated.
 15. `HomeScreen`'s **duplicate "Add a pet"** affordance vs. the global "+" sheet —
-    harmless, worth a keep/drop call.
+    harmless, worth a keep/drop call. Left open 2026-09-28 — a UX call for the
+    owner, not a defect to unilaterally fix.
 16. Minor pre-existing: no positive-value validation beyond what exists;
     `MedicationListScreen`'s dose log has no filter UI.
 17. ~~No loading-state guard on "Join household" / "Create household"~~ —
