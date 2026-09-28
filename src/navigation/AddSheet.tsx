@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Pressable, View, FlatList, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { usePetSelection } from '../selection/PetSelectionContext';
 import { useHousehold } from '../household/HouseholdContext';
@@ -32,6 +33,7 @@ const ADD_ACTIONS: AddAction[] = [
 
 export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const navigation = useNavigation<any>();
+  const insets = useSafeAreaInsets();
   const { selectedPetId } = usePetSelection();
   const { household } = useHousehold();
   const [pets, setPets] = useState<Pet[]>([]);
@@ -66,7 +68,7 @@ export function AddSheet({ visible, onClose }: { visible: boolean; onClose: () =
         <Pressable
           style={{
             backgroundColor: shell.sheet, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-            paddingTop: 18, paddingHorizontal: 18, paddingBottom: 14, gap: spacing.md,
+            paddingTop: 18, paddingHorizontal: 18, paddingBottom: 14 + insets.bottom, gap: spacing.md,
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

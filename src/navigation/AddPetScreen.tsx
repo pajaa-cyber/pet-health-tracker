@@ -380,7 +380,7 @@ export function AddPetScreen({ navigation }: any) {
   };
 
   return (
-    <ScreenContainer scroll background={tint} style={{ paddingTop: 20 + insets.top, paddingHorizontal: 20, paddingBottom: 26, gap: 18 }}>
+    <ScreenContainer scroll background={tint} style={{ paddingTop: 20 + insets.top, paddingHorizontal: 20, paddingBottom: 26 + insets.bottom, gap: 18 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.75)' }}>
           Step {step + 1} of {TOTAL_STEPS}

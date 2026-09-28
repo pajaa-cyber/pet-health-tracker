@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Modal, View, FlatList, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PetSpecies } from '../../types/pet';
 import { BREEDS_BY_SPECIES } from '../../pets/breeds';
 import { BodyText, Title, MutedText } from './Typography';
@@ -20,6 +21,7 @@ interface BreedPickerProps {
 export function BreedPicker({ visible, species, value, onSelect, onClose }: BreedPickerProps) {
   const [customText, setCustomText] = useState(PINNED.includes(value) ? '' : value);
   const list = BREEDS_BY_SPECIES[species] ?? [];
+  const insets = useSafeAreaInsets();
 
   const choose = (breed: string) => {
     onSelect(breed);
@@ -28,7 +30,7 @@ export function BreedPicker({ visible, species, value, onSelect, onClose }: Bree
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.md, gap: spacing.md }}>
+      <View style={{ flex: 1, backgroundColor: colors.background, padding: spacing.md, paddingTop: spacing.md + insets.top, paddingBottom: spacing.md + insets.bottom, gap: spacing.md }}>
         <Title>Breed</Title>
         <View style={{ gap: spacing.xs }}>
           {PINNED.map((label) => (
