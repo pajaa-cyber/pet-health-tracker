@@ -343,7 +343,12 @@ tab, so it survives navigation; it is guarded by a `runToken` ref against
 overlapping runs and a `petsLoaded` flag against wiping notifications before data
 loads. **Reminder settings and snoozes are per-device AsyncStorage, never
 Firestore** — deliberate, and it matches the in-app honesty line that reminders are
-scheduled on *this* phone from what *this* phone has seen.
+scheduled on *this* phone from what *this* phone has seen. A snoozed reminder's
+id (`${type}:${sourceId}`) stays the same across a re-date, so `snoozeStore.ts`'s
+`SnoozeEntry` also records the `dueDate` a snooze was set against —
+`isSnoozed()` treats a snooze whose stored `dueDate` no longer matches the
+reminder's current one as stale and ignores it, rather than needing a
+separate pruning pass.
 `src/reminders/notificationSetup.ts` is imported once in `App.tsx` for its side
 effect (`setNotificationHandler`); without it `expo-notifications` silently
 swallows foreground notifications. Reminder cards show **Done/Skip only** — the

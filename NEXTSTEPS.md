@@ -129,7 +129,12 @@ passed clean. Nothing is done until it has been seen working on the phone.
 
 ## Open gaps
 
-Deliberately parked, roughly by weight.
+Deliberately parked, roughly by weight. **Audited 2026-09-28** — several of
+these had already been fixed by earlier work without this list being updated
+(struck through below with when/where), and five more were fixed in that same
+pass. Verified with `npx tsc --noEmit` (clean) and `npx jest` (157 passed, the
+only failures are `firestore.rules.test.ts`'s pre-existing emulator-required
+`ECONNREFUSED`s, not a regression).
 
 1. **No in-app recovery for a household document that becomes unreadable for
    any reason other than being removed.** Plan 7 added a recovery path
@@ -137,35 +142,76 @@ Deliberately parked, roughly by weight.
    overwritten once they're no longer in that household's `memberIds`). Any
    other cause of an unreadable household — the household deleted, corrupted,
    etc. — still leaves `createHousehold`/`joinHousehold` failing permanently,
-   since both require the pointer not to already exist.
-2. **`generateInviteCode()` uses `Math.random()`**, not a CSPRNG. Not currently
-   exploitable; a proper fix needs `expo-crypto` plus a prebuild/rebuild cycle.
+   since both require the pointer not to already exist. **Deliberately left
+   open 2026-09-28**: fixing it means changing `isJoining()`/the pointer
+   invariants CLAUDE.md documents at length as already hard-won through
+   on-device failures — needs its own planned pass with device verification,
+   not a quick patch alongside other gaps.
+2. ~~`generateInviteCode()` uses `Math.random()`, not a CSPRNG~~ — already
+   fixed (`householdService.ts`'s `secureRandomIndex`, prefers
+   `crypto.getRandomValues` with a `Math.random()` fallback, no native
+   dependency needed). Fixed before 2026-09-27; this list just wasn't updated.
 3. **Listener fan-out** is duplicated across `HomeScreen` / `CalendarScreen` /
    `ReminderRescheduler` / `DayDetailScreen` — roughly 27 concurrent Firestore
    listeners for 3 pets with the Calendar tab open. Worth hoisting into a shared
    provider (same precedent as `PetSelectionContext`) when it next hurts.
-4. **No error surface** on Done / Skip / toggle-complete on the reminders and
-   Calendar screens, unlike `MedicationListScreen`'s established `ErrorText`
-   pattern.
-5. **No read-only display** for any of Plan 4's 15 new profile fields anywhere
-   except the Add-Pet wizard's Review step.
+   **Deliberately left open 2026-09-28**: a cross-cutting data-flow refactor
+   touching four screens is real regression risk for a "nice to have,"
+   without the device time to verify every screen afterward.
+4. ~~No error surface on Done / Skip / toggle-complete on the reminders and
+   Calendar screens~~ — already fixed: `useCalendarEntryActions.ts` (Colourful
+   Reskin Part B) gives `CalendarScreen` and `DayDetailScreen` a shared
+   `error` state rendered through `ErrorText`, covering both reminders and
+   events. Fixed before 2026-09-27; this list just wasn't updated.
+5. ~~No read-only display for any of Plan 4's 15 new profile fields~~ — fixed
+   2026-09-28: `PetHomeScreen` had already grown `breed`/`neutered`/
+   `livingEnvironment` chips at some point, but a new "About" card now also
+   shows birth date and arrival date (via new `formatGracefulDate`/
+   `formatArrivalDate` in `dateGrace.ts`, precision-aware — "Roughly", "~1 yr
+   2 mo old", "Don't know" vs. "Not set" for a skipped question), sex,
+   colour/markings, the four microchip fields (shown only if any are filled
+   in), and custom fields (shown only if any exist).
 6. **No query limit or pagination on the `events` collection** — fine at MVP
    scale, will matter once a household accumulates years of completed events.
+   **Deliberately left open 2026-09-28**: `subscribeToEvents` has no
+   `orderBy`, so a blind `limit()` would return an arbitrary N documents, not
+   necessarily the ones the current Week/Month/day view needs — could make
+   real events silently vanish from view instead of just being slow. A real
+   fix needs `orderBy('date')` plus a date-range query per view, which is new
+   query-shape work, not a one-line safety net.
 7. ~~`GuidedEmptyState`'s weight-log "Log weight" CTA is a no-op button~~ —
    fixed 2026-09-27 (`actionLabel`/`onAction` are now optional; the Weight
    screen's empty state omits both since the log form is always visible
    right below it).
-8. **No Android notification channel** is created; notifications land in
-   `expo-notifications`' generic fallback channel.
-9. **Snooze entries are never pruned** — a re-dated vaccine inherits its old
-   snooze under the same reminder id.
-10. A **DST edge case in notification-time math** — worst case one calendar day
-    early or late, twice a year.
-11. `AddEventScreen` **dead-ends** with a disabled "Next" for a zero-pet household
-    (wants a `GuidedEmptyState` pointing at Add a Pet).
-12. `EditEventScreen` shows **"Loading…" forever** if the household's event list is
-    genuinely empty on first snapshot — the "not found" fix only covers the case
-    where other events exist but this one doesn't.
+8. ~~No Android notification channel is created~~ — already fixed
+   (`notificationSetup.ts` calls `setNotificationChannelAsync` with a named
+   `REMINDERS_CHANNEL_ID` channel, Android-only). Fixed before 2026-09-27;
+   this list just wasn't updated.
+9. ~~Snooze entries are never pruned — a re-dated vaccine inherits its old
+   snooze under the same reminder id~~ — fixed 2026-09-28: rather than a
+   separate prune pass, `snoozeStore.ts`'s `SnoozeEntry` now records the
+   `dueDate` a snooze was set against, and `isSnoozed()` self-invalidates a
+   stale entry whose stored `dueDate` no longer matches the reminder's
+   current one (id stays `${type}:${sourceId}` across a re-date, so the id
+   alone can't tell old from new). All four call sites
+   (`ReminderRescheduler`, `ReminderSettingsScreen`, `CalendarScreen`,
+   `DayDetailScreen`) updated to pass the reminder's current `dueDate`.
+10. ~~A DST edge case in notification-time math — worst case one calendar day
+    early or late, twice a year~~ — fixed 2026-09-28:
+    `notificationTiming.ts`'s `computeNotificationTime` used to subtract
+    `leadDays * DAY_MS` in raw milliseconds before reading the target
+    calendar day, the exact `+ n * DAY_MS` pattern CLAUDE.md already bans;
+    now uses `calendarEntries.ts`'s DST-safe `addDays()` instead, same as
+    every other day-boundary calculation in the app.
+11. ~~`AddEventScreen` dead-ends with a disabled "Next" for a zero-pet
+    household~~ — already fixed (commit `401a3ec`): step 0 already renders a
+    `GuidedEmptyState` pointing at Add a Pet when `pets.length === 0`. Fixed
+    before 2026-09-27; this list just wasn't updated.
+12. ~~`EditEventScreen` shows "Loading…" forever if the household's event list
+    is genuinely empty on first snapshot~~ — already fixed (commit `401a3ec`,
+    same fix as #11): any first snapshot with no matching event now surfaces
+    "Event not found" immediately, regardless of whether the household has
+    other events. Fixed before 2026-09-27; this list just wasn't updated.
 13. `EntryCard`'s per-pet-names row sets `accessibilityLabel` without
     `accessible={true}`, so a screen reader may not announce it as one label.
 14. `events`' rules `allow delete` has **no test coverage** (matches the
@@ -179,10 +225,15 @@ Deliberately parked, roughly by weight.
     redundant request that fails (the user is already a member by then) and
     briefly shows a raw `[firestore/permission-denied]` string, even though
     the first request already succeeded. Same class as #4 above. Found during
-    Plan 7's device pass.
+    Plan 7's device pass. **Still open 2026-09-28** — straightforward
+    (disable the button while the request is in flight) but not yet done.
 18. ~~No in-app sign-out UI anywhere~~ — fixed 2026-09-27: `HomeScreen`'s
     header avatar now opens a new `SettingsScreen` with a confirmed
     Sign out button and a Reminder settings link.
+
+**None of #2, #4, #5, #7, #8, #9, #10, #11, #12, #18 above have been verified
+on a real device yet** — all pass `tsc`/`jest`, but per this file's own
+standing rule ("Reviewed is not verified"), that's necessary, not sufficient.
 
 ## Housekeeping in the live Firestore project
 
