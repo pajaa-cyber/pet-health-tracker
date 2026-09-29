@@ -371,9 +371,28 @@ only failures are `firestore.rules.test.ts`'s pre-existing emulator-required
     header avatar now opens a new `SettingsScreen` with a confirmed
     Sign out button and a Reminder settings link.
 
-**None of #2, #4, #5, #7, #8, #9, #10, #11, #12, #18 above have been verified
-on a real device yet** — all pass `tsc`/`jest`, but per this file's own
-standing rule ("Reviewed is not verified"), that's necessary, not sufficient.
+**Device-verified 2026-09-29, on the owner's real household/pets (no scratch
+data needed):**
+- **#5** — Dona's "About" card shows Birth date ("Roughly 9/1/2026"),
+  Arrival ("Roughly 9/28/2026"), Sex ("Don't know"), Colour/markings ("Not
+  set"), Allergies ("None known"); microchip and custom-field rows correctly
+  absent since neither pet has any set.
+- **#8** — Android's own notification-channel settings for the app
+  (Settings → Apps → Pet Health Tracker → Notifications) show a named
+  "Reminders" channel, not just the generic default.
+- **#18** — `SettingsScreen` has the confirmed "Log out" button (not tapped,
+  to avoid disrupting the session — just visually confirmed present).
+
+**Still not verified on a real device — #2, #4, #7, #9, #10, #11, #12.**
+Unlike the three above, these genuinely need either disposable/scratch data
+(a zero-pet household for #11/#12, a fresh un-logged pet for #7) or a forced
+failure condition (a Firestore write actually failing, for #4) to observe —
+not safe or meaningful to fake on the owner's real household. #2
+(`generateInviteCode`'s CSPRNG) isn't really device-observable at all; that
+one's confirmed by reading the code, not by looking at a screen. All seven
+pass `tsc`/`jest` regardless, but per this file's own standing rule
+("Reviewed is not verified"), that's necessary, not sufficient — do these in
+a dedicated pass with a disposable test account before calling them done.
 
 ## Housekeeping in the live Firestore project
 
