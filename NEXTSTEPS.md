@@ -23,18 +23,19 @@ here first.**
   fix** — the chart's visual proportions should now look right, but this
   needs an actual look on the phone before considering it done, per this
   file's own "reviewed is not verified" rule below.
-- **A release AAB build (`gradlew bundleRelease`) was kicked off to confirm
-  the release-signing setup (keystore + `keystore.properties` at the
-  project root, see `CLAUDE.md`'s build-environment item 6) actually
-  produces a working signed bundle end-to-end — this had never been
-  attempted, only set up.** It was still running (no output yet, but the
-  Java/Gradle process was alive and using real CPU/memory — not stuck) when
-  the session ended. **Resume by checking whether
-  `android/app/build/outputs/bundle/release/app-release.aab` exists and
-  whether the build actually succeeded** before doing anything else
-  release-related; if it failed, that's a real blocker to fix before
-  Play Store submission, independent of the Play Console/merchant-account
-  gate below.
+- **Confirmed 2026-09-29: `gradlew bundleRelease` succeeds end-to-end** —
+  `BUILD SUCCESSFUL`, `validateSigningRelease`/`signReleaseBundle` both ran
+  clean using the real release keystore (`hasReleaseKeystore` true, not the
+  debug fallback), producing a signed
+  `android/app/build/outputs/bundle/release/app-release.aab` (~82 MB). This
+  is the first time this had actually been attempted rather than just set
+  up, and it's now a confirmed non-blocker for Play Store submission — the
+  release-signing setup from earlier this week (item 6 in `CLAUDE.md`'s
+  build-environment list) genuinely works. (Took ~7.5h wall-clock on this
+  machine, first cold release build — most of that is plausibly the machine
+  being idle/asleep between the two sessions that spanned it, not pure
+  build time; a second release build should be much faster from Gradle's
+  now-warm caches.)
 - **Play Store timing question resolved with the owner:** confirmed it's
   not necessary to finish every open item (the 10 not-yet-device-verified
   gaps, Plan 9B real billing) before the first submission — Play Store
