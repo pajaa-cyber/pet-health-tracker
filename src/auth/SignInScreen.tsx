@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from './AuthContext';
 import { ScreenContainer, TextField, Button, ErrorText, Title, MutedText } from '../components/ui';
 import { spacing } from '../theme/theme';
 
 export function SignInScreen({ navigation }: any) {
   const { signIn } = useAuth();
+  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +25,7 @@ export function SignInScreen({ navigation }: any) {
   };
 
   return (
-    <ScreenContainer scroll style={{ justifyContent: 'center', flexGrow: 1 }}>
+    <ScreenContainer scroll style={{ paddingTop: insets.top + spacing.sm }}>
       <Title style={{ marginBottom: spacing.sm }}>Welcome back</Title>
       <MutedText style={{ marginBottom: spacing.md }}>Sign in to your household</MutedText>
       <TextField
