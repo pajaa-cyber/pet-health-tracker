@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Alert } from 'react-native';
+import { View, Text, Alert } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToWeightLogs, createWeightLog, deleteWeightLog } from '../pets/weightLogService';
 import { subscribeToPets } from '../pets/petService';
@@ -12,6 +12,7 @@ import { DateField } from '../components/DateField';
 import { ScreenContainer, RecordListHeader, TextField, Button, Chip, ErrorText, MutedText, GuidedEmptyState } from '../components/ui';
 import { shell, text, spacing } from '../theme/theme';
 import { displayToKg, unitLabel, WeightUnit } from '../pets/units';
+import { computeWeightTrend } from '../pets/weightTrend';
 
 type WeighingMethod = 'justPet' | 'humanAndPet';
 
@@ -74,6 +75,7 @@ export function WeightLogScreen({ route, navigation }: any) {
   };
 
   const color = pet ? petColor(pet) : shell.control;
+  const weightTrend = computeWeightTrend(logs);
 
   return (
     <ScreenContainer scroll background={shell.bg} style={{ padding: 0 }}>
@@ -91,7 +93,17 @@ export function WeightLogScreen({ route, navigation }: any) {
             variant="dark"
           />
         ) : (
-          <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16 }}>
+          <View style={{ borderRadius: 22, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>
+            {weightTrend && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 13 }}>{weightTrend.direction === 'up' ? '📈' : weightTrend.direction === 'down' ? '📉' : '➖'}</Text>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: text.secondary }}>
+                  {weightTrend.direction === 'flat'
+                    ? 'No change since last weigh-in'
+                    : `${weightTrend.percent > 0 ? '+' : ''}${weightTrend.percent.toFixed(1)}% since last weigh-in`}
+                </Text>
+              </View>
+            )}
             <WeightTrendChart
               logs={logs}
               color={color}

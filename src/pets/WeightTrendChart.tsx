@@ -33,15 +33,19 @@ export function WeightTrendChart({
 
   const sorted = [...logs].sort((a, b) => a.date - b.date);
   const weights = sorted.map((l) => kgToDisplay(l.weight, unit));
-  const min = Math.min(...weights);
-  const max = Math.max(...weights);
-  const range = max - min || 1;
+  const maxWeight = Math.max(...weights) || 1;
+  // Proportional to the actual value from a zero baseline, not to the tight
+  // min/max of just these entries — a 6% real weight change should look like
+  // a 6% taller bar, not several times taller because it happened to be the
+  // biggest swing in a short, close-together log.
+  const MIN_BAR_HEIGHT = 12;
+  const MAX_BAR_HEIGHT = 96;
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: CHART_HEIGHT, gap: spacing.xs }}>
       {sorted.map((log, i) => {
         const displayWeight = kgToDisplay(log.weight, unit);
-        const barHeight = 26 + ((displayWeight - min) / range) * 70;
+        const barHeight = Math.max(MIN_BAR_HEIGHT, (displayWeight / maxWeight) * MAX_BAR_HEIGHT);
         const selected = selectedIdx === i;
         return (
           <Pressable
