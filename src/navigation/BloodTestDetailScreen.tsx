@@ -58,7 +58,7 @@ function MarkerRow({ result, allTests }: { result: BloodMarkerResult; allTests: 
       )}
       {direction && direction !== 'insufficient data' && (
         <MutedText>
-          {label} has {direction} across the {trend.length} recorded tests for {'—'} the numbers alone, not a
+          {label} has {direction} across the {trend.length} recorded tests — the numbers alone, not a
           clinical read.
         </MutedText>
       )}
