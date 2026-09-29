@@ -19,10 +19,11 @@ here first.**
   to scale proportionally from a zero baseline instead (commit `e68c708`),
   which also fixed a separate gap: `WeightLogScreen` was missing the
   "+X.X% since last weigh-in" badge that `PetHomeScreen` already had —
-  added the same badge there. **Not yet re-verified on device after the
-  fix** — the chart's visual proportions should now look right, but this
-  needs an actual look on the phone before considering it done, per this
-  file's own "reviewed is not verified" rule below.
+  added the same badge there. **Device-verified 2026-09-29** on Macmac's two
+  real weight entries (2026-09-11 → 2026-09-28): trend badge read "+25.0%",
+  and the two bars' actual pixel heights (measured via `uiautomator dump`,
+  not eyeballed) came out to 250px vs 312px against a shared baseline — a
+  24.8% height difference, matching the value change almost exactly. Done.
 - **Confirmed 2026-09-29: `gradlew bundleRelease` succeeds end-to-end** —
   `BUILD SUCCESSFUL`, `validateSigningRelease`/`signReleaseBundle` both ran
   clean using the real release keystore (`hasReleaseKeystore` true, not the
@@ -124,6 +125,23 @@ faking an AI feature.**
   the app comes up blank after a break: check `adb reverse --list` first,
   then prefer force-stop + relaunch over Reload if a Reload alone doesn't
   recover it.
+- **Second, worse tooling failure the same day, after the ~7.5h
+  `gradlew bundleRelease` finished:** the app showed React Native's own
+  "Unable to load script" error screen — a step past the usual blank-screen
+  symptom above. This time `adb reverse` and force-stop/relaunch alone
+  didn't fix it: the Metro `node` process itself was hung, silently, with
+  **4h14m of accumulated CPU time** and not serving anything (`curl` against
+  `/index.bundle` timed out completely at 60s, `HTTP 000`). Plausible cause:
+  Metro's own process survived the whole multi-hour gap (including the
+  concurrent heavy `bundleRelease` build) and got into a bad state, rather
+  than just losing the USB tunnel. **Fix: kill the stuck Metro process
+  outright (`taskkill /F /PID <node pid>`, found via `tasklist` — look for
+  a `node.exe` with an unreasonable CPU-time column) and start a completely
+  fresh one (`npx expo start`)**, then redo `adb reverse` and relaunch.
+  Blank-screen (tunnel dropped) and "Unable to load script" (Metro itself
+  hung) are two different failure modes needing two different fixes — check
+  `curl -m 10 http://localhost:8081/status` and `tasklist` for `node.exe`
+  CPU time before assuming a simple reverse/relaunch will fix either one.
 
 **Plan 9, sub-project C (release prep) — started 2026-09-27, in progress.**
 Plan 9 ("Subscriptions and release") is split into three sub-projects: **A**
