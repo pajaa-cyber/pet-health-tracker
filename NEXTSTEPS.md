@@ -383,22 +383,63 @@ data needed):**
 - **#18** — `SettingsScreen` has the confirmed "Log out" button (not tapped,
   to avoid disrupting the session — just visually confirmed present).
 
-**Still not verified on a real device — #2, #4, #7, #9, #10, #11, #12.**
-Unlike the three above, these genuinely need either disposable/scratch data
-(a zero-pet household for #11/#12, a fresh un-logged pet for #7) or a forced
-failure condition (a Firestore write actually failing, for #4) to observe —
-not safe or meaningful to fake on the owner's real household. #2
-(`generateInviteCode`'s CSPRNG) isn't really device-observable at all; that
-one's confirmed by reading the code, not by looking at a screen. All seven
-pass `tsc`/`jest` regardless, but per this file's own standing rule
-("Reviewed is not verified"), that's necessary, not sufficient — do these in
-a dedicated pass with a disposable test account before calling them done.
+**Device-verified 2026-09-29, on a fresh disposable test account/household
+(`gaptest.pethealthtracker@gmail.com`, "Gap Test Household") created
+specifically to safely exercise zero-pet states without touching the
+owner's real data:**
+- **#11 confirmed working** — `AddEventScreen`'s step 0 ("Who is it for?")
+  correctly shows a `GuidedEmptyState` ("No pets yet", calendar-specific
+  message, working "Add a Pet" button) with "Next" greyed out, reached via
+  the actual `topLevel`/`needsPet:false` "Add to Calendar" tile from the
+  global "+" sheet.
+- **Found and fixed a real, previously-undocumented dead-end in the same
+  family:** `ChoosePetForAddScreen` (the "who is this for?" step for
+  Vaccine/Medication/Vet Visit/Expense/Document/Vet — anything routed
+  through it via `needsPet:true`) showed a plain, inert `"Add a pet
+  first."` string for a zero-pet household, with no button and no way
+  to act on it — worse than #11's screen, and a separate gap from it
+  since it's a different component entirely. Fixed to use the same
+  `GuidedEmptyState` pattern (commit `4daa1b5`) and confirmed on-device.
+- Also incidentally re-confirmed `HouseholdSetupScreen`'s own real bug this
+  same session: it had the identical keyboard-covers-the-button issue as
+  `SignInScreen`/`SignUpScreen` (same copy-pasted `justifyContent:'center'`
+  pattern) — found live while creating the disposable test household, fixed
+  in the same pass as the auth screens (commit `78e5bb0`). Two other files
+  share the same centering snippet (`InviteSitterScreen`,
+  `WeightUnitSetupScreen`) but only on a button-only result screen with no
+  text input, so they don't have the keyboard-clipping exposure — left
+  alone.
+
+**Still not verified on a real device — #2, #4, #7, #9, #10, #12.**
+These genuinely need either disposable/scratch data (a fresh un-logged pet
+for #7, a specific stale-navigation state for #12) or a forced failure
+condition (a Firestore write actually failing, for #4) to observe safely —
+the `gaptest` household above could still be used for #7 (add one pet, no
+weight log yet) in a future pass. #2 (`generateInviteCode`'s CSPRNG) isn't
+device-observable at all; that one's confirmed by reading the code, not by
+looking at a screen. All six pass `tsc`/`jest` regardless, but per this
+file's own standing rule ("Reviewed is not verified"), that's necessary, not
+sufficient.
+
+**Housekeeping note:** the `gaptest.pethealthtracker@gmail.com` /
+`GapTest2026` test account and its "Gap Test Household" (zero pets) are now
+live in production Firestore — harmless, but delete via Firebase console
+whenever convenient, same as the other disposable test accounts already
+listed below. The device itself was left signed into this test account, not
+the owner's real one — sign back in as yourself next time you pick up the
+phone.
 
 ## Housekeeping in the live Firestore project
 
 No in-app cleanup path exists for any of these — remove them by hand in the
 Firebase console whenever convenient.
 
+- One disposable test account/household from tonight's (2026-09-29) open-gaps
+  device pass: **`gaptest.pethealthtracker@gmail.com`** / "Gap Test
+  Household" (zero pets, created solely to test empty-state screens without
+  touching the owner's real data) — safe to delete (Firebase Auth user +
+  its household doc) whenever. The phone was left signed into this account,
+  not the owner's.
 - Two stray test pets: **"Zara"** (marked remembered) and **"TestPet12"**.
 - Two test vets from Plan 7: **"Corner Clinic"**, **"Riverside Vet Clinic
   Renamed"**.

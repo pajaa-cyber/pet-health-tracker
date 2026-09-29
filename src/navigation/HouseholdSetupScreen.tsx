@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { createHousehold, joinHousehold } from '../household/householdService';
 import { redeemSitterInvite } from '../sitters/sitterService';
@@ -9,6 +10,7 @@ import { spacing } from '../theme/theme';
 
 export function HouseholdSetupScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'create' | 'join' | 'sitter'>('create');
   const [name, setName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -70,7 +72,7 @@ export function HouseholdSetupScreen() {
   };
 
   return (
-    <ScreenContainer scroll style={{ justifyContent: 'center', flexGrow: 1 }}>
+    <ScreenContainer scroll style={{ paddingTop: insets.top + spacing.sm }}>
       <Title style={{ marginBottom: spacing.sm }}>Set up your household</Title>
       <MutedText style={{ marginBottom: spacing.md }}>
         Create a new household for your pets, join one with an invite code, or redeem a sitter code.

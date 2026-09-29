@@ -456,6 +456,23 @@ Compose new screens from `src/components/ui/index.ts`'s exports
 raw `View`/`Text`/`TextInput` — that inconsistency is exactly what the redesign
 replaced.
 
+**Never center a form screen's content with `justifyContent:'center'` +
+`flexGrow:1` on `ScreenContainer`.** `SignInScreen`, `SignUpScreen`, and
+`HouseholdSetupScreen` all did this and it silently pushes the submit
+button below the fold once the keyboard opens — the keyboard shrinks the
+visible area but the content stays vertically centered against the
+*original* height, so the button ends up off-screen with no way to see
+you're still centered, not stuck. All three were found live on-device (not
+by review) and fixed 2026-09-29 by dropping the centering and instead
+giving the screen `insets.top`-aware top padding (via
+`useSafeAreaInsets()`) so the title doesn't sit flush against the status
+bar/camera cutout either — `ScreenContainer` itself only adds bottom inset
+padding, none on top. The same centering snippet is still used in
+`InviteSitterScreen` and `WeightUnitSetupScreen`, but only on button-only
+screens with no text input, so they aren't exposed to this and were left
+alone — the rule is specifically about screens with a `TextField` a user
+needs to see past the keyboard, not centering in general.
+
 **Colours live in tokens.** Purple primary `#7C3AED`, orange accent `#F97316` for
 primary "add" actions, `accentText` `#1E1B2E` for text on the orange surface,
 calm off-white background. `theme.ts` also carries additive `shell.*` / `text.*`
