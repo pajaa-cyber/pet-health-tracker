@@ -1,4 +1,4 @@
-# Where we left off (2026-09-28)
+# Where we left off (2026-09-29)
 
 Resume state only. Permanent rules live in `CLAUDE.md`; per-plan build and
 verification history lives in `docs/history/` (`plan-log.md` is the index).
@@ -7,6 +7,54 @@ verification history lives in `docs/history/` (`plan-log.md` is the index).
 it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
+
+**Pre-Play-Store-submission pass, 2026-09-29 — session ended mid-task, resume
+here first.**
+
+- **Found and fixed a real bug while checking something unrelated:**
+  `WeightTrendChart.tsx`'s bar heights were scaled to the tight min/max of
+  just the visible entries, not to the actual values — so a small real
+  change (e.g. a pet gaining 6%) could render as a bar several times
+  taller, because it happened to be the biggest swing in a short log. Fixed
+  to scale proportionally from a zero baseline instead (commit `e68c708`),
+  which also fixed a separate gap: `WeightLogScreen` was missing the
+  "+X.X% since last weigh-in" badge that `PetHomeScreen` already had —
+  added the same badge there. **Not yet re-verified on device after the
+  fix** — the chart's visual proportions should now look right, but this
+  needs an actual look on the phone before considering it done, per this
+  file's own "reviewed is not verified" rule below.
+- **A release AAB build (`gradlew bundleRelease`) was kicked off to confirm
+  the release-signing setup (keystore + `keystore.properties` at the
+  project root, see `CLAUDE.md`'s build-environment item 6) actually
+  produces a working signed bundle end-to-end — this had never been
+  attempted, only set up.** It was still running (no output yet, but the
+  Java/Gradle process was alive and using real CPU/memory — not stuck) when
+  the session ended. **Resume by checking whether
+  `android/app/build/outputs/bundle/release/app-release.aab` exists and
+  whether the build actually succeeded** before doing anything else
+  release-related; if it failed, that's a real blocker to fix before
+  Play Store submission, independent of the Play Console/merchant-account
+  gate below.
+- **Play Store timing question resolved with the owner:** confirmed it's
+  not necessary to finish every open item (the 10 not-yet-device-verified
+  gaps, Plan 9B real billing) before the first submission — Play Store
+  updates are fast/routine once an app is live, so the plan is: submit a
+  solid first version once the Play Console/merchant-account step is done,
+  then iterate via normal updates. The `applicationId` and signing setup
+  are the two things that are hard/impossible to change later, and both are
+  already settled.
+- **Payment/tax research this session (not app-code, but relevant to Plan
+  9B):** confirmed Google Payments merchant registration supports Serbia
+  (developer + merchant registration both ✔, wire transfer payout, $100
+  minimum, per Google's own supported-locations page). Confirmed Serbia's
+  "frilenser" self-taxation regime (a physical person, no registered
+  business, quarterly self-assessment) legally covers receiving this kind
+  of foreign income — Model A's 2026 non-taxable quarterly threshold is
+  ~110,647 RSD (~$1,070 net of Google's cut, ~$1,260 gross, at ~103
+  RSD/USD). Stripe/Paddle are **not usable as a substitute for Google Play
+  Billing** for in-app Android subscriptions (Play Store policy requirement,
+  not a Serbia-specific limitation) — they'd only be relevant for a
+  hypothetical web-only checkout outside the app, which isn't in scope.
 
 **Two new record-type features, 2026-09-28, not tied to any plan — owner-directed,
 built off reference screenshots from another app, committed straight to
