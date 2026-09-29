@@ -396,9 +396,8 @@ before touching either.
   threshold — never a clinical read). Rules for the new collection needed a
   real deploy (the standing "ask first, every time" `firebase deploy` rule
   above was followed) after a real on-device permission-denied error
-  confirmed it. Device-verified 2026-09-28 for a single test's summary/
-  notable-results/glossary/questions rendering; the cross-test trend
-  sentence's on-device rendering is still unconfirmed (see `NEXTSTEPS.md`).
+  confirmed it. Fully device-verified 2026-09-28/29, including the
+  cross-test trend sentence with two recorded tests (see `NEXTSTEPS.md`).
 
 **Every screen needs `SafeAreaProvider` at the app root — it was missing
 entirely until 2026-09-28.** `App.tsx` now wraps the whole app in

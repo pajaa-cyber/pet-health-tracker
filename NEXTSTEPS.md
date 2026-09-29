@@ -44,23 +44,37 @@ faking an AI feature.**
   ran again for the OCR module. Both the keystore and its properties file now
   live at the project root instead (see `CLAUDE.md`'s build-environment list,
   item 6, and `android/app/build.gradle`'s signing config comment).
-- **Verified end-to-end on device, 2026-09-28 (Dona, a test pet).** Scan Food:
-  both paths confirmed — a photo with no allergen text produces the green
-  "No known allergens detected" card, and (after temporarily setting Dona's
-  Allergies to "Chicken" for the test, then reverting it) a photo containing
-  "Chicken" text produces the red "⚠️ Possible allergen match" card naming the
-  matched allergen. Blood Tests: added one test (ALT 120 U/L, reference
-  10–100) via `AddBloodTestScreen`; `BloodTestListScreen` showed the correct
-  red out-of-range summary dot; `BloodTestDetailScreen` showed the right
-  summary count, the notable-result card with its glossary description ("An
-  enzyme associated with the liver") and status label, and the two
-  auto-generated vet questions. Cross-test `markerTrend`/`describeTrend`
-  (adding a second test with the same marker to see the trend sentence
-  appear) was not reached this session — an adb/device-tool outage interrupted
-  testing partway through entering the second test. The trend logic itself is
-  unit-tested (`__tests__/bloodTestAnalysis.test.ts`) and code-reviewed; only
-  the on-device rendering of the trend sentence in `BloodTestDetailScreen`
-  remains unconfirmed. Do that next before considering Blood Tests fully done.
+- **Fully verified end-to-end on device, 2026-09-28/29 (Dona, a test pet) —
+  both features now considered done.** Scan Food: both paths confirmed — a
+  photo with no allergen text produces the green "No known allergens
+  detected" card, and (after temporarily setting Dona's Allergies to
+  "Chicken" for the test, then reverting it) a photo containing "Chicken"
+  text produces the red "⚠️ Possible allergen match" card naming the matched
+  allergen. Blood Tests: added a first test (ALT 120 U/L, reference 10–100,
+  9/28/2026) and confirmed `BloodTestListScreen`'s red out-of-range summary
+  dot and `BloodTestDetailScreen`'s summary count, notable-result card
+  (glossary description "An enzyme associated with the liver", status
+  label), and the two auto-generated vet questions. Added a second test
+  (ALT 60 U/L, same reference range, dated 9/20/2026 — before the first) and
+  confirmed the cross-test `markerTrend`/`describeTrend` sentence renders
+  correctly: "ALT has increased across the 2 recorded tests — the numbers
+  alone, not a clinical read." That pass also caught and fixed a real,
+  if minor, copy bug only visible once actually rendered — the sentence
+  read "...recorded tests **for —** the numbers alone..." with a stray
+  literal "for" next to the em dash (`BloodTestDetailScreen.tsx`, fixed same
+  session, `d5a845c`). **Test data left on Dona from this pass** (both blood
+  tests, "City Vet Lab") is real app data now, not a scratch artifact —
+  delete via the Blood Tests screen's own trash icon if/when no longer
+  wanted, no rush.
+- **Device/tooling note, 2026-09-29:** resuming this session after an
+  overnight gap needed `adb reverse tcp:8081 tcp:8081` re-run (the tunnel
+  had dropped) and, once, a full `am force-stop` + relaunch rather than just
+  the dev menu's own Reload — a plain Reload after fixing the port forward
+  left the app on a blank screen with the RN instance in a stuck reload
+  state (`ReactInstance task returned null` in logcat) more than once. If
+  the app comes up blank after a break: check `adb reverse --list` first,
+  then prefer force-stop + relaunch over Reload if a Reload alone doesn't
+  recover it.
 
 **Plan 9, sub-project C (release prep) — started 2026-09-27, in progress.**
 Plan 9 ("Subscriptions and release") is split into three sub-projects: **A**
