@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { colors, radii, spacing } from '../../theme/theme';
+import { useScrollToInputOnFocus } from './ScrollToInputContext';
 
 interface TextFieldProps extends TextInputProps {
   label?: string;
@@ -8,6 +9,7 @@ interface TextFieldProps extends TextInputProps {
 
 export function TextField({ label, style, onFocus, onBlur, ...rest }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
+  const scrollToInput = useScrollToInputOnFocus();
 
   return (
     <View style={styles.wrapper}>
@@ -17,6 +19,7 @@ export function TextField({ label, style, onFocus, onBlur, ...rest }: TextFieldP
         style={[styles.input, focused && styles.inputFocused, style]}
         onFocus={(e) => {
           setFocused(true);
+          scrollToInput(e.target as any);
           onFocus?.(e);
         }}
         onBlur={(e) => {

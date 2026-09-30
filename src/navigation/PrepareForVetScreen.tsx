@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { useHousehold } from '../household/HouseholdContext';
 import { subscribeToPets } from '../pets/petService';
 import { subscribeToVaccines } from '../pets/vaccineService';
@@ -106,6 +107,12 @@ export function PrepareForVetScreen({ route, navigation }: any) {
       />
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Generate report" onPress={handleGenerate} loading={generating} />
+      {/* Same fix as AddBloodTestScreen: this form's content sits right at
+          one screen's height without a keyboard open, which left the
+          ScrollView unable to reliably become scrollable once the keyboard
+          covered the lower fields — found live on-device. A fixed spacer
+          guarantees content is always taller than any visible area. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }

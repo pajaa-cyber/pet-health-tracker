@@ -102,6 +102,13 @@ export function AddBloodTestScreen({ route, navigation }: any) {
       <Button title="Add another marker" variant="outline" onPress={addRow} />
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Save" onPress={handleSave} loading={saving} disabled={!canSave} />
+      {/* This form's content sits right at one screen's height without a
+          keyboard open, which left the ScrollView unable to reliably become
+          scrollable once the keyboard actually opened and covered the
+          Marker/Value/Ref fields — found live on-device, not by review.
+          A fixed spacer guarantees content is always taller than any
+          visible area, so scrolling stays consistently available. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }

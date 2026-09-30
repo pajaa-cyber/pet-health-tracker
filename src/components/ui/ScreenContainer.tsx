@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { View, ScrollView, ViewProps, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing } from '../../theme/theme';
+import { ScrollToInputContext } from './ScrollToInputContext';
 
 interface ScreenContainerProps extends ViewProps {
   scroll?: boolean;
@@ -19,16 +20,20 @@ export function ScreenContainer({ scroll, style, background, children, ...rest }
   const insets = useSafeAreaInsets();
   const bottomInset = { paddingBottom: spacing.md + insets.bottom };
   const bgOverride = background ? { backgroundColor: background } : undefined;
+  const scrollViewRef = useRef<ScrollView>(null);
   if (scroll) {
     return (
-      <ScrollView
-        style={[styles.background, bgOverride]}
-        contentContainerStyle={[styles.content, bottomInset, style]}
-        keyboardShouldPersistTaps="handled"
-        {...rest}
-      >
-        {children}
-      </ScrollView>
+      <ScrollToInputContext.Provider value={scrollViewRef}>
+        <ScrollView
+          ref={scrollViewRef}
+          style={[styles.background, bgOverride]}
+          contentContainerStyle={[styles.content, bottomInset, style]}
+          keyboardShouldPersistTaps="handled"
+          {...rest}
+        >
+          {children}
+        </ScrollView>
+      </ScrollToInputContext.Provider>
     );
   }
   return (
