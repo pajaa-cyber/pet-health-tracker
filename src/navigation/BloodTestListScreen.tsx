@@ -99,8 +99,6 @@ export function BloodTestListScreen({ route, navigation }: any) {
             emoji="🧪"
             title="No blood tests logged yet"
             message="Add results from a lab report to track markers over time and get a plain-language explanation of what each one is."
-            actionLabel="Add a blood test"
-            onAction={() => navigation.navigate('AddBloodTest', { petId })}
             variant="dark"
           />
         }

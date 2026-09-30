@@ -115,8 +115,6 @@ export function DocumentListScreen({ route, navigation }: any) {
             emoji="📄"
             title="No documents yet"
             message="Photograph a vaccination booklet, lab result, or anything else worth keeping — several pages at once, grouped as one document."
-            actionLabel="Add a document"
-            onAction={() => navigation.navigate('AddDocument', { petId })}
             variant="dark"
           />
         }

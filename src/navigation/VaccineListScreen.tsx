@@ -79,8 +79,6 @@ export function VaccineListScreen({ route, navigation }: any) {
             emoji="💉"
             title="No vaccines logged yet"
             message="Track vaccinations here to spot what's due and keep a full record for the vet."
-            actionLabel="Add a vaccine"
-            onAction={() => navigation.navigate('AddVaccine', { petId })}
             variant="dark"
           />
         }
