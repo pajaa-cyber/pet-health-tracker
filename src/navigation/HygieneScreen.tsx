@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, FlatList } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useHousehold } from '../household/HouseholdContext';
-import { subscribeToEvents, createEvent } from '../calendar/eventService';
+import { subscribeToEvents, createEvent, updateEvent, deleteEvent } from '../calendar/eventService';
 import { subscribeToPets } from '../pets/petService';
 import { firestore } from '../firebase/config';
 import { CalendarEvent, EventType } from '../types/calendarEvent';
@@ -10,7 +11,7 @@ import { PREVENTIVE_CARE_TYPES, lastDoneByType } from '../pets/preventiveCare';
 import { EVENT_TYPE_LABEL, EVENT_TYPE_EMOJI } from '../calendar/eventTypes';
 import { petColor } from '../theme/petColors';
 import { ScreenContainer, RecordListHeader, ErrorText } from '../components/ui';
-import { shell, text, spacing } from '../theme/theme';
+import { shell, text, colors, spacing } from '../theme/theme';
 
 function formatExactDateTime(ms: number): string {
   const d = new Date(ms);
@@ -39,20 +40,51 @@ export function HygieneScreen({ route, navigation }: any) {
   const lastDone = lastDoneByType(events, petId);
   const rail = pet ? petColor(pet) : shell.control;
 
-  // Tapping a row both logs it (a plain CalendarEvent, already status:
-  // 'completed') and is how you see the exact date/time it was done — the
-  // row's own subtitle switches from "Not logged yet" to that timestamp the
-  // moment the write lands, via the live events subscription above.
+  // All of this pet's completed preventive-care events of a given type —
+  // there should only ever be one once the upsert below is the only way to
+  // write one, but earlier taps (before this fix) could have created
+  // several, so this always matches on all of them, not just the first.
+  const matchingEvents = (type: EventType) =>
+    events.filter((e) => e.status === 'completed' && e.type === type && e.petIds.includes(petId));
+
+  // Tapping a row logs it "now" — but updates the ONE existing record for
+  // this pet+type instead of creating a new one every time, so repeated
+  // taps can't inflate this into an ever-growing history (a real bug: 500
+  // taps used to mean 500 permanent events). The row's subtitle switches
+  // from "Not logged yet" to that timestamp the moment the write lands, via
+  // the live events subscription above.
   const handleLog = async (type: EventType) => {
     if (!household) return;
     setError(null);
     setLoggingType(type);
     try {
-      await createEvent(firestore, household.id, [petId], type, EVENT_TYPE_LABEL[type], '', Date.now(), 'completed');
+      const existing = matchingEvents(type)[0];
+      if (existing) {
+        await updateEvent(firestore, household.id, existing.id, { date: Date.now() });
+      } else {
+        await createEvent(firestore, household.id, [petId], type, EVENT_TYPE_LABEL[type], '', Date.now(), 'completed');
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoggingType(null);
+    }
+  };
+
+  // Clears a category back to "Not logged yet" — also the way to clean up
+  // any duplicate records a category accumulated before this fix, since it
+  // removes every matching event for this pet+type, not just the newest.
+  // Deliberately no confirmation dialog: this is the safe/reversible
+  // direction (just log it again), unlike an actual delete elsewhere.
+  const handleClear = async (type: EventType) => {
+    if (!household) return;
+    const toDelete = matchingEvents(type);
+    if (toDelete.length === 0) return;
+    setError(null);
+    try {
+      await Promise.all(toDelete.map((e) => deleteEvent(firestore, household.id, e.id)));
+    } catch (e: any) {
+      setError(e.message);
     }
   };
 
@@ -94,6 +126,18 @@ export function HygieneScreen({ route, navigation }: any) {
                     {done != null ? formatExactDateTime(done) : 'Not logged yet — tap to log now'}
                   </Text>
                 </View>
+                {done != null && (
+                  <Pressable
+                    onPress={() => handleClear(careType)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Clear ${EVENT_TYPE_LABEL[careType]}`}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6 }}
+                  >
+                    <Ionicons name="refresh-outline" size={15} color={colors.primary} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: colors.primary }}>Clear</Text>
+                  </Pressable>
+                )}
               </View>
             </Pressable>
           );
