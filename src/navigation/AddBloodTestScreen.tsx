@@ -75,30 +75,39 @@ export function AddBloodTestScreen({ route, navigation }: any) {
       <DateField label="Test date" value={testDate} onChange={setTestDate} />
       <TextField label="Laboratory (optional)" value={laboratory} onChangeText={setLaboratory} />
       <Title>Markers</Title>
-      {rows.map((row, i) => (
-        <View key={i} style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, backgroundColor: colors.surfaceTint }}>
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <View style={{ flex: 1 }}>
-              <TextField label="Marker (e.g. ALT)" value={row.marker} onChangeText={(t) => updateRow(i, { marker: t })} />
+      {rows.map((row, i) => {
+        // Only the last row sits directly above "Add another marker"/"Save"
+        // — scrolling any of its fields to the end of the form (instead of
+        // just to that field) keeps the button reachable without extra
+        // manual scrolling. An earlier row's fields keep the normal
+        // scroll-to-self behavior so focusing them doesn't jump past
+        // whatever rows come after.
+        const isLastRow = i === rows.length - 1;
+        return (
+          <View key={i} style={{ gap: spacing.sm, padding: spacing.md, borderRadius: radii.md, backgroundColor: colors.surfaceTint }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <TextField label="Marker (e.g. ALT)" value={row.marker} onChangeText={(t) => updateRow(i, { marker: t })} scrollToEnd={isLastRow} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextField label="Value" keyboardType="numeric" value={row.value} onChangeText={(t) => updateRow(i, { value: t })} scrollToEnd={isLastRow} />
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <TextField label="Value" keyboardType="numeric" value={row.value} onChangeText={(t) => updateRow(i, { value: t })} />
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <TextField label="Unit" value={row.unit} onChangeText={(t) => updateRow(i, { unit: t })} scrollToEnd={isLastRow} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextField label="Ref. low" keyboardType="numeric" value={row.referenceLow} onChangeText={(t) => updateRow(i, { referenceLow: t })} scrollToEnd={isLastRow} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <TextField label="Ref. high" keyboardType="numeric" value={row.referenceHigh} onChangeText={(t) => updateRow(i, { referenceHigh: t })} scrollToEnd={isLastRow} />
+              </View>
             </View>
+            {rows.length > 1 && <Button title="Remove marker" variant="outline" onPress={() => removeRow(i)} />}
           </View>
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <View style={{ flex: 1 }}>
-              <TextField label="Unit" value={row.unit} onChangeText={(t) => updateRow(i, { unit: t })} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextField label="Ref. low" keyboardType="numeric" value={row.referenceLow} onChangeText={(t) => updateRow(i, { referenceLow: t })} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <TextField label="Ref. high" keyboardType="numeric" value={row.referenceHigh} onChangeText={(t) => updateRow(i, { referenceHigh: t })} />
-            </View>
-          </View>
-          {rows.length > 1 && <Button title="Remove marker" variant="outline" onPress={() => removeRow(i)} />}
-        </View>
-      ))}
+        );
+      })}
       <Button title="Add another marker" variant="outline" onPress={addRow} />
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Save" onPress={handleSave} loading={saving} disabled={!canSave} />

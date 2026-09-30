@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TextInputProps, StyleSheet } from 'react-native';
 import { colors, radii, spacing } from '../../theme/theme';
-import { useScrollToInputOnFocus } from './ScrollToInputContext';
+import { useScrollToInputOnFocus, useScrollToEndOnFocus } from './ScrollToInputContext';
 
 interface TextFieldProps extends TextInputProps {
   label?: string;
+  // For a field that's part of a cluster sitting right above a submit
+  // button (e.g. one row in a repeatable group, with "Save" right after) —
+  // scrolls to the end of the form on focus instead of to just this field,
+  // so the button doesn't end up hidden below the keyboard. See
+  // ScrollToInputContext's useScrollToEndOnFocus for the full rationale.
+  scrollToEnd?: boolean;
 }
 
-export function TextField({ label, style, onFocus, onBlur, ...rest }: TextFieldProps) {
+export function TextField({ label, style, onFocus, onBlur, scrollToEnd, ...rest }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
   const scrollToInput = useScrollToInputOnFocus();
+  const scrollToBottom = useScrollToEndOnFocus();
 
   return (
     <View style={styles.wrapper}>
@@ -19,7 +26,11 @@ export function TextField({ label, style, onFocus, onBlur, ...rest }: TextFieldP
         style={[styles.input, focused && styles.inputFocused, style]}
         onFocus={(e) => {
           setFocused(true);
-          scrollToInput(e.target as any);
+          if (scrollToEnd) {
+            scrollToBottom();
+          } else {
+            scrollToInput(e.target as any);
+          }
           onFocus?.(e);
         }}
         onBlur={(e) => {

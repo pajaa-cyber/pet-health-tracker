@@ -96,6 +96,7 @@ export function PrepareForVetScreen({ route, navigation }: any) {
         placeholder="e.g. New food, new environment…"
         value={recentChanges}
         onChangeText={setRecentChanges}
+        scrollToEnd
       />
       <TextField
         label="Questions for the vet (optional, one per line)"
@@ -104,6 +105,7 @@ export function PrepareForVetScreen({ route, navigation }: any) {
         onChangeText={setQuestionsText}
         multiline
         style={{ minHeight: 96, textAlignVertical: 'top' }}
+        scrollToEnd
       />
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Generate report" onPress={handleGenerate} loading={generating} />
