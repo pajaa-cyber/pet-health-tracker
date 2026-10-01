@@ -511,9 +511,24 @@ leave permanent clutter. Plan: sign into the disposable
 `gaptest.pethealthtracker@gmail.com` account (already exists from the
 2026-09-29 pass) instead, add one throwaway pet there, confirm the Weight
 screen's empty state, then sign back into the owner's real account.
-**Blocked mid-attempt 2026-10-01: the phone locked (fingerprint) while
-waiting on an in-conversation decision, and remained locked for the rest of
-the session — resume this first next time the device is in hand unlocked.**
+
+**Blocked twice 2026-10-01, still open:**
+1. First attempt: the phone locked (fingerprint) while waiting on an
+   in-conversation decision.
+2. Second attempt, after unlocking: realized mid-task that the app's
+   auth is plain Firebase **email/password** (`AuthContext.tsx`'s
+   `signIn`/`signUp` call `signInWithEmailAndPassword`/
+   `createUserWithEmailAndPassword` directly — no Google Sign-In, no
+   token-based re-auth), so logging the device out to sign into
+   `gaptest` would require the owner's real password to sign back in
+   afterward — a password this session never had. Stopped before
+   logging out rather than risk locking the owner out of their own
+   account on their own phone. **The owner's call when this resumes:**
+   either they do the account switch themselves (log out, log into
+   `gaptest`, hand the phone back for the empty-state check, log back in
+   themselves afterward), or hand over credentials some other way, or
+   this stays code-review-only like #2/#4/#9/#10/#12 above. Owner asked
+   to pause and pick this back up later rather than decide in the moment.
 
 **Housekeeping note:** the `gaptest.pethealthtracker@gmail.com` /
 `GapTest2026` test account and its "Gap Test Household" (zero pets) are now
