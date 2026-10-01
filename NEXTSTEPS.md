@@ -8,17 +8,18 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**2026-09-30/10-01 session — small fixes plus one new feature, not yet
+**2026-09-30/10-01 session — small fixes plus one new feature, mostly
 device-verified, resume here first.**
 
 - Five commits landed on `master` since the 2026-09-29 pass below (all
-  code-reviewed/`tsc`+`jest`-clean, none device-verified yet): auto-scroll
-  focused fields above the keyboard app-wide, scroll-to-submit-button for
-  clustered inputs (Add a Blood Test's marker row, Prepare for Vet), a cap
-  on Hygiene at one record per category plus a Clear action, a duplicate
-  "Add a ___" button fix on empty Vaccine/Document/Blood Test lists, and
-  the same duplicate-button fix for the Vets list (missed in the first
-  pass).
+  code-reviewed/`tsc`+`jest`-clean): auto-scroll focused fields above the
+  keyboard app-wide, scroll-to-submit-button for clustered inputs (Add a
+  Blood Test's marker row, Prepare for Vet), a cap on Hygiene at one
+  record per category plus a Clear action, a duplicate "Add a ___" button
+  fix on empty Vaccine/Document/Blood Test lists, and the same duplicate-
+  button fix for the Vets list (missed in the first pass — **device-
+  verified 2026-10-01**, see below). **Still not device-verified:** the
+  two keyboard-scroll fixes and the Hygiene cap/Clear action.
 - **New: OCR-assisted blood test entry** (`fcccb60`) — Add a Blood Test
   now has "Scan photo"/"Choose from library" buttons using the same
   on-device ML Kit text recognition Scan Food already uses (nothing
@@ -28,8 +29,16 @@ device-verified, resume here first.**
   never touches reference-range interpretation (still
   `computeMarkerStatus`'s job). 9 new unit tests
   (`__tests__/bloodTestOcr.test.ts`) cover common lab-report line shapes;
-  `tsc`/`jest` clean. **Not yet confirmed on a real device** — per this
-  file's own standing rule, reviewed is not verified.
+  `tsc`/`jest` clean. **Device-verified 2026-10-01** via "Choose from
+  library" on Macmac (owner's real pet, real household) using a
+  synthetic lab-report image (not from Dona/the owner's camera roll —
+  generated locally and pushed to the device's Pictures folder, then
+  deleted again after the test): all four markers (ALT, Glucose,
+  Creatinine, Total Protein — value/unit/reference-range) parsed
+  correctly into the form. Not saved (navigated back instead of tapping
+  Save), so no test data was left on Macmac. `VetsScreen`'s duplicate-
+  button fix (`060b9cc`) also confirmed on-device in the same pass: the
+  empty Vets list now shows only one "Add a vet" button.
 - **Two untracked, undecided files sitting in the working tree as of
   2026-10-01, deliberately left alone pending the owner's call:**
   `agent-audit.md` (a stale, unrelated 2026-09-22 audit report about
