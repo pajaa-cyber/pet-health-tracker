@@ -59,22 +59,56 @@ export function HouseholdProvider({ children }: { children: React.ReactNode }) {
       setHousehold(null);
       return;
     }
-    return onSnapshot(
-      doc(firestore, 'households', householdId),
-      (snap) => {
-        setHousehold(snap.exists() ? (snap.data() as Household) : null);
-        setLoading(false);
-      },
-      // Same reasoning as the users/{uid} listener above: e.g. a member
-      // being removed from the household mid-listen would turn every
-      // subsequent update into a permission-denied error rather than a
-      // snapshot, so without this the UI would otherwise hang on stale
-      // `household` data and `loading: true` forever.
-      () => {
-        setHousehold(null);
-        setLoading(false);
-      }
-    );
+
+    let unsubscribe: (() => void) | undefined;
+    let retryTimeout: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+
+    // Retries a few times, with backoff, before settling on "no household" —
+    // found live on a real device (2026-10-01): joinHousehold() writes the
+    // users/{uid} pointer first (see its own long comment on why), which is
+    // exactly what resolves `householdId` and triggers this effect — but the
+    // SEPARATE batch that actually adds the caller to this household's
+    // memberIds hasn't committed yet at that exact moment, so the very first
+    // subscribe attempt here can race a few hundred ms ahead of it and get a
+    // transient permission-denied even though the join is about to succeed.
+    // onSnapshot's error callback doesn't retry on its own (Firestore tears
+    // the listener down), and this effect won't re-run by itself since
+    // `householdId` hasn't changed — so without a retry, a join could leave
+    // the joiner stuck seeing "no household" indefinitely. Confirmed this
+    // was a real, not just theoretical, dead end: a full force-stop +
+    // relaunch did NOT self-heal it, only clearing all local app storage
+    // did. A genuinely-denied read (e.g. an actually-removed member) just
+    // keeps failing through every retry and correctly lands on null —
+    // `loading` stays true throughout (RootNavigator renders nothing while
+    // loading, rather than flashing "Set up your household" mid-retry).
+    const MAX_RETRIES = 4;
+    const subscribe = (attempt: number) => {
+      unsubscribe = onSnapshot(
+        doc(firestore, 'households', householdId),
+        (snap) => {
+          if (cancelled) return;
+          setHousehold(snap.exists() ? (snap.data() as Household) : null);
+          setLoading(false);
+        },
+        () => {
+          if (cancelled) return;
+          if (attempt < MAX_RETRIES) {
+            retryTimeout = setTimeout(() => subscribe(attempt + 1), 500 * (attempt + 1));
+          } else {
+            setHousehold(null);
+            setLoading(false);
+          }
+        }
+      );
+    };
+    subscribe(0);
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
+      if (unsubscribe) unsubscribe();
+    };
   }, [householdId]);
 
   // Step 3: one-time migration of legacy VetVisit.documentUrls into the new
