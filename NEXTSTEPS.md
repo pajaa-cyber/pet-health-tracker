@@ -8,16 +8,16 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**OPEN, real bug, not yet fixed: joining an existing household can leave
-the joiner permanently stuck on "Set up your household."** Found
-2026-10-01 while device-testing with a second disposable account
-(`gaptest2.pethealthtracker@gmail.com`) joining the `gaptest` household
-via its real invite code. The underlying join write actually succeeded
-(confirmed: after a `pm clear` + fresh sign-in, the account landed
-straight on Home with full household/pet access) — but the UI never
-recovered from it. Root cause, per `householdService.ts`'s own comment
-on `joinHousehold`: the `users/{uid}` pointer write resolves first,
-`HouseholdContext`'s listener reactively tries to subscribe to
+**FIXED, NOT YET DEVICE-VERIFIED (`048a163`): joining an existing
+household could leave the joiner permanently stuck on "Set up your
+household."** Found 2026-10-01 while device-testing with a second
+disposable account (`gaptest2.pethealthtracker@gmail.com`) joining the
+`gaptest` household via its real invite code. The underlying join write
+actually succeeded (confirmed: after a `pm clear` + fresh sign-in, the
+account landed straight on Home with full household/pet access) — but
+the UI never recovered from it. Root cause, per `householdService.ts`'s
+own comment on `joinHousehold`: the `users/{uid}` pointer write resolves
+first, `HouseholdContext`'s listener reactively tries to subscribe to
 `households/{id}` before the second (member-adding) write has committed,
 gets a transient `permission-denied`, and — contrary to that comment's
 claim that this is "recoverable by reopening the app" — **a normal
@@ -25,11 +25,21 @@ force-stop + relaunch did NOT recover it** (confirmed twice); only a full
 `pm clear` (wiping all local/offline-cache state) did. A real user hitting
 this (anyone joining a family member's household — a core, advertised
 use case) would see a confusing generic `[firestore/permission-denied]`
-error and have no obvious way out. Not yet fixed — needs
-`HouseholdContext`'s subscription logic to actually retry/self-heal after
-this specific race, not just rely on a fresh app open. Device repro used
-two disposable test accounts; the owner's real account/household was
-never involved.
+error and have no obvious way out.
+
+**Fix:** `HouseholdContext`'s household-document listener now retries up
+to 4 times with increasing backoff (500ms–2000ms) before settling on "no
+household," instead of giving up on the very first error. `loading`
+stays `true` throughout a retry, so `RootNavigator` renders nothing
+rather than flashing the setup screen mid-retry. A genuinely-denied read
+(an actually-removed member) still fails through every retry and
+correctly lands on `null` — this only changes how long that takes to
+settle (a few seconds), not the outcome. `tsc`/`jest` clean. **Resume
+here first: needs a real join-household repro on-device to confirm** —
+phone was disconnected when this was written. A third disposable account
+joining whatever household currently exists under `S9UVTE` (or a fresh
+invite code, if the owner's Firebase Console deletion changed that) is
+the way to re-run the exact repro.
 
 **Resolved red herring, 2026-10-01:** a `members` array on the `gaptest`
 household briefly looked corrupted (showed "1 of 4 members" with only
