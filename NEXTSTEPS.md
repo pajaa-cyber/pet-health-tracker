@@ -8,6 +8,29 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**CRITICAL, resume here first: adding a new pet is currently broken in
+production for everyone, including the owner's real account —
+`firestore.rules` fix committed (`5e4665d`) but NOT YET DEPLOYED, needs
+the owner's go-ahead.** Found 2026-10-01 while device-testing open gap #7
+on the disposable `gaptest` account: `AddPetScreen`'s wizard sends
+`allergies: ''` in every create payload (added by `151d637`, 2026-09-28,
+the Allergies-field commit), but the pets `create` rule's
+`hasOnly([...])` allowlist was never updated to include `allergies` —
+every new-pet creation has been silently rejected with
+`firestore/permission-denied` since 2026-09-28 18:30. Macmac and Dona
+(the owner's existing real pets) were unaffected because their
+`allergies` value was set later via an `updatePet()` call, which has no
+field restriction — only genuinely *new* pets hit this. The existing
+`firestore.rules.test.ts` pet-creation tests didn't catch it because
+their fixture predated the Allergies field and never included it either
+— passed cleanly against the broken rule. Fixed both the rule and the
+test fixture (now matches the real wizard payload); verified via
+`firebase emulators:exec` (76/76 rules tests pass) before committing.
+**Deploy with
+`firebase deploy --only firestore:rules --project pet-tracker-app-63512`
+once the owner confirms** — until then, nobody (owner or test accounts)
+can add a new pet through the app.
+
 **2026-09-30/10-01 session — small fixes plus one new feature, all now
 device-verified.**
 
@@ -512,23 +535,26 @@ leave permanent clutter. Plan: sign into the disposable
 2026-09-29 pass) instead, add one throwaway pet there, confirm the Weight
 screen's empty state, then sign back into the owner's real account.
 
-**Blocked twice 2026-10-01, still open:**
-1. First attempt: the phone locked (fingerprint) while waiting on an
-   in-conversation decision.
+**Blocked three times now, still open:**
+1. First attempt (2026-10-01): the phone locked (fingerprint) while
+   waiting on an in-conversation decision.
 2. Second attempt, after unlocking: realized mid-task that the app's
    auth is plain Firebase **email/password** (`AuthContext.tsx`'s
    `signIn`/`signUp` call `signInWithEmailAndPassword`/
    `createUserWithEmailAndPassword` directly — no Google Sign-In, no
    token-based re-auth), so logging the device out to sign into
    `gaptest` would require the owner's real password to sign back in
-   afterward — a password this session never had. Stopped before
-   logging out rather than risk locking the owner out of their own
-   account on their own phone. **The owner's call when this resumes:**
-   either they do the account switch themselves (log out, log into
-   `gaptest`, hand the phone back for the empty-state check, log back in
-   themselves afterward), or hand over credentials some other way, or
-   this stays code-review-only like #2/#4/#9/#10/#12 above. Owner asked
-   to pause and pick this back up later rather than decide in the moment.
+   afterward. Stopped before logging out; the owner did the account
+   switch themselves instead and handed the phone back signed into
+   `gaptest`.
+3. Third attempt, once actually on the `gaptest` account: tried to add
+   a throwaway pet to reach the Weight screen's empty state, and hit the
+   **critical `allergies` rules bug documented at the top of this file**
+   instead — a much bigger find than #7 itself. #7 is now blocked on
+   that rules fix being deployed, not on account access. **Resume #7
+   once the rules deploy lands:** sign back into `gaptest`, add one
+   throwaway pet, confirm the Weight screen's empty state, then sign
+   back into the owner's real account.
 
 **Housekeeping note:** the `gaptest.pethealthtracker@gmail.com` /
 `GapTest2026` test account and its "Gap Test Household" (zero pets) are now
