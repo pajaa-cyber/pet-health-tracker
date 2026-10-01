@@ -193,7 +193,14 @@ export function HomeScreen({ navigation }: any) {
   return (
     <ScreenContainer style={{ flex: 1, gap: spacing.md, paddingTop: spacing.md + insets.top }} background={shell.bg}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <View>
+        {/* flex: 1 + flexShrink bounds this to the row's remaining width so a
+            long household name or a long email-derived display name (no
+            spaces for RN's default word-wrap to break on, e.g.
+            "gaptest.pethealthtracker") wraps/clips within its own box
+            instead of forcing the row wider than the screen and pushing
+            the Settings avatar off the right edge — found live on a real
+            device with a long email-derived name. */}
+        <View style={{ flex: 1, flexShrink: 1, marginRight: spacing.sm }}>
           {household && (
             <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 2.2, textTransform: 'uppercase', color: accentLavender }}>
               {household.name.trim().toUpperCase()} HOUSEHOLD
@@ -205,7 +212,7 @@ export function HomeScreen({ navigation }: any) {
           onPress={() => navigation.navigate('Settings')}
           accessibilityRole="button"
           accessibilityLabel="Settings"
-          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
         >
           <Text style={{ fontSize: 15, fontWeight: '800', color: '#FFFFFF' }}>{initial}</Text>
         </Pressable>

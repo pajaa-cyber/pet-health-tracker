@@ -113,9 +113,15 @@ export function HouseholdScreen({ navigation }: any) {
         contentContainerStyle={{ gap: spacing.sm }}
         renderItem={({ item }) => (
           <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Subtitle>{item.displayName}{item.userId === user?.uid ? ' (You)' : ''}</Subtitle>
+            {/* flexShrink so a long email (the display name for most members,
+                since there's no separate profile-name field) wraps within
+                its own space instead of pushing Remove off the card — same
+                shape as the Home screen header bug found on a real device. */}
+            <Subtitle style={{ flexShrink: 1, marginRight: spacing.sm }}>
+              {item.displayName}{item.userId === user?.uid ? ' (You)' : ''}
+            </Subtitle>
             {item.userId !== user?.uid && (
-              <Button title="Remove" variant="outline" onPress={() => handleRemove(item)} />
+              <Button title="Remove" variant="outline" onPress={() => handleRemove(item)} style={{ flexShrink: 0 }} />
             )}
           </Card>
         )}
