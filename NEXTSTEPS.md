@@ -8,25 +8,35 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**Not yet device-verified, resume here first: curved-edge screen insets
-fix (`b74c924`).** Owner reported live (real device, real account, not a
-test account) that the Home screen's purple Settings avatar (top-right)
-was almost entirely cut off under the screen's physical curve on their
-Honor phone — barely visible, hard to tap. Root cause: `insets.left`/
-`insets.right` were never handled anywhere in the codebase (only
-`insets.top`/`insets.bottom` were) — a zero-cost no-op on flat-edge
-screens, so it never surfaced until a curved-edge device hit it. Fixed
-in `ScreenContainer` (covers every screen that doesn't override its own
-horizontal padding) and additionally in `PetHomeScreen`'s header (bypasses
-ScreenContainer's padding with its own, and has the identical
-right-aligned-button shape — the "Edit" pill). **Not yet confirmed on
-device** — phone was disconnected when this was written. Other screens
-with their own manual header padding (Calendar, DayDetailScreen,
-AddSheet, AddPetScreen, HouseholdSetupScreen) weren't touched — only
-flagged as the same risk shape, not confirmed affected, since their
-primary interactive elements are left-aligned (back chevron). Resume:
-confirm the Settings avatar sits fully on-screen now, then check
-PetHomeScreen's "Edit" pill too.
+**RESOLVED 2026-10-01, device-verified: Settings-avatar clipping —
+real cause was flex overflow, not screen curvature.** Owner reported
+live (real device) that the Home screen's purple Settings avatar
+(top-right) was almost entirely cut off, barely visible/tappable. First
+fix attempt (`b74c924`, `insets.left`/`insets.right` handling in
+`ScreenContainer`/`PetHomeScreen`) deployed but **did not fix it** —
+confirmed still broken on-device afterward. Real cause: `HomeScreen`'s
+header row has no `flex`/`flexShrink` on its left text block, so a long
+*unbroken* string with no spaces for RN's default word-wrap to break on
+(an email-derived display name, e.g. `gaptest.pethealthtracker`) forces
+the row wider than the screen, pushing the right-aligned avatar off
+entirely — nothing to do with safe areas or physical screen curvature.
+Fixed (`3935dd7`) with `flex: 1` + `flexShrink: 1` on the left block and
+`flexShrink: 0` on the avatar; **confirmed on-device, avatar now fully
+visible** with the same long name that broke it. Applied the identical
+defensive pattern to `HouseholdScreen`'s member row (display name next
+to a "Remove" button, same shape — a member's `displayName` is usually
+their email) — text wrapping confirmed correct on-device, but the
+Remove-button-specifically-clipped scenario wasn't confirmed since the
+only account available to test with has no second household member.
+`MedicationListScreen` and `VetsScreen` already had the same guard on
+their equivalent rows, so weren't touched. The `insets.left/right`
+handling from `b74c924` is left in place (harmless no-op elsewhere),
+not reverted — wrong diagnosis for this bug, but not wrong to have.
+Other screens with their own manual header padding (Calendar,
+DayDetailScreen, AddSheet, AddPetScreen, HouseholdSetupScreen,
+BloodTestDetailScreen's marker-name row, ExpenseListScreen's
+category/note row) weren't audited further — flagged as the same risk
+shape, not confirmed affected.
 
 **RESOLVED 2026-10-01: adding a new pet was broken in production for
 everyone, including the owner's real account — now fixed and deployed.**
