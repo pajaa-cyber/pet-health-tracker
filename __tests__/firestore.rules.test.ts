@@ -507,7 +507,7 @@ describe('household security rules', () => {
         id: 'pet-1', householdId: 'h1', name: 'Rex', species: 'dog', speciesOther: null,
         breed: 'Labrador', birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
         arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#EF4444',
-        sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+        sex: 'unknown', neutered: null, colorMarkings: '', allergies: '', livingEnvironment: null,
         microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
         customFields: [], status: 'active',
       })
@@ -522,7 +522,7 @@ describe('household security rules', () => {
         id: 'pet-1', householdId: 'h1', name: 'Rex', species: 'dog', speciesOther: null,
         breed: 'Labrador', birthDate: 0, birthDatePrecision: 'exact', approximateAgeMonths: null,
         arrivalDate: null, arrivalDatePrecision: null, photoUrl: null, colorKey: '#EF4444',
-        sex: 'unknown', neutered: null, colorMarkings: '', livingEnvironment: null,
+        sex: 'unknown', neutered: null, colorMarkings: '', allergies: '', livingEnvironment: null,
         microchipProvider: '', microchipNumber: '', microchipDate: null, microchipRegistry: '',
         customFields: [], status: 'active',
       })

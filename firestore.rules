@@ -208,7 +208,7 @@ service cloud.firestore {
           'id', 'householdId', 'name', 'species', 'speciesOther', 'breed',
           'birthDate', 'birthDatePrecision', 'approximateAgeMonths',
           'arrivalDate', 'arrivalDatePrecision', 'photoUrl', 'colorKey',
-          'sex', 'neutered', 'colorMarkings', 'livingEnvironment',
+          'sex', 'neutered', 'colorMarkings', 'allergies', 'livingEnvironment',
           'microchipProvider', 'microchipNumber', 'microchipDate', 'microchipRegistry',
           'customFields', 'status'
         ]);
