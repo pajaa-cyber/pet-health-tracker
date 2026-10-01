@@ -8,6 +8,46 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**OPEN, real bug, not yet fixed: joining an existing household can leave
+the joiner permanently stuck on "Set up your household."** Found
+2026-10-01 while device-testing with a second disposable account
+(`gaptest2.pethealthtracker@gmail.com`) joining the `gaptest` household
+via its real invite code. The underlying join write actually succeeded
+(confirmed: after a `pm clear` + fresh sign-in, the account landed
+straight on Home with full household/pet access) — but the UI never
+recovered from it. Root cause, per `householdService.ts`'s own comment
+on `joinHousehold`: the `users/{uid}` pointer write resolves first,
+`HouseholdContext`'s listener reactively tries to subscribe to
+`households/{id}` before the second (member-adding) write has committed,
+gets a transient `permission-denied`, and — contrary to that comment's
+claim that this is "recoverable by reopening the app" — **a normal
+force-stop + relaunch did NOT recover it** (confirmed twice); only a full
+`pm clear` (wiping all local/offline-cache state) did. A real user hitting
+this (anyone joining a family member's household — a core, advertised
+use case) would see a confusing generic `[firestore/permission-denied]`
+error and have no obvious way out. Not yet fixed — needs
+`HouseholdContext`'s subscription logic to actually retry/self-heal after
+this specific race, not just rely on a fresh app open. Device repro used
+two disposable test accounts; the owner's real account/household was
+never involved.
+
+**Resolved red herring, 2026-10-01:** a `members` array on the `gaptest`
+household briefly looked corrupted (showed "1 of 4 members" with only
+the second test account listed, not the original) — explained by the
+owner manually deleting the original test household via Firebase
+Console mid-session, not an app bug.
+
+**RESOLVED 2026-10-01, device-verified: HouseholdScreen title sat under
+the status bar/camera cutout** (`96ddfd1`) — same missing
+`paddingTop: spacing.md + insets.top` pattern gap as the earlier
+Settings-avatar fix below, just on a different screen. `HouseholdScreen`
+never adopted the pattern `HomeScreen` already had. Confirmed fixed
+on-device. Given this and the Settings-avatar bug were two different
+screens hitting the same root cause independently, other screens using
+`ScreenContainer` without any `insets.top` handling likely share this
+risk — **not yet audited**, flagged for a future pass, not done
+2026-10-01 (scope deliberately cut short mid-session, see below).
+
 **RESOLVED 2026-10-01, device-verified: Settings-avatar clipping —
 real cause was flex overflow, not screen curvature.** Owner reported
 live (real device) that the Home screen's purple Settings avatar
@@ -585,6 +625,13 @@ one — sign back in as yourself next time you pick up the phone.
 No in-app cleanup path exists for any of these — remove them by hand in the
 Firebase console whenever convenient.
 
+- **2026-10-01 session:** the owner deleted the original `gaptest` household
+  ("household1") manually via Firebase Console mid-session. A second
+  disposable account, **`gaptest2.pethealthtracker@gmail.com`** / password
+  `GapTest2026`, was created and joined the `gaptest` household's invite
+  code — both this account and whatever household state it's now attached
+  to are safe to delete via Firebase Console whenever. The device itself
+  was left signed into this account, not the owner's real one.
 - One disposable test account/household from tonight's (2026-09-29) open-gaps
   device pass: **`gaptest.pethealthtracker@gmail.com`** / "Gap Test
   Household" (zero pets, created solely to test empty-state screens without
