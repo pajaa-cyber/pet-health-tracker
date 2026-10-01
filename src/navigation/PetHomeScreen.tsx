@@ -322,7 +322,14 @@ export function PetHomeScreen({ route, navigation }: any) {
                   <Text style={{ fontSize: 19 }}>{s.emoji}</Text>
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: text.primary }}>{s.label}</Text>
+                  <Text
+                    style={{ fontSize: 15, fontWeight: '800', color: text.primary }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
+                    {s.label}
+                  </Text>
                   <Text style={{ fontSize: 12, fontWeight: '600', color: text.secondary }}>{s.count(hubData)}</Text>
                 </View>
               </View>
