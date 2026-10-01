@@ -8,6 +8,26 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**Not yet device-verified, resume here first: curved-edge screen insets
+fix (`b74c924`).** Owner reported live (real device, real account, not a
+test account) that the Home screen's purple Settings avatar (top-right)
+was almost entirely cut off under the screen's physical curve on their
+Honor phone — barely visible, hard to tap. Root cause: `insets.left`/
+`insets.right` were never handled anywhere in the codebase (only
+`insets.top`/`insets.bottom` were) — a zero-cost no-op on flat-edge
+screens, so it never surfaced until a curved-edge device hit it. Fixed
+in `ScreenContainer` (covers every screen that doesn't override its own
+horizontal padding) and additionally in `PetHomeScreen`'s header (bypasses
+ScreenContainer's padding with its own, and has the identical
+right-aligned-button shape — the "Edit" pill). **Not yet confirmed on
+device** — phone was disconnected when this was written. Other screens
+with their own manual header padding (Calendar, DayDetailScreen,
+AddSheet, AddPetScreen, HouseholdSetupScreen) weren't touched — only
+flagged as the same risk shape, not confirmed affected, since their
+primary interactive elements are left-aligned (back chevron). Resume:
+confirm the Settings avatar sits fully on-screen now, then check
+PetHomeScreen's "Edit" pill too.
+
 **RESOLVED 2026-10-01: adding a new pet was broken in production for
 everyone, including the owner's real account — now fixed and deployed.**
 Found while device-testing open gap #7 on the disposable `gaptest`
