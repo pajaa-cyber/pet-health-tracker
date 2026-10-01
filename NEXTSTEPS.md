@@ -1,4 +1,4 @@
-# Where we left off (2026-09-29)
+# Where we left off (2026-10-01)
 
 Resume state only. Permanent rules live in `CLAUDE.md`; per-plan build and
 verification history lives in `docs/history/` (`plan-log.md` is the index).
@@ -7,6 +7,36 @@ verification history lives in `docs/history/` (`plan-log.md` is the index).
 it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
+
+**2026-09-30/10-01 session — small fixes plus one new feature, not yet
+device-verified, resume here first.**
+
+- Five commits landed on `master` since the 2026-09-29 pass below (all
+  code-reviewed/`tsc`+`jest`-clean, none device-verified yet): auto-scroll
+  focused fields above the keyboard app-wide, scroll-to-submit-button for
+  clustered inputs (Add a Blood Test's marker row, Prepare for Vet), a cap
+  on Hygiene at one record per category plus a Clear action, a duplicate
+  "Add a ___" button fix on empty Vaccine/Document/Blood Test lists, and
+  the same duplicate-button fix for the Vets list (missed in the first
+  pass).
+- **New: OCR-assisted blood test entry** (`fcccb60`) — Add a Blood Test
+  now has "Scan photo"/"Choose from library" buttons using the same
+  on-device ML Kit text recognition Scan Food already uses (nothing
+  uploaded anywhere), parsed line-by-line by the new `bloodTestOcr.ts`
+  and pre-filled into the same marker-row fields manual entry uses — the
+  owner still reviews/corrects/confirms every row before Save, and OCR
+  never touches reference-range interpretation (still
+  `computeMarkerStatus`'s job). 9 new unit tests
+  (`__tests__/bloodTestOcr.test.ts`) cover common lab-report line shapes;
+  `tsc`/`jest` clean. **Not yet confirmed on a real device** — per this
+  file's own standing rule, reviewed is not verified.
+- **Two untracked, undecided files sitting in the working tree as of
+  2026-10-01, deliberately left alone pending the owner's call:**
+  `agent-audit.md` (a stale, unrelated 2026-09-22 audit report about
+  this machine's skill/agent setup, not app code) and
+  `design_handoff_colorful_reskin/` (an HTML prototype + screenshots —
+  reference material for the Colourful Reskin, which is already merged).
+  Neither is committed; decide whether to delete, `.gitignore`, or keep.
 
 **Pre-Play-Store-submission pass, 2026-09-29 — session ended mid-task, resume
 here first.**
