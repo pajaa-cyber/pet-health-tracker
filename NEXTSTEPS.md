@@ -8,18 +8,30 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
-**2026-09-30/10-01 session — small fixes plus one new feature, mostly
-device-verified, resume here first.**
+**2026-09-30/10-01 session — small fixes plus one new feature, all now
+device-verified.**
 
 - Five commits landed on `master` since the 2026-09-29 pass below (all
-  code-reviewed/`tsc`+`jest`-clean): auto-scroll focused fields above the
-  keyboard app-wide, scroll-to-submit-button for clustered inputs (Add a
-  Blood Test's marker row, Prepare for Vet), a cap on Hygiene at one
-  record per category plus a Clear action, a duplicate "Add a ___" button
-  fix on empty Vaccine/Document/Blood Test lists, and the same duplicate-
-  button fix for the Vets list (missed in the first pass — **device-
-  verified 2026-10-01**, see below). **Still not device-verified:** the
-  two keyboard-scroll fixes and the Hygiene cap/Clear action.
+  code-reviewed/`tsc`+`jest`-clean, **all device-verified 2026-10-01** on
+  Macmac, owner's real pet):
+  - Auto-scroll focused fields above the keyboard app-wide (`0088935`) —
+    confirmed on Add a Blood Test's "Laboratory" field: focusing it with
+    the keyboard open scrolled the field fully into view above the
+    keyboard instead of leaving it hidden.
+  - Scroll-to-submit-button for clustered inputs (`02d2583`) — confirmed
+    on Add a Blood Test's (only, so also last) marker row: focusing
+    "Ref. high" scrolled the whole cluster so the Save button was visible
+    above the keyboard, not just the focused field.
+  - Hygiene cap at one record per category plus a Clear action
+    (`be5fb3e`) — confirmed by tapping "Teeth" twice (stayed at "Hygiene
+    · 1 record" on Macmac's hub tile, not 2) then tapping "Clear" (reverted
+    to "Not logged yet"). No leftover data on Macmac.
+  - Duplicate "Add a ___" button fix on empty Vaccine/Document/Blood Test
+    lists, and the same fix for the Vets list (missed in the first pass) —
+    device-verified 2026-10-01, see the OCR entry below for the Vets half.
+  None of this session's device testing left any permanent data behind —
+  every test (OCR scan, Hygiene log/clear) was either not saved or was
+  cleared again before moving on.
 - **New: OCR-assisted blood test entry** (`fcccb60`) — Add a Blood Test
   now has "Scan photo"/"Choose from library" buttons using the same
   on-device ML Kit text recognition Scan Food already uses (nothing
