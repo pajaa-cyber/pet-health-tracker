@@ -66,3 +66,6 @@ screen.png
 # a build as this app. Back it up somewhere outside this repo.
 /release.keystore
 /keystore.properties
+
+# Design reference material, not app code — kept locally, never committed
+/design_handoff_colorful_reskin/
