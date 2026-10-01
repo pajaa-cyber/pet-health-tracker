@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FlatList, View, Share, Alert } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../auth/AuthContext';
 import { useHousehold } from '../household/HouseholdContext';
 import { removeMember, reconcileMemberCount } from '../household/householdService';
@@ -15,6 +16,7 @@ export function HouseholdScreen({ navigation }: any) {
   const { user } = useAuth();
   const { household } = useHousehold();
   const [sitterGrants, setSitterGrants] = useState<SitterAccessGrant[]>([]);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!household) return;
@@ -85,7 +87,7 @@ export function HouseholdScreen({ navigation }: any) {
   const atLimit = household ? !canAddHouseholdMember(household) : false;
 
   return (
-    <ScreenContainer style={{ flex: 1 }}>
+    <ScreenContainer style={{ flex: 1, paddingTop: spacing.md + insets.top }}>
       <Title>{household?.name ?? 'Household'}</Title>
 
       <Card style={{ gap: spacing.xs }}>
