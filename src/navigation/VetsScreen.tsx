@@ -140,8 +140,6 @@ export function VetsScreen({ navigation }: any) {
             emoji="🩺"
             title="No vets yet"
             message="Save every clinic you've used, with contact details and which pets go there."
-            actionLabel="Add a vet"
-            onAction={() => navigation.navigate('AddVet')}
           />
         }
       />
