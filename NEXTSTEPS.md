@@ -461,16 +461,59 @@ owner's real data:**
   text input, so they don't have the keyboard-clipping exposure — left
   alone.
 
-**Still not verified on a real device — #2, #4, #7, #9, #10, #12.**
-These genuinely need either disposable/scratch data (a fresh un-logged pet
-for #7, a specific stale-navigation state for #12) or a forced failure
-condition (a Firestore write actually failing, for #4) to observe safely —
-the `gaptest` household above could still be used for #7 (add one pet, no
-weight log yet) in a future pass. #2 (`generateInviteCode`'s CSPRNG) isn't
-device-observable at all; that one's confirmed by reading the code, not by
-looking at a screen. All six pass `tsc`/`jest` regardless, but per this
-file's own standing rule ("Reviewed is not verified"), that's necessary, not
-sufficient.
+**#2, #4, #9, #10, #12 — code-audited 2026-10-01, concluded not practically
+device-testable on a single phone/session; #7 still open, see below.**
+Attempted a device pass on all six (owner's request); five turned out to
+structurally resist it:
+- **#2** (`generateInviteCode`'s CSPRNG) — confirmed by reading
+  `secureRandomIndex` (`householdService.ts`): correctly prefers
+  `crypto.getRandomValues` (`Uint32Array` + modulo), falls back to
+  `Math.random()` only if that's unavailable. The code's own comment
+  already states this was deliberately written to not need device
+  verification. Not device-observable — there's no UI surface that
+  reveals which path ran.
+- **#4** (error surface on Done/Skip) — read the full call chain
+  (`useCalendarEntryActions.ts` → `reminderActions.ts`'s `markDone`/
+  `skip`, which propagate rather than swallow): every `catch` sets
+  `error`, both `CalendarScreen` and `DayDetailScreen` render it via
+  `{error && <ErrorText>{error}</ErrorText>}`. Tried forcing a real
+  failure via airplane mode first — doesn't work, Firestore's offline
+  persistence queues the write and resolves the `await` successfully
+  from local cache rather than throwing, so that would've been a false
+  test either way. A genuine rejected write needs a second Firestore
+  client racing a delete against this one's `await updateEvent(...)` —
+  not reproducible solo.
+- **#9** (stale snooze pruning) — `isSnoozed()`/`SnoozeEntry` logic read
+  in full, matches the dueDate-based self-invalidation CLAUDE.md
+  describes, and has dedicated passing unit tests
+  (`__tests__/snoozeStore.test.ts`). Also genuinely unreachable from the
+  UI at all right now — CLAUDE.md already documents that the snooze
+  button is deliberately not wired to any screen.
+- **#10** (DST edge case) — `computeNotificationTime` read in full, uses
+  `addDays()` (the codebase's one DST-safe day-boundary helper) instead
+  of raw millisecond math, with dedicated passing unit tests
+  (`__tests__/notificationTiming.test.ts`). Only actually observable on
+  a device within a day of a real DST transition, twice a year.
+- **#12** (`EditEventScreen` stale "Loading…") — read the full
+  `notFound`/`loaded` effect: a first snapshot without the event sets
+  `notFound` immediately, matching #11's already-device-verified sibling
+  fix. Reproducing it for real needs the same cross-client race as #4
+  (open Edit on an event another client deletes before this screen's
+  first snapshot arrives) — not reproducible solo, and forcing it via a
+  single-device timing hack risked a flaky, misleading result rather
+  than a real signal.
+
+**#7** (Weight screen's empty-state CTA) needs a pet with zero weight logs
+to actually see — both of the owner's real pets (Macmac, Dona) already have
+entries, and the app has no UI path to remove/forget a pet it didn't already
+have before this check (CLAUDE.md), so testing on the real household would
+leave permanent clutter. Plan: sign into the disposable
+`gaptest.pethealthtracker@gmail.com` account (already exists from the
+2026-09-29 pass) instead, add one throwaway pet there, confirm the Weight
+screen's empty state, then sign back into the owner's real account.
+**Blocked mid-attempt 2026-10-01: the phone locked (fingerprint) while
+waiting on an in-conversation decision, and remained locked for the rest of
+the session — resume this first next time the device is in hand unlocked.**
 
 **Housekeeping note:** the `gaptest.pethealthtracker@gmail.com` /
 `GapTest2026` test account and its "Gap Test Household" (zero pets) are now
