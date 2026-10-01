@@ -17,8 +17,12 @@ export function ScreenContainer({ scroll, style, background, children, ...rest }
   // Some Android skins (Honor et al.) render on-screen nav buttons that
   // overlap the last bit of scrollable content otherwise — insets.bottom is
   // 0 on devices with a real gesture bar, so this is a no-op there.
+  // insets.left/right cover curved-edge screens (same Honor-et-al. family) —
+  // a device-reported real-user confirmed the Home screen's Settings avatar
+  // sitting right under the screen's physical curve, barely tappable. 0 on
+  // flat-edge devices, so this is a no-op there too.
   const insets = useSafeAreaInsets();
-  const bottomInset = { paddingBottom: spacing.md + insets.bottom };
+  const edgeInsets = { paddingBottom: spacing.md + insets.bottom, paddingLeft: spacing.md + insets.left, paddingRight: spacing.md + insets.right };
   const bgOverride = background ? { backgroundColor: background } : undefined;
   const scrollViewRef = useRef<ScrollView>(null);
   if (scroll) {
@@ -27,7 +31,7 @@ export function ScreenContainer({ scroll, style, background, children, ...rest }
         <ScrollView
           ref={scrollViewRef}
           style={[styles.background, bgOverride]}
-          contentContainerStyle={[styles.content, bottomInset, style]}
+          contentContainerStyle={[styles.content, edgeInsets, style]}
           keyboardShouldPersistTaps="handled"
           {...rest}
         >
@@ -37,7 +41,7 @@ export function ScreenContainer({ scroll, style, background, children, ...rest }
     );
   }
   return (
-    <View style={[styles.background, styles.content, bottomInset, bgOverride, style]} {...rest}>
+    <View style={[styles.background, styles.content, edgeInsets, bgOverride, style]} {...rest}>
       {children}
     </View>
   );

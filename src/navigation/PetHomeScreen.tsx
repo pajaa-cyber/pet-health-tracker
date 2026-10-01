@@ -207,7 +207,7 @@ export function PetHomeScreen({ route, navigation }: any) {
 
   return (
     <ScreenContainer scroll background={shell.bg} style={{ padding: 0, gap: spacing.md }}>
-      <View style={{ backgroundColor: color, paddingTop: 16 + insets.top, paddingHorizontal: 18, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: 'hidden' }}>
+      <View style={{ backgroundColor: color, paddingTop: 16 + insets.top, paddingLeft: 18 + insets.left, paddingRight: 18 + insets.right, paddingBottom: 22, borderBottomLeftRadius: 34, borderBottomRightRadius: 34, overflow: 'hidden' }}>
         <Text style={{ position: 'absolute', right: -16, bottom: -34, fontSize: 150, opacity: 0.2 }}>
           {SPECIES_EMOJI[pet.species] ?? '🐾'}
         </Text>
