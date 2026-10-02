@@ -148,6 +148,10 @@ export function EditEventScreen({ route, navigation }: any) {
 
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Save" onPress={handleSave} loading={saving} disabled={petIds.length === 0 || !type || title.trim().length === 0} />
+      {/* Same fixed-height-content keyboard issue as EditPetScreen/AddVetScreen
+          (Notes sat right at one screen's height, no slack for the ScrollView
+          to reveal once the keyboard covered it) — reported live on-device. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }

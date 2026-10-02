@@ -130,6 +130,9 @@ export function AddEventScreen({ navigation }: any) {
           style={{ flex: 1 }}
         />
       </View>
+      {/* Same fixed-height-content keyboard issue as EditEventScreen (same
+          Notes field) — see that screen's comment for the full rationale. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }
