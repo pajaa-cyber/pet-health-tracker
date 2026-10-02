@@ -1,4 +1,4 @@
-# Where we left off (2026-10-01)
+# Where we left off (2026-10-02)
 
 Resume state only. Permanent rules live in `CLAUDE.md`; per-plan build and
 verification history lives in `docs/history/` (`plan-log.md` is the index).
@@ -7,6 +7,27 @@ verification history lives in `docs/history/` (`plan-log.md` is the index).
 it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
+
+**RESOLVED, device-verified 2026-10-02 (`3836a33`): EditPetScreen's
+Microchip/Custom fields section was unreachable under the keyboard.**
+Reported live by the owner. First fix attempt (`scrollToEnd` on every
+field in the cluster, the pattern already proven on Add a Blood Test /
+Prepare for Vet) type-checked clean but did nothing on-device. Added
+temporary debug logging to confirm `scrollToEnd()` was firing correctly
+with a valid ref every time — the real cause: this form's content,
+without a keyboard open, already fills almost exactly one screen with no
+slack, so the ScrollView had no extra scrollable range to reveal once
+the keyboard covered the tail. Same shape `AddBloodTestScreen.tsx`/
+`PrepareForVetScreen.tsx` already fix with a fixed
+`<View style={{ height: 280 }} />` spacer — EditPetScreen just never got
+it. Applied the same spacer; confirmed on-device, Save button now fully
+visible above the keyboard.
+
+**Flagged, not acted on:** this exact failure mode (a form whose content
+height ≈ one screen, no slack for scrollToEnd to use once the keyboard
+opens) likely affects other long forms too — not audited further this
+session, per the owner's standing instruction not to expand scope without
+asking first.
 
 **RESOLVED, device-verified 2026-10-01 (`048a163`): joining an existing
 household could leave the joiner permanently stuck on "Set up your
