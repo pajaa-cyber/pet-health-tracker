@@ -121,15 +121,21 @@ export function EditPetScreen({ route, navigation }: any) {
           />
         ))}
       </View>
-      <TextField label="Microchip provider" value={pet.microchipProvider ?? ''} onChangeText={(t) => patch({ microchipProvider: t })} />
-      <TextField label="Microchip number" value={pet.microchipNumber ?? ''} onChangeText={(t) => patch({ microchipNumber: t })} />
+      <TextField label="Microchip provider" value={pet.microchipProvider ?? ''} onChangeText={(t) => patch({ microchipProvider: t })} scrollToEnd />
+      <TextField label="Microchip number" value={pet.microchipNumber ?? ''} onChangeText={(t) => patch({ microchipNumber: t })} scrollToEnd />
       <DateField
         label="Microchip date implanted"
         value={pet.microchipDate}
         onChange={(v) => patch({ microchipDate: v })}
         onClear={() => patch({ microchipDate: null })}
       />
-      <TextField label="Microchip registry" value={pet.microchipRegistry ?? ''} onChangeText={(t) => patch({ microchipRegistry: t })} />
+      {/* This whole tail cluster (microchip registry through the last custom
+          field) sits right above Save with nothing below it to scroll
+          into — the same "field itself scrolls into view but Save and
+          whatever's after it stays under the keyboard" shape already fixed
+          elsewhere (Add a Blood Test's last marker row, Prepare for Vet)
+          via scrollToEnd, just never applied here. Reported live on-device. */}
+      <TextField label="Microchip registry" value={pet.microchipRegistry ?? ''} onChangeText={(t) => patch({ microchipRegistry: t })} scrollToEnd />
       <Title>Custom fields</Title>
       {(pet.customFields ?? []).map((f, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -138,6 +144,7 @@ export function EditPetScreen({ route, navigation }: any) {
               label="Label"
               value={f.label}
               onChangeText={(t) => patch({ customFields: (pet.customFields ?? []).map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
+              scrollToEnd
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -145,6 +152,7 @@ export function EditPetScreen({ route, navigation }: any) {
               label="Value"
               value={f.value}
               onChangeText={(t) => patch({ customFields: (pet.customFields ?? []).map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
+              scrollToEnd
             />
           </View>
           <Button
@@ -183,6 +191,17 @@ export function EditPetScreen({ route, navigation }: any) {
           <MutedText>{`${pet.name} will be moved out of your active pets list. Their records are kept safe and can be restored anytime with this same button.`}</MutedText>
         </>
       )}
+      {/* This form's content sits right at one screen's height without a
+          keyboard open (confirmed via debug logging: scrollToEnd() was
+          firing with a valid ScrollView ref every time, but the native
+          view had no extra scrollable range to move into once the
+          keyboard opened) — the same shape already fixed this way on Add
+          a Blood Test and Prepare for Vet. A fixed spacer guarantees
+          content is always taller than any visible area, so scrolling
+          stays consistently available. Found live on-device: the
+          Microchip section and Custom fields were unreachable past the
+          keyboard. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }
