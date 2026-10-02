@@ -8,6 +8,20 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**RESOLVED, device-verified 2026-10-02: Add/Edit Vet forms' lower fields
+unreachable under keyboard.** Owner asked Claude to keep working through
+the "keyboard covers a long form" risk flagged earlier — found it live
+on `AddVetScreen` (Notes field hidden under the keyboard, same shape as
+EditPetScreen). Applied the identical `<View style={{ height: 280 }} />`
+spacer fix to both `AddVetScreen` and `EditVetScreen` (same field set).
+Confirmed on-device: Notes fully visible while typing, rest of the form
+(pet checkboxes, Add vet button) reachable via manual scroll with the
+keyboard still open. `AddMedicationScreen` checked too (only 4
+TextFields + 2 DateFields) — short enough that it's unlikely to share
+this risk, left alone without evidence of a real problem. Other
+Add/Edit screens (Event, Expense, Vaccine, VetVisit, Document) not yet
+checked.
+
 **RESOLVED, device-verified 2026-10-02 (`3836a33`): EditPetScreen's
 Microchip/Custom fields section was unreachable under the keyboard.**
 Reported live by the owner. First fix attempt (`scrollToEnd` on every
