@@ -41,9 +41,16 @@ function MarkerRow({ result, allTests }: { result: BloodMarkerResult; allTests: 
 
   return (
     <View style={{ borderRadius: radii.md, backgroundColor: colors.surfaceTint, padding: spacing.md, gap: 4 }}>
+      {/* flexShrink on the marker name — it falls back to the raw
+          user-typed/OCR'd marker string (result.marker) when it's not one
+          of the ~25 known glossary entries, which has no length limit on
+          manual entry. Same defensive shape as the Home/Household-screen
+          fix: don't let unbounded text push the status badge away. */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Text style={{ fontWeight: '800', fontSize: 15, color: colors.text }}>{label}</Text>
-        <Text style={{ fontWeight: '700', fontSize: 12, color: STATUS_COLOR[status] }}>{STATUS_LABEL[status]}</Text>
+        <Text style={{ fontWeight: '800', fontSize: 15, color: colors.text, flexShrink: 1, marginRight: spacing.sm }} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text style={{ fontWeight: '700', fontSize: 12, color: STATUS_COLOR[status], flexShrink: 0 }}>{STATUS_LABEL[status]}</Text>
       </View>
       <Text style={{ color: colors.text }}>
         {result.value} {result.unit}
