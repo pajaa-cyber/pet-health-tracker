@@ -8,6 +8,37 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**RESOLVED, device-verified 2026-10-02 (`a6f6578`): focused fields
+scrolled inconsistently — some clipped by the keyboard, some scrolled
+clean off the top of the screen.** Owner reported live on EditPetScreen:
+Allergies/Colour each slightly clipped by the keyboard on focus, while
+Microchip provider/number scrolled themselves entirely off the TOP of
+the screen, hidden behind the header. Root cause of the second part: an
+earlier fix pass had put `scrollToEnd` on those two fields, which jumps
+to the bottom of the WHOLE form regardless of where the focused field
+sits — wrong for a field with several more fields still below it.
+Removed `scrollToEnd` from every field in this section (the 280px bottom
+spacer, not scrollToEnd, is what actually keeps content reachable).
+
+Also replaced the base per-field scroll behavior app-wide: it used
+`scrollResponderScrollNativeHandleToKeyboard` (positions relative to the
+keyboard, inconsistent depending on where the field already sat — part
+of why Allergies/Colour still clipped). Every focused `TextField`
+without `scrollToEnd` now scrolls to a fixed, predictable position near
+the TOP of the visible area (16px below the header) via `measureLayout`,
+regardless of where it sits in the form. This is a shared hook
+(`useScrollToInputOnFocus` in `ScrollToInputContext.ts`), so the change
+applies to every form screen in the app, not just EditPetScreen — not
+separately re-verified on other screens yet, but the mechanism itself is
+now confirmed correct on-device across three fields at different form
+depths. Hit and fixed one real bug getting there: `measureLayout`'s
+`relativeTo` argument must be an actual ref to a native component under
+the New Architecture — a derived node handle
+(`ScrollView.getScrollableNode()`) was silently rejected with "ref.
+measureLayout must be called with a ref to a native component" (seen
+live as an on-device warning); passing the ScrollView ref directly
+works.
+
 **RESOLVED, device-verified 2026-10-02: Add/Edit Vet forms' lower fields
 unreachable under keyboard.** Owner asked Claude to keep working through
 the "keyboard covers a long form" risk flagged earlier — found it live
