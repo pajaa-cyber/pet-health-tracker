@@ -8,6 +8,46 @@ it** — this file is written by a session that may not have finished cleanly.
 
 ## In flight
 
+**RESOLVED, device-verified 2026-10-02: 16 screens were rendering
+content at roughly 2-3x the intended side margin.** Owner reported live
+on the Calendar tab: "looks zoomed out, narrowed by about 1cm on each
+side" vs. Pets/Vets/Household — and was right, confirmed by exact
+on-device pixel measurement rather than guessing (Calendar's title sat
+at x=156 instead of the x=52 baseline used everywhere else). Two
+independent causes stacked:
+
+1. **`ScreenContainer`'s `noPadding` prop, new this session** — the
+   established way for a screen to manage its own padding,
+   `style={{ padding: 0, ... }}`, silently stopped working the moment
+   yesterday's insets.left/right fix (`b74c924`) added `paddingLeft`/
+   `paddingRight`/`paddingBottom` as separate style keys ahead of the
+   caller's own `style`: `padding: 0` and `paddingLeft` are different
+   keys, both survived into the final flattened style, and Yoga prefers
+   the more specific per-edge property over the generic shorthand
+   regardless of array order — so the screen's own padding stacked on
+   top of ScreenContainer's un-zeroed padding instead of replacing it.
+   Fixed with an explicit `noPadding` boolean that skips
+   `styles.content`/`edgeInsets` entirely (no key-collision possible),
+   and every screen using the old pattern switched to it: `BloodTestListScreen`,
+   `CalendarScreen`, `DayDetailScreen`, `DocumentListScreen`,
+   `ExpenseListScreen`, `HygieneScreen`, `MedicationListScreen`,
+   `PetHomeScreen`, `PreferencesScreen`, `ProfileScreen`, `ScanFoodScreen`,
+   `SettingsScreen`, `SubscriptionsScreen`, `VaccineListScreen`,
+   `VetVisitListScreen`, `WeightLogScreen`.
+2. **`CalendarScreen` only, pre-existing, independent bug** — its
+   `ListHeaderComponent` had its own `paddingHorizontal: spacing.md` on
+   top of the FlatList's `contentContainerStyle`, which already applies
+   that same padding to the whole scrollable area including the header.
+   Removed the header's own copy.
+
+Confirmed via exact bounds measurement at each step: 156px actual →
+104px (fix 1 alone) → 52px (both fixes, exactly matching the app-wide
+baseline) on Calendar specifically, plus a spot-check on PetHomeScreen's
+header (Back/Edit land at the expected symmetric 59px/1142px, no
+double-layer). `DayDetailScreen` structures its header as a FlatList
+sibling, not a `ListHeaderComponent`, so it never had bug 2's shape —
+fix 1 alone was sufficient there.
+
 **RESOLVED, device-verified 2026-10-02 (`a6f6578`): focused fields
 scrolled inconsistently — some clipped by the keyboard, some scrolled
 clean off the top of the screen.** Owner reported live on EditPetScreen:
