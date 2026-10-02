@@ -71,7 +71,7 @@ export function SettingsScreen({ navigation }: any) {
   };
 
   return (
-    <ScreenContainer background={shell.bg} style={{ padding: 0 }}>
+    <ScreenContainer noPadding background={shell.bg}>
       <RecordListHeader title="Settings" subtitle={user?.email ?? ''} onBack={() => navigation.goBack()} />
       <View style={{ padding: spacing.md, gap: spacing.md }}>
         <SettingsSection title="My settings">

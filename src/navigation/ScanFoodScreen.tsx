@@ -55,7 +55,7 @@ export function ScanFoodScreen({ route, navigation }: any) {
   const matches = pet && scannedText != null ? findAllergenMatches(scannedText, pet.allergies || '') : [];
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <RecordListHeader title="Scan food label" subtitle={`${pet?.name ?? 'Pet'} · allergen check`} onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
         <MutedText>

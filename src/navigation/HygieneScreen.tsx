@@ -89,7 +89,7 @@ export function HygieneScreen({ route, navigation }: any) {
   };
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <RecordListHeader
         title="Hygiene"
         subtitle={`${pet?.name ?? 'Pet'} · tap an item to log it now`}

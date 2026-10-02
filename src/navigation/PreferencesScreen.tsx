@@ -23,7 +23,7 @@ export function PreferencesScreen({ navigation }: any) {
   };
 
   return (
-    <ScreenContainer background={shell.bg} style={{ padding: 0 }}>
+    <ScreenContainer noPadding background={shell.bg}>
       <RecordListHeader title="Preferences" onBack={() => navigation.goBack()} />
       <View style={{ padding: spacing.md, gap: spacing.md }}>
         <View style={{ borderRadius: radii.lg, backgroundColor: shell.card, padding: 16, gap: spacing.sm }}>

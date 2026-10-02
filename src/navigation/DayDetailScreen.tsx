@@ -45,7 +45,7 @@ export function DayDetailScreen({ route, navigation }: any) {
   const dayEntries = entriesForDay(petFilteredEntries, date).slice().sort((a, b) => a.date - b.date);
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingTop: insets.top + spacing.sm, paddingBottom: spacing.sm }}>
         <Pressable
           onPress={() => navigation.goBack()}

@@ -99,11 +99,18 @@ export function CalendarScreen({ navigation }: any) {
   const agendaCount = listData.length;
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <FlatList
         style={{ flex: 1 }}
         ListHeaderComponent={
-          <View style={{ paddingHorizontal: spacing.md, gap: spacing.md, paddingTop: insets.top + spacing.sm, paddingBottom: spacing.sm }}>
+          // No paddingHorizontal here — the FlatList's own
+          // contentContainerStyle below already applies it to the whole
+          // scrollable area (header included, since ListHeaderComponent
+          // renders inside that same content container). Adding it again
+          // here double-applied the margin for the header specifically —
+          // found live on-device via exact pixel measurement (104px actual
+          // vs. 52px expected: two stacked spacing.md layers, not one).
+          <View style={{ gap: spacing.md, paddingTop: insets.top + spacing.sm, paddingBottom: spacing.sm }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <View>
                 <Text style={{ fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', color: accentLavender }}>

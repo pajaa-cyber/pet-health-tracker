@@ -78,7 +78,7 @@ export function WeightLogScreen({ route, navigation }: any) {
   const weightTrend = computeWeightTrend(logs);
 
   return (
-    <ScreenContainer scroll background={shell.bg} style={{ padding: 0 }}>
+    <ScreenContainer scroll noPadding background={shell.bg}>
       <RecordListHeader
         title="Weight"
         subtitle={`${pet?.name ?? 'Pet'} · ${logs.length} ${logs.length === 1 ? 'entry' : 'entries'}`}

@@ -39,7 +39,7 @@ export function VetVisitListScreen({ route, navigation }: any) {
   };
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <RecordListHeader
         title="Vet visits"
         subtitle={`${pet?.name ?? 'Pet'} · ${visits.length} ${visits.length === 1 ? 'entry' : 'entries'}`}

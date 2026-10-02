@@ -51,7 +51,7 @@ export function DocumentListScreen({ route, navigation }: any) {
   };
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <RecordListHeader
         title="Documents"
         subtitle={`${pet?.name ?? 'Pet'} · ${documents.length} ${documents.length === 1 ? 'document' : 'documents'}`}

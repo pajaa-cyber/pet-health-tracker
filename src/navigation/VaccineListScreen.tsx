@@ -39,7 +39,7 @@ export function VaccineListScreen({ route, navigation }: any) {
   };
 
   return (
-    <ScreenContainer style={{ flex: 1, padding: 0 }} background={shell.bg}>
+    <ScreenContainer noPadding style={{ flex: 1 }} background={shell.bg}>
       <RecordListHeader
         title="Vaccines"
         subtitle={`${pet?.name ?? 'Pet'} · ${vaccines.length} ${vaccines.length === 1 ? 'entry' : 'entries'}`}
