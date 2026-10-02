@@ -93,6 +93,14 @@ export function AddVetScreen({ navigation }: any) {
 
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Add vet" onPress={handleSubmit} disabled={clinicName.trim().length === 0} loading={loading} />
+      {/* This form's content sits right at one screen's height without a
+          keyboard open, which left the ScrollView unable to reliably become
+          scrollable once the keyboard opened and covered the lower fields —
+          same shape as AddBloodTestScreen/PrepareForVetScreen/EditPetScreen.
+          A fixed spacer guarantees content is always taller than any visible
+          area, so scrolling stays consistently available. Reported live
+          on-device. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }

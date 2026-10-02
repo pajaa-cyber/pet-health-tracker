@@ -138,6 +138,9 @@ export function EditVetScreen({ route, navigation }: any) {
 
       {error && <ErrorText>{error}</ErrorText>}
       <Button title="Save" onPress={handleSave} loading={saving} disabled={clinicName.trim().length === 0} />
+      {/* Same fixed-height-content keyboard issue as AddVetScreen (identical
+          field set) — see that screen's comment for the full rationale. */}
+      <View style={{ height: 280 }} />
     </ScreenContainer>
   );
 }
