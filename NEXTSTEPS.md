@@ -23,11 +23,30 @@ the keyboard covered the tail. Same shape `AddBloodTestScreen.tsx`/
 it. Applied the same spacer; confirmed on-device, Save button now fully
 visible above the keyboard.
 
-**Flagged, not acted on:** this exact failure mode (a form whose content
-height ≈ one screen, no slack for scrollToEnd to use once the keyboard
-opens) likely affects other long forms too — not audited further this
-session, per the owner's standing instruction not to expand scope without
-asking first.
+**RESOLVED 2026-10-02 (not device-verified, low risk): text-overflow
+audit of the remaining flagged screens.** Owner asked for a full "what's
+left before Play Store" punch list, then asked Claude to start on the
+self-serviceable items. Audited Calendar, DayDetailScreen, AddSheet,
+AddPetScreen, HouseholdSetupScreen, BloodTestDetailScreen, and
+ExpenseListScreen for the real confirmed risk shape (unbounded user text
+in a row pushing a sibling button off-screen — not the earlier,
+disproven insets.left/right theory). Five of seven are fine: they use
+static/fixed-length header text, not user data, so there's nothing to
+overflow. `ExpenseListScreen` is already structurally safe (its delete
+button's sibling content View has `flex: 1`, which caps row width
+regardless of note length). Only `BloodTestDetailScreen` actually had
+it — the marker label falls back to the raw user-typed/OCR'd string
+(no length limit on manual entry) next to the status badge with no
+flex protection. Fixed with the same `flexShrink`/`numberOfLines`
+pattern already used on MedicationListScreen/VetsScreen (`e9c4237`).
+Low severity (a user would need to type
+an unusually long marker name to ever see it), so not device-verified —
+code-level fix only.
+
+**The "keyboard covers a long form with no scroll slack" risk flagged
+above (EditPetScreen's root cause) was NOT re-audited across other long
+forms this pass** — that's a separate, not-yet-done item, distinct from
+the text-overflow audit just completed.
 
 **RESOLVED, device-verified 2026-10-01 (`048a163`): joining an existing
 household could leave the joiner permanently stuck on "Set up your
