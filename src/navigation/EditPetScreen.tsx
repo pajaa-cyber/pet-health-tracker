@@ -121,21 +121,23 @@ export function EditPetScreen({ route, navigation }: any) {
           />
         ))}
       </View>
-      <TextField label="Microchip provider" value={pet.microchipProvider ?? ''} onChangeText={(t) => patch({ microchipProvider: t })} scrollToEnd />
-      <TextField label="Microchip number" value={pet.microchipNumber ?? ''} onChangeText={(t) => patch({ microchipNumber: t })} scrollToEnd />
+      <TextField label="Microchip provider" value={pet.microchipProvider ?? ''} onChangeText={(t) => patch({ microchipProvider: t })} />
+      <TextField label="Microchip number" value={pet.microchipNumber ?? ''} onChangeText={(t) => patch({ microchipNumber: t })} />
       <DateField
         label="Microchip date implanted"
         value={pet.microchipDate}
         onChange={(v) => patch({ microchipDate: v })}
         onClear={() => patch({ microchipDate: null })}
       />
-      {/* This whole tail cluster (microchip registry through the last custom
-          field) sits right above Save with nothing below it to scroll
-          into — the same "field itself scrolls into view but Save and
-          whatever's after it stays under the keyboard" shape already fixed
-          elsewhere (Add a Blood Test's last marker row, Prepare for Vet)
-          via scrollToEnd, just never applied here. Reported live on-device. */}
-      <TextField label="Microchip registry" value={pet.microchipRegistry ?? ''} onChangeText={(t) => patch({ microchipRegistry: t })} scrollToEnd />
+      {/* scrollToEnd deliberately dropped from this whole cluster (reported
+          live on-device): it scrolled straight to the bottom of the FORM
+          regardless of where the field itself sat, so an early field like
+          Microchip provider — with several more fields still below it —
+          would scroll itself up past the header and out of view entirely.
+          The plain per-field scroll-to-top behavior (TextField's default)
+          plus the fixed bottom spacer below is what actually keeps every
+          field reachable and visible, not scrollToEnd. */}
+      <TextField label="Microchip registry" value={pet.microchipRegistry ?? ''} onChangeText={(t) => patch({ microchipRegistry: t })} />
       <Title>Custom fields</Title>
       {(pet.customFields ?? []).map((f, i) => (
         <View key={i} style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -144,7 +146,6 @@ export function EditPetScreen({ route, navigation }: any) {
               label="Label"
               value={f.label}
               onChangeText={(t) => patch({ customFields: (pet.customFields ?? []).map((cf, j) => (j === i ? { ...cf, label: t } : cf)) })}
-              scrollToEnd
             />
           </View>
           <View style={{ flex: 1 }}>
@@ -152,7 +153,6 @@ export function EditPetScreen({ route, navigation }: any) {
               label="Value"
               value={f.value}
               onChangeText={(t) => patch({ customFields: (pet.customFields ?? []).map((cf, j) => (j === i ? { ...cf, value: t } : cf)) })}
-              scrollToEnd
             />
           </View>
           <Button

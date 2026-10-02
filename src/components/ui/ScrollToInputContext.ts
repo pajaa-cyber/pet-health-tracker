@@ -32,15 +32,45 @@ function afterKeyboardShown(doScroll: () => void) {
   }, 250);
 }
 
-// Takes the focus event's own `target` (the New Architecture's host
-// instance) directly — scrollResponderScrollNativeHandleToKeyboard accepts
-// `number | HostInstance`, so no findNodeHandle() detour is needed (and
-// findNodeHandle's own types don't accept a ReactNativeElement anyway).
+// How far below the header the focused field should land — not flush
+// against it, just enough breathing room to read the label above it.
+const TOP_PADDING = 16;
+
+// Scrolls the focused field to a fixed position near the TOP of the
+// visible scroll area (just under the header), not to "just above the
+// keyboard" — found live on-device that the keyboard-relative approach
+// (scrollResponderScrollNativeHandleToKeyboard, used here previously)
+// gave inconsistent, surprising results depending on where the field
+// already sat: a field near the top of a long form could get scrolled
+// UP past the header and out of view entirely (confirmed: Microchip
+// provider/number did this once scrollToEnd was added to them — see
+// EditPetScreen's own comment on why those two no longer use it), while
+// fields lower down could still end up partly clipped by the keyboard.
+// A fixed "always land near the top" target is simple and predictable
+// regardless of where the field sits in the form. measureLayout's `top`
+// is already relative to the ScrollView's own content, so no separate
+// tracking of the current scroll offset is needed — unlike
+// scrollResponderScrollNativeHandleToKeyboard, which worked in
+// screen-relative (keyboard-relative) coordinates instead.
 export function useScrollToInputOnFocus() {
   const scrollViewRef = useContext(ScrollToInputContext);
-  return (target: Parameters<ScrollView['scrollResponderScrollNativeHandleToKeyboard']>[0]) => {
+  return (target: any) => {
     afterKeyboardShown(() => {
-      scrollViewRef?.current?.scrollResponderScrollNativeHandleToKeyboard(target, 80, true);
+      const scrollView = scrollViewRef?.current;
+      // measureLayout's relativeTo argument needs an actual ref to a native
+      // component under the New Architecture — passing a derived node
+      // handle (e.g. getScrollableNode()'s return value) is rejected with
+      // "ref.measureLayout must be called with a ref to a native
+      // component" (confirmed live on-device). The ScrollView ref itself
+      // is accepted directly.
+      if (!scrollView || !target?.measureLayout) return;
+      target.measureLayout(
+        scrollView,
+        (_left: number, top: number) => {
+          scrollView.scrollTo({ y: Math.max(0, top - TOP_PADDING), animated: true });
+        },
+        () => {}
+      );
     });
   };
 }
